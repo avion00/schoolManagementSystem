@@ -1,0 +1,75 @@
+export type StudentStatus = "active" | "inactive" | "transferred" | "graduated";
+export type StudentGender = "Male" | "Female";
+
+export interface Student {
+  id: number;
+  admissionNo: string;
+  registrationNo: string;
+  name: string;
+  gender: StudentGender;
+  className: string;
+  section: string | null;
+  roll: number;
+  parentName: string;
+  mobile: string;
+  email: string;
+  address: string;
+  dateOfBirth: string;
+  status: StudentStatus;
+}
+
+export const STUDENTS: Student[] = [
+  // ── Grade 8 · Section A ───────────────────────────────────────────────────
+  { id: 1,  admissionNo: "ADM-2000", registrationNo: "REG-2026-0001", name: "Aarav Khan",         gender: "Male",   className: "Grade 8",  section: "A", roll: 1,  parentName: "David Khan",        mobile: "+977 9841000001", email: "aarav.khan@example.com",         address: "Kathmandu, Nepal",  dateOfBirth: "2012-03-10", status: "active"      },
+  { id: 2,  admissionNo: "ADM-2001", registrationNo: "REG-2026-0002", name: "Aisha Sharma",        gender: "Female", className: "Grade 8",  section: "A", roll: 2,  parentName: "Ravi Sharma",        mobile: "+977 9841000002", email: "aisha.sharma@example.com",        address: "Lalitpur, Nepal",   dateOfBirth: "2012-06-14", status: "active"      },
+  { id: 3,  admissionNo: "ADM-2002", registrationNo: "REG-2026-0003", name: "Noah Brown",          gender: "Male",   className: "Grade 8",  section: "A", roll: 3,  parentName: "Michael Brown",      mobile: "+977 9841000003", email: "noah.brown@example.com",          address: "Bhaktapur, Nepal",  dateOfBirth: "2012-01-22", status: "active"      },
+  { id: 4,  admissionNo: "ADM-2003", registrationNo: "REG-2026-0004", name: "Priya Singh",         gender: "Female", className: "Grade 8",  section: "A", roll: 4,  parentName: "Rajesh Singh",       mobile: "+977 9841000004", email: "priya.singh@example.com",         address: "Kathmandu, Nepal",  dateOfBirth: "2012-09-05", status: "active"      },
+  { id: 5,  admissionNo: "ADM-2004", registrationNo: "REG-2026-0005", name: "Arjun Patel",         gender: "Male",   className: "Grade 8",  section: "A", roll: 5,  parentName: "Suresh Patel",       mobile: "+977 9841000005", email: "arjun.patel@example.com",         address: "Pokhara, Nepal",    dateOfBirth: "2012-11-18", status: "active"      },
+  { id: 6,  admissionNo: "ADM-2005", registrationNo: "REG-2026-0006", name: "Emma Wilson",         gender: "Female", className: "Grade 8",  section: "A", roll: 6,  parentName: "James Wilson",       mobile: "+977 9841000006", email: "emma.wilson@example.com",         address: "Biratnagar, Nepal", dateOfBirth: "2012-04-30", status: "active"      },
+  { id: 7,  admissionNo: "ADM-2006", registrationNo: "REG-2026-0007", name: "Rohan Gupta",         gender: "Male",   className: "Grade 8",  section: "A", roll: 7,  parentName: "Vijay Gupta",        mobile: "+977 9841000007", email: "rohan.gupta@example.com",         address: "Lalitpur, Nepal",   dateOfBirth: "2012-07-12", status: "active"      },
+  { id: 8,  admissionNo: "ADM-2007", registrationNo: "REG-2026-0008", name: "Sofia Martinez",      gender: "Female", className: "Grade 8",  section: "A", roll: 8,  parentName: "Carlos Martinez",    mobile: "+977 9841000008", email: "sofia.martinez@example.com",      address: "Kathmandu, Nepal",  dateOfBirth: "2012-02-08", status: "inactive"    },
+  { id: 9,  admissionNo: "ADM-2008", registrationNo: "REG-2026-0009", name: "Aditya Kumar",        gender: "Male",   className: "Grade 8",  section: "A", roll: 9,  parentName: "Anand Kumar",        mobile: "+977 9841000009", email: "aditya.kumar@example.com",        address: "Bhaktapur, Nepal",  dateOfBirth: "2012-12-03", status: "active"      },
+  { id: 10, admissionNo: "ADM-2009", registrationNo: "REG-2026-0010", name: "Isabella Clark",      gender: "Female", className: "Grade 8",  section: "A", roll: 10, parentName: "Thomas Clark",       mobile: "+977 9841000010", email: "isabella.clark@example.com",      address: "Pokhara, Nepal",    dateOfBirth: "2012-05-25", status: "active"      },
+
+  // ── Grade 8 · Section B ───────────────────────────────────────────────────
+  { id: 11, admissionNo: "ADM-2010", registrationNo: "REG-2026-0011", name: "Neha Verma",          gender: "Female", className: "Grade 8",  section: "B", roll: 1,  parentName: "Sunil Verma",        mobile: "+977 9841000011", email: "neha.verma@example.com",          address: "Kathmandu, Nepal",  dateOfBirth: "2012-08-19", status: "active"      },
+  { id: 12, admissionNo: "ADM-2011", registrationNo: "REG-2026-0012", name: "James Harris",        gender: "Male",   className: "Grade 8",  section: "B", roll: 2,  parentName: "Robert Harris",      mobile: "+977 9841000012", email: "james.harris@example.com",        address: "Lalitpur, Nepal",   dateOfBirth: "2012-10-07", status: "active"      },
+  { id: 13, admissionNo: "ADM-2012", registrationNo: "REG-2026-0013", name: "Zara Ali",            gender: "Female", className: "Grade 8",  section: "B", roll: 3,  parentName: "Mohammed Ali",       mobile: "+977 9841000013", email: "zara.ali@example.com",            address: "Biratnagar, Nepal", dateOfBirth: "2012-03-28", status: "active"      },
+  { id: 14, admissionNo: "ADM-2013", registrationNo: "REG-2026-0014", name: "Liam Johnson",        gender: "Male",   className: "Grade 8",  section: "B", roll: 4,  parentName: "John Johnson",       mobile: "+977 9841000014", email: "liam.johnson@example.com",        address: "Pokhara, Nepal",    dateOfBirth: "2012-01-15", status: "active"      },
+  { id: 15, admissionNo: "ADM-2014", registrationNo: "REG-2026-0015", name: "Charlotte Lee",       gender: "Female", className: "Grade 8",  section: "B", roll: 5,  parentName: "David Lee",          mobile: "+977 9841000015", email: "charlotte.lee@example.com",       address: "Kathmandu, Nepal",  dateOfBirth: "2012-06-20", status: "transferred" },
+  { id: 16, admissionNo: "ADM-2015", registrationNo: "REG-2026-0016", name: "Ethan Davis",         gender: "Male",   className: "Grade 8",  section: "B", roll: 6,  parentName: "William Davis",      mobile: "+977 9841000016", email: "ethan.davis@example.com",         address: "Bhaktapur, Nepal",  dateOfBirth: "2012-09-11", status: "active"      },
+  { id: 17, admissionNo: "ADM-2016", registrationNo: "REG-2026-0017", name: "Mia Thompson",        gender: "Female", className: "Grade 8",  section: "B", roll: 7,  parentName: "Mark Thompson",      mobile: "+977 9841000017", email: "mia.thompson@example.com",        address: "Lalitpur, Nepal",   dateOfBirth: "2012-04-04", status: "active"      },
+  { id: 18, admissionNo: "ADM-2017", registrationNo: "REG-2026-0018", name: "Oliver White",        gender: "Male",   className: "Grade 8",  section: "B", roll: 8,  parentName: "Richard White",      mobile: "+977 9841000018", email: "oliver.white@example.com",        address: "Pokhara, Nepal",    dateOfBirth: "2012-11-29", status: "active"      },
+
+  // ── Grade 9 · Section A ───────────────────────────────────────────────────
+  { id: 19, admissionNo: "ADM-2018", registrationNo: "REG-2026-0019", name: "Ananya Reddy",        gender: "Female", className: "Grade 9",  section: "A", roll: 1,  parentName: "Venkat Reddy",       mobile: "+977 9841000019", email: "ananya.reddy@example.com",        address: "Kathmandu, Nepal",  dateOfBirth: "2011-02-14", status: "active"      },
+  { id: 20, admissionNo: "ADM-2019", registrationNo: "REG-2026-0020", name: "Lucas Walker",        gender: "Male",   className: "Grade 9",  section: "A", roll: 2,  parentName: "Andrew Walker",      mobile: "+977 9841000020", email: "lucas.walker@example.com",        address: "Biratnagar, Nepal", dateOfBirth: "2011-07-09", status: "active"      },
+  { id: 21, admissionNo: "ADM-2020", registrationNo: "REG-2026-0021", name: "Kavya Iyer",          gender: "Female", className: "Grade 9",  section: "A", roll: 3,  parentName: "Rajan Iyer",         mobile: "+977 9841000021", email: "kavya.iyer@example.com",          address: "Lalitpur, Nepal",   dateOfBirth: "2011-10-22", status: "active"      },
+  { id: 22, admissionNo: "ADM-2021", registrationNo: "REG-2026-0022", name: "Ethan Hall",          gender: "Male",   className: "Grade 9",  section: "A", roll: 4,  parentName: "Stephen Hall",       mobile: "+977 9841000022", email: "ethan.hall@example.com",          address: "Kathmandu, Nepal",  dateOfBirth: "2011-05-17", status: "active"      },
+  { id: 23, admissionNo: "ADM-2022", registrationNo: "REG-2026-0023", name: "Nora Robinson",       gender: "Female", className: "Grade 9",  section: "A", roll: 5,  parentName: "Daniel Robinson",    mobile: "+977 9841000023", email: "nora.robinson@example.com",       address: "Bhaktapur, Nepal",  dateOfBirth: "2011-01-31", status: "active"      },
+  { id: 24, admissionNo: "ADM-2023", registrationNo: "REG-2026-0024", name: "Raj Mehta",           gender: "Male",   className: "Grade 9",  section: "A", roll: 6,  parentName: "Amit Mehta",         mobile: "+977 9841000024", email: "raj.mehta@example.com",           address: "Pokhara, Nepal",    dateOfBirth: "2011-08-06", status: "active"      },
+  { id: 25, admissionNo: "ADM-2024", registrationNo: "REG-2026-0025", name: "Avery Young",         gender: "Female", className: "Grade 9",  section: "A", roll: 7,  parentName: "Brian Young",        mobile: "+977 9841000025", email: "avery.young@example.com",         address: "Lalitpur, Nepal",   dateOfBirth: "2011-12-13", status: "active"      },
+  { id: 26, admissionNo: "ADM-2025", registrationNo: "REG-2026-0026", name: "Vikram Joshi",        gender: "Male",   className: "Grade 9",  section: "A", roll: 8,  parentName: "Prakash Joshi",      mobile: "+977 9841000026", email: "vikram.joshi@example.com",        address: "Kathmandu, Nepal",  dateOfBirth: "2011-04-28", status: "active"      },
+
+  // ── Grade 9 · Section B ───────────────────────────────────────────────────
+  { id: 27, admissionNo: "ADM-2026", registrationNo: "REG-2026-0027", name: "Maya Patel",          gender: "Female", className: "Grade 9",  section: "B", roll: 1,  parentName: "Kiran Patel",        mobile: "+977 9841000027", email: "maya.patel@example.com",          address: "Biratnagar, Nepal", dateOfBirth: "2011-09-20", status: "active"      },
+  { id: 28, admissionNo: "ADM-2027", registrationNo: "REG-2026-0028", name: "Sebastian Torres",    gender: "Male",   className: "Grade 9",  section: "B", roll: 2,  parentName: "Jose Torres",        mobile: "+977 9841000028", email: "sebastian.torres@example.com",    address: "Pokhara, Nepal",    dateOfBirth: "2011-03-16", status: "active"      },
+  { id: 29, admissionNo: "ADM-2028", registrationNo: "REG-2026-0029", name: "Grace Kim",           gender: "Female", className: "Grade 9",  section: "B", roll: 3,  parentName: "Min Kim",            mobile: "+977 9841000029", email: "grace.kim@example.com",           address: "Kathmandu, Nepal",  dateOfBirth: "2011-06-24", status: "active"      },
+  { id: 30, admissionNo: "ADM-2029", registrationNo: "REG-2026-0030", name: "William Scott",       gender: "Male",   className: "Grade 9",  section: "B", roll: 4,  parentName: "James Scott",        mobile: "+977 9841000030", email: "william.scott@example.com",       address: "Lalitpur, Nepal",   dateOfBirth: "2011-11-08", status: "active"      },
+  { id: 31, admissionNo: "ADM-2030", registrationNo: "REG-2026-0031", name: "Pooja Sharma",        gender: "Female", className: "Grade 9",  section: "B", roll: 5,  parentName: "Deepak Sharma",      mobile: "+977 9841000031", email: "pooja.sharma@example.com",        address: "Bhaktapur, Nepal",  dateOfBirth: "2011-02-02", status: "transferred" },
+  { id: 32, admissionNo: "ADM-2031", registrationNo: "REG-2026-0032", name: "Connor Bailey",       gender: "Male",   className: "Grade 9",  section: "B", roll: 6,  parentName: "Kevin Bailey",       mobile: "+977 9841000032", email: "connor.bailey@example.com",       address: "Pokhara, Nepal",    dateOfBirth: "2011-07-19", status: "active"      },
+  { id: 33, admissionNo: "ADM-2032", registrationNo: "REG-2026-0033", name: "Amelia Green",        gender: "Female", className: "Grade 9",  section: "B", roll: 7,  parentName: "George Green",       mobile: "+977 9841000033", email: "amelia.green@example.com",        address: "Kathmandu, Nepal",  dateOfBirth: "2011-10-05", status: "active"      },
+
+  // ── Grade 10 (no section) ─────────────────────────────────────────────────
+  { id: 34, admissionNo: "ADM-2033", registrationNo: "REG-2026-0034", name: "Aarav Roy",           gender: "Male",   className: "Grade 10", section: null, roll: 1,  parentName: "Subir Roy",          mobile: "+977 9841000034", email: "aarav.roy@example.com",           address: "Kathmandu, Nepal",  dateOfBirth: "2010-04-11", status: "active"      },
+  { id: 35, admissionNo: "ADM-2034", registrationNo: "REG-2026-0035", name: "Isabelle Chen",       gender: "Female", className: "Grade 10", section: null, roll: 2,  parentName: "Wei Chen",           mobile: "+977 9841000035", email: "isabelle.chen@example.com",       address: "Lalitpur, Nepal",   dateOfBirth: "2010-08-27", status: "graduated"   },
+  { id: 36, admissionNo: "ADM-2035", registrationNo: "REG-2026-0036", name: "Ryan Ahmed",          gender: "Male",   className: "Grade 10", section: null, roll: 3,  parentName: "Tariq Ahmed",        mobile: "+977 9841000036", email: "ryan.ahmed@example.com",          address: "Biratnagar, Nepal", dateOfBirth: "2010-01-15", status: "active"      },
+  { id: 37, admissionNo: "ADM-2036", registrationNo: "REG-2026-0037", name: "Aria Gupta",          gender: "Female", className: "Grade 10", section: null, roll: 4,  parentName: "Deepak Gupta",       mobile: "+977 9841000037", email: "aria.gupta@example.com",          address: "Pokhara, Nepal",    dateOfBirth: "2010-05-09", status: "graduated"   },
+  { id: 38, admissionNo: "ADM-2037", registrationNo: "REG-2026-0038", name: "Samuel Nair",         gender: "Male",   className: "Grade 10", section: null, roll: 5,  parentName: "Suresh Nair",        mobile: "+977 9841000038", email: "samuel.nair@example.com",         address: "Bhaktapur, Nepal",  dateOfBirth: "2010-10-03", status: "active"      },
+  { id: 39, admissionNo: "ADM-2038", registrationNo: "REG-2026-0039", name: "Zoe Miller",          gender: "Female", className: "Grade 10", section: null, roll: 6,  parentName: "Paul Miller",        mobile: "+977 9841000039", email: "zoe.miller@example.com",          address: "Kathmandu, Nepal",  dateOfBirth: "2010-03-22", status: "graduated"   },
+  { id: 40, admissionNo: "ADM-2039", registrationNo: "REG-2026-0040", name: "Arjun Das",           gender: "Male",   className: "Grade 10", section: null, roll: 7,  parentName: "Biswajit Das",       mobile: "+977 9841000040", email: "arjun.das@example.com",           address: "Lalitpur, Nepal",   dateOfBirth: "2010-07-18", status: "active"      },
+];
+
+export const CLASS_OPTIONS = ["Grade 8", "Grade 9", "Grade 10"] as const;
+export const SECTION_OPTIONS = ["A", "B"] as const;
+export const STATUS_OPTIONS = ["active", "inactive", "transferred", "graduated"] as const;

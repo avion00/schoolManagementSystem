@@ -1,0 +1,231 @@
+import {
+  BookOpen,
+  Building2,
+  Bus,
+  Wallet,
+} from "lucide-react";
+import { Navigate, Route, Routes } from "react-router-dom";
+
+import { AppLayout } from "@/components/AppLayout";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { StudentLayout } from "@/components/StudentLayout";
+import { useAuth } from "@/lib/auth";
+import { AccountPage } from "@/routes/AccountPage";
+import { BillingPage } from "@/routes/BillingPage";
+import { ComingSoonPage } from "@/routes/ComingSoonPage";
+import { DashboardPage } from "@/routes/DashboardPage";
+import { HelpPage } from "@/routes/HelpPage";
+import { LoginPage } from "@/routes/LoginPage";
+import { NotificationsPage } from "@/routes/NotificationsPage";
+import { SearchPage } from "@/routes/SearchPage";
+import { SettingsPage } from "@/routes/SettingsPage";  // keep existing polished page
+import { PrintableAdmissionFormPage } from "@/routes/PrintableAdmissionFormPage";
+import { PrintableTeacherFormPage } from "@/routes/PrintableTeacherFormPage";
+import { StudentDetailsPage } from "@/routes/StudentDetailsPage";
+import { StudentFormPage } from "@/routes/StudentFormPage";
+import { StudentsPage } from "@/routes/StudentsPage";
+import { ClassDetailsPage }        from "@/routes/ClassDetailsPage";
+import { ClassFormPage }            from "@/routes/ClassFormPage";
+import { ClassesPage }              from "@/routes/ClassesPage";
+import { PrintableClassFormPage }   from "@/routes/PrintableClassFormPage";
+import { ParentDetailsPage } from "@/routes/ParentDetailsPage";
+import { ParentFormPage } from "@/routes/ParentFormPage";
+import { ParentsPage } from "@/routes/ParentsPage";
+import { PrintableParentFormPage } from "@/routes/PrintableParentFormPage";
+import { SubjectDetailsPage }       from "@/routes/SubjectDetailsPage";
+import { SubjectFormPage }          from "@/routes/SubjectFormPage";
+import { SubjectsPage }             from "@/routes/SubjectsPage";
+import { PrintableSubjectFormPage }   from "@/routes/PrintableSubjectFormPage";
+import { ClassRoutinePage }           from "@/routes/ClassRoutinePage";
+import { ClassRoutineDetailsPage }    from "@/routes/ClassRoutineDetailsPage";
+import { ClassRoutineFormPage }       from "@/routes/ClassRoutineFormPage";
+import { PrintableClassRoutinePage }  from "@/routes/PrintableClassRoutinePage";
+import { ExamsDashboardPage }         from "@/routes/ExamsDashboardPage";
+import { ExamSchedulePage }           from "@/routes/ExamSchedulePage";
+import { ExamScheduleDetailsPage }    from "@/routes/ExamScheduleDetailsPage";
+import { ExamScheduleFormPage }       from "@/routes/ExamScheduleFormPage";
+import { ExamGradesPage }             from "@/routes/ExamGradesPage";
+import { ExamGradeFormPage }          from "@/routes/ExamGradeFormPage";
+import { MarksEntryPage }             from "@/routes/MarksEntryPage";
+import { ExamResultsPage }            from "@/routes/ExamResultsPage";
+import { ReportCardsPage }            from "@/routes/ReportCardsPage";
+import { AdmitCardsPage }             from "@/routes/AdmitCardsPage";
+import { AttendanceDashboardPage } from "@/routes/AttendanceDashboardPage";
+import { DailyAttendancePage }     from "@/routes/DailyAttendancePage";
+import { MonthlySheetPage }        from "@/routes/MonthlySheetPage";
+import { StudentAttendancePage as StaffStudentAttendancePage } from "@/routes/StudentAttendancePage";
+import { ClassAttendancePage }     from "@/routes/ClassAttendancePage";
+import { TeacherAttendancePage }   from "@/routes/TeacherAttendancePage";
+import { AttendanceReportsPage }   from "@/routes/AttendanceReportsPage";
+import { MessagesPage }            from "@/routes/MessagesPage";
+import { MessageInboxPage }       from "@/routes/MessageInboxPage";
+import { ComposeMessagePage }     from "@/routes/ComposeMessagePage";
+import { SentMessagesPage }       from "@/routes/SentMessagesPage";
+import { DraftMessagesPage }      from "@/routes/DraftMessagesPage";
+import { MessageTemplatesPage }   from "@/routes/MessageTemplatesPage";
+import { MessageDetailsPage }     from "@/routes/MessageDetailsPage";
+import { NoticeBoardPage }        from "@/routes/NoticeBoardPage";
+import { NoticeDetailsPage }       from "@/routes/NoticeDetailsPage";
+import { NoticeFormPage }          from "@/routes/NoticeFormPage";
+import { TeacherDetailsPage } from "@/routes/TeacherDetailsPage";
+import { TeacherFormPage } from "@/routes/TeacherFormPage";
+import { TeachersPage } from "@/routes/TeachersPage";
+import { UsersPage } from "@/routes/UsersPage";
+import { StudentAttendancePage } from "@/routes/student/StudentAttendancePage";
+import { StudentDashboardPage } from "@/routes/student/StudentDashboardPage";
+import { StudentFeesPage } from "@/routes/student/StudentFeesPage";
+import { StudentProfilePage } from "@/routes/student/StudentProfilePage";
+import { StudentResultsPage } from "@/routes/student/StudentResultsPage";
+
+export default function App() {
+  const { user } = useAuth();
+
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route element={<ProtectedRoute />}>
+        {user?.is_student ? (
+          <Route element={<StudentLayout />}>
+            <Route path="/dashboard"     element={<StudentDashboardPage />} />
+            <Route path="/profile"       element={<StudentProfilePage />} />
+            <Route path="/attendance"    element={<StudentAttendancePage />} />
+            <Route path="/results"       element={<StudentResultsPage />} />
+            <Route path="/fees"          element={<StudentFeesPage />} />
+            <Route path="/settings"      element={<SettingsPage />} />
+            <Route path="/help"          element={<HelpPage />} />
+            <Route path="/search"        element={<SearchPage />} />
+            <Route path="/account"       element={<AccountPage />} />
+            <Route path="/billing"       element={<BillingPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+          </Route>
+        ) : (
+          <Route element={<AppLayout />}>
+            {/* ── Core pages ────────────────────────────────────────── */}
+            <Route path="/dashboard"  element={<DashboardPage />} />
+            <Route path="/students"                      element={<StudentsPage />} />
+            <Route path="/students/new"               element={<StudentFormPage mode="create" />} />
+            <Route path="/students/admission-form/print" element={<PrintableAdmissionFormPage />} />
+            <Route path="/students/:id"               element={<StudentDetailsPage />} />
+            <Route path="/students/:id/edit"          element={<StudentFormPage mode="edit" />} />
+            <Route path="/users"      element={<UsersPage />} />
+
+            {/* ── People ────────────────────────────────────────────── */}
+            <Route path="/teachers"                          element={<TeachersPage />} />
+            <Route path="/teachers/new"                      element={<TeacherFormPage mode="create" />} />
+            <Route path="/teachers/teacher-form/print"       element={<PrintableTeacherFormPage />} />
+            <Route path="/teachers/:id"                      element={<TeacherDetailsPage />} />
+            <Route path="/teachers/:id/edit"                 element={<TeacherFormPage mode="edit" />} />
+            <Route path="/parents"                          element={<ParentsPage />} />
+            <Route path="/parents/new"                      element={<ParentFormPage mode="create" />} />
+            <Route path="/parents/parent-form/print"        element={<PrintableParentFormPage />} />
+            <Route path="/parents/:id"                      element={<ParentDetailsPage />} />
+            <Route path="/parents/:id/edit"                 element={<ParentFormPage mode="edit" />} />
+
+            {/* ── Academics ─────────────────────────────────────────── */}
+            <Route path="/classes"                         element={<ClassesPage />} />
+            <Route path="/classes/new"                     element={<ClassFormPage mode="create" />} />
+            <Route path="/classes/class-form/print"        element={<PrintableClassFormPage />} />
+            <Route path="/classes/:id"                     element={<ClassDetailsPage />} />
+            <Route path="/classes/:id/edit"                element={<ClassFormPage mode="edit" />} />
+            <Route path="/subjects"                         element={<SubjectsPage />} />
+            <Route path="/subjects/new"                    element={<SubjectFormPage mode="create" />} />
+            <Route path="/subjects/subject-form/print"     element={<PrintableSubjectFormPage />} />
+            <Route path="/subjects/:id"                    element={<SubjectDetailsPage />} />
+            <Route path="/subjects/:id/edit"               element={<SubjectFormPage mode="edit" />} />
+            <Route path="/class-routine"             element={<ClassRoutinePage />} />
+            <Route path="/class-routine/new"         element={<ClassRoutineFormPage mode="create" />} />
+            <Route path="/class-routine/print"       element={<PrintableClassRoutinePage />} />
+            <Route path="/class-routine/:id/edit"    element={<ClassRoutineFormPage mode="edit" />} />
+            <Route path="/class-routine/:id"         element={<ClassRoutineDetailsPage />} />
+            <Route path="/exam"                      element={<Navigate to="/exams" replace />} />
+            <Route path="/exams"                     element={<ExamsDashboardPage />} />
+            <Route path="/exams/schedule"            element={<ExamSchedulePage />} />
+            <Route path="/exams/schedule/new"        element={<ExamScheduleFormPage mode="create" />} />
+            <Route path="/exams/schedule/:id/edit"   element={<ExamScheduleFormPage mode="edit" />} />
+            <Route path="/exams/schedule/:id"        element={<ExamScheduleDetailsPage />} />
+            <Route path="/exams/grades"              element={<ExamGradesPage />} />
+            <Route path="/exams/grades/new"          element={<ExamGradeFormPage mode="create" />} />
+            <Route path="/exams/grades/:id/edit"     element={<ExamGradeFormPage mode="edit" />} />
+            <Route path="/exams/marks-entry"         element={<MarksEntryPage />} />
+            <Route path="/exams/results"             element={<ExamResultsPage />} />
+            <Route path="/exams/report-cards"        element={<ReportCardsPage />} />
+            <Route path="/exams/admit-cards"         element={<AdmitCardsPage />} />
+
+            {/* ── Operations ────────────────────────────────────────── */}
+            <Route path="/attendance"          element={<AttendanceDashboardPage />} />
+            <Route path="/attendance/daily"    element={<DailyAttendancePage />} />
+            <Route path="/attendance/monthly"  element={<MonthlySheetPage />} />
+            <Route path="/attendance/student"  element={<StaffStudentAttendancePage />} />
+            <Route path="/attendance/class"    element={<ClassAttendancePage />} />
+            <Route path="/attendance/teacher"  element={<TeacherAttendancePage />} />
+            <Route path="/attendance/reports"  element={<AttendanceReportsPage />} />
+            <Route
+              path="/fees"
+              element={
+                <ComingSoonPage
+                  icon={Wallet}
+                  title="Fees"
+                  description="Fee structure setup, invoice generation, payment collection, and outstanding dues reports."
+                />
+              }
+            />
+            <Route
+              path="/library"
+              element={
+                <ComingSoonPage
+                  icon={BookOpen}
+                  title="Library"
+                  description="Book catalog, issue and return tracking, overdue management, and library membership."
+                />
+              }
+            />
+            <Route
+              path="/transport"
+              element={
+                <ComingSoonPage
+                  icon={Bus}
+                  title="Transport"
+                  description="Route management, vehicle allocation, student transport assignments, and driver records."
+                />
+              }
+            />
+            <Route
+              path="/hostel"
+              element={
+                <ComingSoonPage
+                  icon={Building2}
+                  title="Hostel"
+                  description="Room allocation, hostel fees, student residential records, and warden management."
+                />
+              }
+            />
+
+            {/* ── Communication ─────────────────────────────────────── */}
+            <Route path="/notice"            element={<Navigate to="/notices" replace />} />
+            <Route path="/notices"           element={<NoticeBoardPage />} />
+            <Route path="/notices/new"       element={<NoticeFormPage mode="create" />} />
+            <Route path="/notices/:id/edit"  element={<NoticeFormPage mode="edit" />} />
+            <Route path="/notices/:id"       element={<NoticeDetailsPage />} />
+            <Route path="/message"              element={<Navigate to="/messages" replace />} />
+            <Route path="/messages"            element={<MessagesPage />} />
+            <Route path="/messages/inbox"      element={<MessageInboxPage />} />
+            <Route path="/messages/compose"    element={<ComposeMessagePage />} />
+            <Route path="/messages/sent"       element={<SentMessagesPage />} />
+            <Route path="/messages/drafts"     element={<DraftMessagesPage />} />
+            <Route path="/messages/templates"  element={<MessageTemplatesPage />} />
+            <Route path="/messages/:id"        element={<MessageDetailsPage />} />
+
+            {/* ── Shared utility pages ──────────────────────────────── */}
+            <Route path="/settings"      element={<SettingsPage />} />
+            <Route path="/help"          element={<HelpPage />} />
+            <Route path="/search"        element={<SearchPage />} />
+            <Route path="/account"       element={<AccountPage />} />
+            <Route path="/billing"       element={<BillingPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+          </Route>
+        )}
+      </Route>
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
+  );
+}
