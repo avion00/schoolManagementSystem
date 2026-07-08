@@ -2,7 +2,6 @@ import {
   BookOpen,
   Building2,
   Bus,
-  Wallet,
 } from "lucide-react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
@@ -12,9 +11,22 @@ import { StudentLayout } from "@/components/StudentLayout";
 import { useAuth } from "@/lib/auth";
 import { AccountPage } from "@/routes/AccountPage";
 import { BillingPage } from "@/routes/BillingPage";
+import { BillingStudentFeesPage } from "@/routes/BillingStudentFeesPage";
+import { BillingInvoicesPage } from "@/routes/BillingInvoicesPage";
+import { BillingInvoiceDetailsPage } from "@/routes/BillingInvoiceDetailsPage";
+import { BillingPaymentsPage } from "@/routes/BillingPaymentsPage";
+import { BillingExpensesPage } from "@/routes/BillingExpensesPage";
+import { BillingPayrollPage } from "@/routes/BillingPayrollPage";
+import { BillingVendorsPage } from "@/routes/BillingVendorsPage";
+import { BillingReportsPage } from "@/routes/BillingReportsPage";
+import { BillingSettingsPage } from "@/routes/BillingSettingsPage";
+import { BillingReceiptDetailsPage } from "@/routes/BillingReceiptDetailsPage";
 import { ComingSoonPage } from "@/routes/ComingSoonPage";
 import { DashboardPage } from "@/routes/DashboardPage";
 import { HelpPage } from "@/routes/HelpPage";
+import { HelpDeskPage } from "@/routes/HelpDeskPage";
+import { HelpTicketCreatePage } from "@/routes/HelpTicketCreatePage";
+import { HelpTicketDetailsPage } from "@/routes/HelpTicketDetailsPage";
 import { LoginPage } from "@/routes/LoginPage";
 import { NotificationsPage } from "@/routes/NotificationsPage";
 import { SearchPage } from "@/routes/SearchPage";
@@ -95,7 +107,7 @@ export default function App() {
             <Route path="/help"          element={<HelpPage />} />
             <Route path="/search"        element={<SearchPage />} />
             <Route path="/account"       element={<AccountPage />} />
-            <Route path="/billing"       element={<BillingPage />} />
+            <Route path="/billing"       element={<Navigate to="/fees" replace />} />
             <Route path="/notifications" element={<NotificationsPage />} />
           </Route>
         ) : (
@@ -159,16 +171,7 @@ export default function App() {
             <Route path="/attendance/class"    element={<ClassAttendancePage />} />
             <Route path="/attendance/teacher"  element={<TeacherAttendancePage />} />
             <Route path="/attendance/reports"  element={<AttendanceReportsPage />} />
-            <Route
-              path="/fees"
-              element={
-                <ComingSoonPage
-                  icon={Wallet}
-                  title="Fees"
-                  description="Fee structure setup, invoice generation, payment collection, and outstanding dues reports."
-                />
-              }
-            />
+            <Route path="/fees" element={<Navigate to="/billing/fees" replace />} />
             <Route
               path="/library"
               element={
@@ -217,11 +220,25 @@ export default function App() {
 
             {/* ── Shared utility pages ──────────────────────────────── */}
             <Route path="/settings"      element={<SettingsPage />} />
-            <Route path="/help"          element={<HelpPage />} />
+            <Route path="/help"              element={<HelpDeskPage />} />
+            <Route path="/help/tickets/new"  element={<HelpTicketCreatePage />} />
+            <Route path="/help/tickets/:id"  element={<HelpTicketDetailsPage />} />
             <Route path="/search"        element={<SearchPage />} />
             <Route path="/account"       element={<AccountPage />} />
-            <Route path="/billing"       element={<BillingPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
+
+            {/* ── Finance / Billing ─────────────────────────────────── */}
+            <Route path="/billing"                  element={<BillingPage />} />
+            <Route path="/billing/fees"              element={<BillingStudentFeesPage />} />
+            <Route path="/billing/invoices"          element={<BillingInvoicesPage />} />
+            <Route path="/billing/invoices/:id"      element={<BillingInvoiceDetailsPage />} />
+            <Route path="/billing/payments"          element={<BillingPaymentsPage />} />
+            <Route path="/billing/expenses"          element={<BillingExpensesPage />} />
+            <Route path="/billing/payroll"           element={<BillingPayrollPage />} />
+            <Route path="/billing/vendors"           element={<BillingVendorsPage />} />
+            <Route path="/billing/reports"           element={<BillingReportsPage />} />
+            <Route path="/billing/settings"          element={<BillingSettingsPage />} />
+            <Route path="/billing/receipts/:id"      element={<BillingReceiptDetailsPage />} />
           </Route>
         )}
       </Route>

@@ -50,7 +50,7 @@ export interface NavGroup {
 /* Footer utility links */
 const FOOTER_NAV: NavItem[] = [
   { to: "/settings", label: "Settings",  icon: Settings   },
-  { to: "/help",     label: "Get Help",  icon: CircleHelp },
+  { to: "/help",     label: "Help",  icon: CircleHelp },
 ];
 
 /* Paths not in the nav tree — fallback breadcrumbs */
@@ -65,7 +65,16 @@ const EXTRA_CRUMBS: Record<string, string[]> = {
  * Derives breadcrumb segments from the nav config + known extra paths.
  * "Overview" group items are promoted to top-level (no group segment in path).
  */
-function deriveBreadcrumb(pathname: string, nav: NavGroup[]): string[] {
+function deriveBreadcrumb(pathname: string, nav: NavGroup[], brand: string): string[] {
+  // Help Desk (Super Admin) vs. the student/parent "Get Help" support page —
+  // both routes are literally "/help" but resolve to different page components
+  // depending on which Shell (brand) renders them.
+  if (brand !== "Student Portal") {
+    if (pathname === "/help")             return ["Super Admin", "Support", "Help Desk"];
+    if (pathname === "/help/tickets/new") return ["Super Admin", "Support", "Help Desk", "New Ticket"];
+    if (pathname.startsWith("/help/tickets/")) return ["Super Admin", "Support", "Help Desk", "Ticket Details"];
+  }
+
   // Teacher paths (before nav lookup so "Staff" label overrides "People")
   if (pathname === "/teachers")                                        return ["Portal", "Staff", "Teachers"];
   if (pathname === "/teachers/new")                                    return ["Portal", "Staff", "Teachers", "Add Teacher"];
@@ -89,6 +98,23 @@ function deriveBreadcrumb(pathname: string, nav: NavGroup[]): string[] {
   if (pathname === "/messages/drafts")                                       return ["Portal", "Communication", "Messages", "Drafts"];
   if (pathname === "/messages/templates")                                    return ["Portal", "Communication", "Messages", "Templates"];
   if (pathname.startsWith("/messages/"))                                     return ["Portal", "Communication", "Messages", "Message Details"];
+
+  // Help / Support
+  if (pathname === "/help")                                                  return ["Portal", "Support", "Get Help"];
+
+  // Finance / Billing
+  if (pathname === "/billing")                                               return ["Portal", "Finance", "Billing"];
+  if (pathname === "/billing/fees")                                          return ["Portal", "Finance", "Billing", "Student Fees"];
+  if (pathname === "/billing/invoices")                                      return ["Portal", "Finance", "Billing", "Invoices"];
+  if (pathname === "/billing/invoices/new")                                  return ["Portal", "Finance", "Billing", "Invoices", "New Invoice"];
+  if (pathname.startsWith("/billing/invoices/"))                             return ["Portal", "Finance", "Billing", "Invoices", "Invoice Details"];
+  if (pathname === "/billing/payments")                                      return ["Portal", "Finance", "Billing", "Payments"];
+  if (pathname === "/billing/expenses")                                      return ["Portal", "Finance", "Billing", "Expenses"];
+  if (pathname === "/billing/payroll")                                       return ["Portal", "Finance", "Billing", "Payroll"];
+  if (pathname === "/billing/vendors")                                       return ["Portal", "Finance", "Billing", "Vendors"];
+  if (pathname === "/billing/reports")                                       return ["Portal", "Finance", "Billing", "Reports"];
+  if (pathname === "/billing/settings")                                      return ["Portal", "Finance", "Billing", "Billing Settings"];
+  if (pathname.startsWith("/billing/receipts/"))                             return ["Portal", "Finance", "Billing", "Receipt"];
 
   // Notice paths
   if (pathname === "/notices")                                               return ["Portal", "Communication", "Notice Board"];
@@ -513,7 +539,7 @@ export function Shell({ nav, brand }: { nav: NavGroup[]; brand: string }) {
       return !c;
     });
 
-  const breadcrumb = deriveBreadcrumb(pathname, nav);
+  const breadcrumb = deriveBreadcrumb(pathname, nav, brand);
   const pageTitle = breadcrumb.at(-1) ?? brand;
 
   const visibleGroups = nav
@@ -529,12 +555,12 @@ export function Shell({ nav, brand }: { nav: NavGroup[]; brand: string }) {
     .filter((g) => g.items.length > 0);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden bg-background print:block print:h-auto print:overflow-visible">
 
       {/* ── Desktop sidebar ───────────────────────────────────────────── */}
       <aside
         className={cn(
-          "hidden flex-col border-r border-border/60 bg-card transition-[width] duration-300 ease-out md:flex",
+          "hidden flex-col border-r border-border/60 bg-card transition-[width] duration-300 ease-out md:flex print:hidden",
           collapsed ? "w-[68px]" : "w-64",
         )}
       >
@@ -601,10 +627,10 @@ export function Shell({ nav, brand }: { nav: NavGroup[]; brand: string }) {
       </aside>
 
       {/* ── Main content ──────────────────────────────────────────────── */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden print:overflow-visible">
 
         {/* ── Header ────────────────────────────────────────────────── */}
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border/60 bg-card/95 px-3 backdrop-blur-sm md:px-5">
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border/60 bg-card/95 px-3 backdrop-blur-sm md:px-5 print:hidden">
 
           {/* Sidebar toggle */}
           <Button
@@ -682,15 +708,14 @@ export function Shell({ nav, brand }: { nav: NavGroup[]; brand: string }) {
         </header>
 
         {/* ── Page content ──────────────────────────────────────────── */}
-        <main className="flex-1 overflow-y-auto bg-muted/30">
-          <div className="mx-auto w-full max-w-7xl p-4 md:p-8">
+        <main className="flex-1 overflow-y-auto bg-muted/30 print:overflow-visible print:bg-white">
+          <div className="mx-auto w-full p-4 md:p-8 print:p-0">
             <PageTransition key={pathname}>
               <Outlet />
             </PageTransition>
           </div>
         </main>
       </div>
-
     </div>
   );
 }
