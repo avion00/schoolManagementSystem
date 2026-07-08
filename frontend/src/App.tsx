@@ -1,4 +1,5 @@
 import {
+  Bell,
   BookOpen,
   Building2,
   Bus,
@@ -108,7 +109,16 @@ export default function App() {
             <Route path="/search"        element={<SearchPage />} />
             <Route path="/account"       element={<AccountPage />} />
             <Route path="/billing"       element={<Navigate to="/fees" replace />} />
-            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route
+              path="/notifications"
+              element={
+                <ComingSoonPage
+                  icon={Bell}
+                  title="Notifications"
+                  description="Alerts, announcements, and notification settings will be displayed here."
+                />
+              }
+            />
           </Route>
         ) : (
           <Route element={<AppLayout />}>
