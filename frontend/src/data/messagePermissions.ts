@@ -1,0 +1,91 @@
+import type { ChatRole } from "./messagesData";
+
+export interface MessagingCapabilities {
+  canMessageRoles: ChatRole[] | "all";
+  canCreateGroups: boolean;
+  canSendBroadcasts: boolean;
+  canViewAllConversations: boolean;
+  canExportConversations: boolean;
+  canModerate: boolean;
+  canDeleteAnyMessage: boolean;
+  canLockConversations: boolean;
+  requiresApprovalFor: ChatRole[];
+}
+
+export const MESSAGE_PERMISSIONS: Record<ChatRole, MessagingCapabilities> = {
+  "Super Admin": {
+    canMessageRoles: "all", canCreateGroups: true, canSendBroadcasts: true,
+    canViewAllConversations: true, canExportConversations: true, canModerate: true,
+    canDeleteAnyMessage: true, canLockConversations: true, requiresApprovalFor: [],
+  },
+  Admin: {
+    canMessageRoles: ["Teacher", "Parent", "Student", "Staff", "Principal", "Admin", "Super Admin"],
+    canCreateGroups: true, canSendBroadcasts: true, canViewAllConversations: false,
+    canExportConversations: false, canModerate: false, canDeleteAnyMessage: false,
+    canLockConversations: false, requiresApprovalFor: [],
+  },
+  Principal: {
+    canMessageRoles: ["Teacher", "Parent", "Student", "Staff", "Admin", "Super Admin"],
+    canCreateGroups: true, canSendBroadcasts: true, canViewAllConversations: false,
+    canExportConversations: false, canModerate: false, canDeleteAnyMessage: false,
+    canLockConversations: false, requiresApprovalFor: [],
+  },
+  Teacher: {
+    canMessageRoles: ["Student", "Parent", "Teacher", "Admin", "Principal", "Super Admin"],
+    canCreateGroups: true, canSendBroadcasts: false, canViewAllConversations: false,
+    canExportConversations: false, canModerate: false, canDeleteAnyMessage: false,
+    canLockConversations: false, requiresApprovalFor: [],
+  },
+  Parent: {
+    canMessageRoles: ["Teacher", "Admin", "Principal"],
+    canCreateGroups: false, canSendBroadcasts: false, canViewAllConversations: false,
+    canExportConversations: false, canModerate: false, canDeleteAnyMessage: false,
+    canLockConversations: false, requiresApprovalFor: [],
+  },
+  Student: {
+    canMessageRoles: ["Teacher", "Admin"],
+    canCreateGroups: false, canSendBroadcasts: false, canViewAllConversations: false,
+    canExportConversations: false, canModerate: false, canDeleteAnyMessage: false,
+    canLockConversations: false, requiresApprovalFor: ["Teacher", "Admin"],
+  },
+  Staff: {
+    canMessageRoles: ["Staff", "Admin", "Principal", "Super Admin"],
+    canCreateGroups: false, canSendBroadcasts: false, canViewAllConversations: false,
+    canExportConversations: false, canModerate: false, canDeleteAnyMessage: false,
+    canLockConversations: false, requiresApprovalFor: [],
+  },
+};
+
+export function capabilitiesFor(role: ChatRole): MessagingCapabilities {
+  return MESSAGE_PERMISSIONS[role];
+}
+
+export function canRolesMessage(fromRole: ChatRole, toRole: ChatRole): boolean {
+  const caps = capabilitiesFor(fromRole);
+  if (caps.canMessageRoles === "all") return true;
+  return caps.canMessageRoles.includes(toRole);
+}
+
+export function needsApproval(fromRole: ChatRole, toRole: ChatRole): boolean {
+  return capabilitiesFor(fromRole).requiresApprovalFor.includes(toRole);
+}
+
+export function canCreateGroup(role: ChatRole): boolean {
+  return capabilitiesFor(role).canCreateGroups;
+}
+
+export function canSendBroadcast(role: ChatRole): boolean {
+  return capabilitiesFor(role).canSendBroadcasts;
+}
+
+export function canViewAllConversations(role: ChatRole): boolean {
+  return capabilitiesFor(role).canViewAllConversations;
+}
+
+export function canExportConversations(role: ChatRole): boolean {
+  return capabilitiesFor(role).canExportConversations;
+}
+
+export function canModerate(role: ChatRole): boolean {
+  return capabilitiesFor(role).canModerate;
+}

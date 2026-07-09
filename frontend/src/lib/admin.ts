@@ -56,9 +56,10 @@ export interface AdminUser {
   is_active: boolean;
   roles: string[];
   permissions: string[];
+  created_at?: string;
 }
 
-export async function listUsers(params: { search?: string; page?: number }) {
+export async function listUsers(params: { search?: string; page?: number; page_size?: number }) {
   const { data } = await api.get<Paginated<AdminUser>>("/users/", { params });
   return data;
 }
@@ -104,4 +105,45 @@ export async function listRoles(): Promise<Role[]> {
 
 export async function assignRole(userId: string, roleId: string): Promise<void> {
   await api.post("/rbac/user-roles/", { user: userId, role: roleId });
+}
+
+export interface Permission {
+  id: string;
+  code: string;
+  name: string;
+  module: string;
+  description: string;
+}
+
+export async function listPermissions(): Promise<Permission[]> {
+  const { data } = await api.get<Paginated<Permission>>("/rbac/permissions/", {
+    params: { page_size: 500 },
+  });
+  return data.results;
+}
+
+/** Replaces the full permission set for a role — the backend contract expects the complete list every call. */
+export async function setRolePermissions(roleId: string, codes: string[]): Promise<Role> {
+  const { data } = await api.post<Role>(`/rbac/roles/${roleId}/permissions/`, { codes });
+  return data;
+}
+
+export interface UserRoleAssignment {
+  id: string;
+  user: string;
+  user_email: string;
+  role: string;
+  role_name: string;
+  school: string | null;
+}
+
+export async function listUserRoles(params?: { user?: string }): Promise<UserRoleAssignment[]> {
+  const { data } = await api.get<Paginated<UserRoleAssignment>>("/rbac/user-roles/", {
+    params: { ...params, page_size: 500 },
+  });
+  return data.results;
+}
+
+export async function unassignRole(userRoleId: string): Promise<void> {
+  await api.delete(`/rbac/user-roles/${userRoleId}/`);
 }

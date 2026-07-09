@@ -92,15 +92,42 @@ function deriveBreadcrumb(pathname: string, nav: NavGroup[], brand: string): str
 
   // Message paths
   if (pathname === "/messages")                                              return ["Portal", "Communication", "Messages"];
-  if (pathname === "/messages/compose")                                      return ["Portal", "Communication", "Messages", "Compose"];
-  if (pathname === "/messages/inbox")                                        return ["Portal", "Communication", "Messages", "Inbox"];
-  if (pathname === "/messages/sent")                                         return ["Portal", "Communication", "Messages", "Sent"];
-  if (pathname === "/messages/drafts")                                       return ["Portal", "Communication", "Messages", "Drafts"];
-  if (pathname === "/messages/templates")                                    return ["Portal", "Communication", "Messages", "Templates"];
-  if (pathname.startsWith("/messages/"))                                     return ["Portal", "Communication", "Messages", "Message Details"];
+  if (pathname === "/messages/chats")                                        return ["Portal", "Communication", "Messages"];
+  if (pathname === "/messages/new")                                          return ["Portal", "Communication", "Messages", "New Conversation"];
+  if (pathname.startsWith("/messages/chats/"))                               return ["Portal", "Communication", "Messages", "Conversation"];
+  if (pathname === "/messages/groups")                                       return ["Portal", "Communication", "Messages", "Groups"];
+  if (pathname === "/messages/broadcasts")                                   return ["Portal", "Communication", "Messages", "Broadcasts"];
+  if (pathname === "/messages/archived")                                     return ["Portal", "Communication", "Messages", "Archived"];
+  if (pathname === "/messages/requests")                                     return ["Portal", "Communication", "Messages", "Message Requests"];
+  if (pathname === "/messages/moderation")                                   return ["Portal", "Communication", "Messages", "Message Moderation"];
+  if (pathname === "/messages/export")                                       return ["Portal", "Communication", "Messages", "Export"];
+  if (pathname === "/messages/settings")                                     return ["Portal", "Communication", "Messages", "Message Settings"];
 
   // Help / Support
   if (pathname === "/help")                                                  return ["Portal", "Support", "Get Help"];
+
+  // Account (personal)
+  if (pathname === "/account")                                               return ["Portal", "Account"];
+  if (pathname === "/account/profile")                                       return ["Portal", "Account", "Profile"];
+  if (pathname === "/account/security")                                      return ["Portal", "Account", "Security"];
+  if (pathname === "/account/sessions")                                      return ["Portal", "Account", "Sessions"];
+  if (pathname === "/account/preferences")                                   return ["Portal", "Account", "Preferences"];
+
+  // Settings (system / administration)
+  if (pathname === "/settings")                                              return ["Portal", "Settings"];
+  if (pathname === "/settings/school-profile")                               return ["Portal", "Settings", "School Profile"];
+  if (pathname === "/settings/academic-year")                                return ["Portal", "Settings", "Academic Year"];
+  if (pathname === "/settings/users")                                        return ["Portal", "Settings", "Users"];
+  if (pathname === "/settings/roles-permissions")                            return ["Portal", "Settings", "Roles & Permissions"];
+  if (pathname === "/settings/access-control")                               return ["Portal", "Settings", "Access Control"];
+  if (pathname === "/settings/security")                                     return ["Portal", "Settings", "Security"];
+  if (pathname === "/settings/audit-logs")                                   return ["Portal", "Settings", "Audit Logs"];
+  if (pathname === "/settings/attendance")                                   return ["Portal", "Settings", "Attendance Settings"];
+  if (pathname === "/settings/exam-grading")                                 return ["Portal", "Settings", "Exam & Grading"];
+  if (pathname === "/settings/fees")                                         return ["Portal", "Settings", "Fee Settings"];
+  if (pathname === "/settings/notifications")                                return ["Portal", "Settings", "Notifications"];
+  if (pathname === "/settings/appearance")                                   return ["Portal", "Settings", "Appearance"];
+  if (pathname === "/settings/backup")                                       return ["Portal", "Settings", "Backup & Export"];
 
   // Finance / Billing
   if (pathname === "/billing")                                               return ["Portal", "Finance", "Billing"];
@@ -165,6 +192,20 @@ function deriveBreadcrumb(pathname: string, nav: NavGroup[], brand: string): str
   if (pathname.endsWith("/edit"))                      return ["Portal", "People", "Students", "Edit Student"];
   if (pathname.startsWith("/students/"))               return ["Portal", "People", "Students", "Student Details"];
   return EXTRA_CRUMBS[pathname] ?? ["Portal"];
+}
+
+/**
+ * Sub-routes of these sections share one persistent shell (a fixed sidebar/panel
+ * layout where only the inner content swaps) — keying PageTransition on the full
+ * pathname would force a jarring unmount/remount + re-animation on every click
+ * inside that shell. Collapse them to their section root so only navigating
+ * into/out of the section (not between its sub-pages) replays the transition.
+ */
+const SHARED_SHELL_SECTIONS = ["/settings", "/account"];
+
+function transitionKeyFor(pathname: string): string {
+  const section = SHARED_SHELL_SECTIONS.find((s) => pathname === s || pathname.startsWith(s + "/"));
+  return section ?? pathname;
 }
 
 function initialsOf(name: string) {
@@ -710,7 +751,7 @@ export function Shell({ nav, brand }: { nav: NavGroup[]; brand: string }) {
         {/* ── Page content ──────────────────────────────────────────── */}
         <main className="flex-1 overflow-y-auto bg-muted/30 print:overflow-visible print:bg-white">
           <div className="mx-auto w-full p-4 md:p-8 print:p-0">
-            <PageTransition key={pathname}>
+            <PageTransition key={transitionKeyFor(pathname)}>
               <Outlet />
             </PageTransition>
           </div>

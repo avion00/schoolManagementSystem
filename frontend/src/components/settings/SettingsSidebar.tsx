@@ -1,12 +1,12 @@
 import {
   School, CalendarDays, Users, ShieldCheck, Bell, CreditCard,
   CalendarCheck, ClipboardList, Palette, Lock, HardDrive, ScrollText,
-  Building2, BookOpen,
+  Fingerprint,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type SettingsPanel =
-  | "school" | "academic" | "users" | "roles"
+  | "school" | "academic" | "users" | "roles" | "access"
   | "notifications" | "fees" | "attendance" | "exams"
   | "appearance" | "security" | "backup" | "audit";
 
@@ -31,9 +31,10 @@ const GROUPS: NavGroup[] = [
   {
     label: "Users & Access",
     items: [
-      { id: "users",  label: "Admin Users",        icon: Users         },
-      { id: "roles",  label: "Roles & Permissions",icon: ShieldCheck   },
-      { id: "security",label:"Security",            icon: Lock          },
+      { id: "users",   label: "Users",              icon: Users         },
+      { id: "roles",   label: "Roles & Permissions",icon: ShieldCheck   },
+      { id: "access",  label: "Access Control",      icon: Fingerprint  },
+      { id: "security",label: "Security",            icon: Lock          },
     ],
   },
   {
@@ -64,9 +65,6 @@ const GROUPS: NavGroup[] = [
     ],
   },
 ];
-
-// suppress unused — kept for future expansion
-void Building2; void BookOpen;
 
 interface Props {
   active:   SettingsPanel;

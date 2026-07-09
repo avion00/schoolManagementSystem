@@ -3,6 +3,7 @@ import {
   BookOpen,
   Building2,
   Bus,
+  UserRound,
 } from "lucide-react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
@@ -70,20 +71,20 @@ import { StudentAttendancePage as StaffStudentAttendancePage } from "@/routes/St
 import { ClassAttendancePage }     from "@/routes/ClassAttendancePage";
 import { TeacherAttendancePage }   from "@/routes/TeacherAttendancePage";
 import { AttendanceReportsPage }   from "@/routes/AttendanceReportsPage";
-import { MessagesPage }            from "@/routes/MessagesPage";
-import { MessageInboxPage }       from "@/routes/MessageInboxPage";
-import { ComposeMessagePage }     from "@/routes/ComposeMessagePage";
-import { SentMessagesPage }       from "@/routes/SentMessagesPage";
-import { DraftMessagesPage }      from "@/routes/DraftMessagesPage";
-import { MessageTemplatesPage }   from "@/routes/MessageTemplatesPage";
-import { MessageDetailsPage }     from "@/routes/MessageDetailsPage";
+import { MessagesChatsPage }       from "@/routes/MessagesChatsPage";
+import { GroupsPage }              from "@/routes/GroupsPage";
+import { BroadcastsPage }          from "@/routes/BroadcastsPage";
+import { ArchivedMessagesPage }    from "@/routes/ArchivedMessagesPage";
+import { MessageRequestsPage }     from "@/routes/MessageRequestsPage";
+import { MessageModerationPage }   from "@/routes/MessageModerationPage";
+import { MessageExportPage }       from "@/routes/MessageExportPage";
+import { MessageSettingsPage }     from "@/routes/MessageSettingsPage";
 import { NoticeBoardPage }        from "@/routes/NoticeBoardPage";
 import { NoticeDetailsPage }       from "@/routes/NoticeDetailsPage";
 import { NoticeFormPage }          from "@/routes/NoticeFormPage";
 import { TeacherDetailsPage } from "@/routes/TeacherDetailsPage";
 import { TeacherFormPage } from "@/routes/TeacherFormPage";
 import { TeachersPage } from "@/routes/TeachersPage";
-import { UsersPage } from "@/routes/UsersPage";
 import { StudentAttendancePage } from "@/routes/student/StudentAttendancePage";
 import { StudentDashboardPage } from "@/routes/student/StudentDashboardPage";
 import { StudentFeesPage } from "@/routes/student/StudentFeesPage";
@@ -107,7 +108,16 @@ export default function App() {
             <Route path="/settings"      element={<SettingsPage />} />
             <Route path="/help"          element={<HelpPage />} />
             <Route path="/search"        element={<SearchPage />} />
-            <Route path="/account"       element={<AccountPage />} />
+            <Route
+              path="/account"
+              element={
+                <ComingSoonPage
+                  icon={UserRound}
+                  title="Account"
+                  description="Your profile, password, and linked accounts will be manageable here."
+                />
+              }
+            />
             <Route path="/billing"       element={<Navigate to="/fees" replace />} />
             <Route
               path="/notifications"
@@ -129,7 +139,10 @@ export default function App() {
             <Route path="/students/admission-form/print" element={<PrintableAdmissionFormPage />} />
             <Route path="/students/:id"               element={<StudentDetailsPage />} />
             <Route path="/students/:id/edit"          element={<StudentFormPage mode="edit" />} />
-            <Route path="/users"      element={<UsersPage />} />
+            <Route path="/users"           element={<Navigate to="/settings/users" replace />} />
+            <Route path="/access-control"  element={<Navigate to="/settings/access-control" replace />} />
+            <Route path="/roles"           element={<Navigate to="/settings/roles-permissions" replace />} />
+            <Route path="/permissions"     element={<Navigate to="/settings/roles-permissions" replace />} />
 
             {/* ── People ────────────────────────────────────────────── */}
             <Route path="/teachers"                          element={<TeachersPage />} />
@@ -219,22 +232,50 @@ export default function App() {
             <Route path="/notices/new"       element={<NoticeFormPage mode="create" />} />
             <Route path="/notices/:id/edit"  element={<NoticeFormPage mode="edit" />} />
             <Route path="/notices/:id"       element={<NoticeDetailsPage />} />
-            <Route path="/message"              element={<Navigate to="/messages" replace />} />
-            <Route path="/messages"            element={<MessagesPage />} />
-            <Route path="/messages/inbox"      element={<MessageInboxPage />} />
-            <Route path="/messages/compose"    element={<ComposeMessagePage />} />
-            <Route path="/messages/sent"       element={<SentMessagesPage />} />
-            <Route path="/messages/drafts"     element={<DraftMessagesPage />} />
-            <Route path="/messages/templates"  element={<MessageTemplatesPage />} />
-            <Route path="/messages/:id"        element={<MessageDetailsPage />} />
+            <Route path="/message"                       element={<Navigate to="/messages" replace />} />
+            <Route path="/messages"                     element={<Navigate to="/messages/chats" replace />} />
+            <Route path="/messages/chats"               element={<MessagesChatsPage />} />
+            <Route path="/messages/chats/:conversationId" element={<MessagesChatsPage />} />
+            <Route path="/messages/new"                 element={<MessagesChatsPage autoOpenNewChat />} />
+            <Route path="/messages/groups"              element={<GroupsPage />} />
+            <Route path="/messages/broadcasts"          element={<BroadcastsPage />} />
+            <Route path="/messages/archived"            element={<ArchivedMessagesPage />} />
+            <Route path="/messages/requests"            element={<MessageRequestsPage />} />
+            <Route path="/messages/moderation"          element={<MessageModerationPage />} />
+            <Route path="/messages/export"              element={<MessageExportPage />} />
+            <Route path="/messages/settings"            element={<MessageSettingsPage />} />
+            <Route path="/messages/inbox"                element={<Navigate to="/messages/chats" replace />} />
+            <Route path="/messages/compose"              element={<Navigate to="/messages/new" replace />} />
+            <Route path="/messages/sent"                 element={<Navigate to="/messages/chats" replace />} />
+            <Route path="/messages/drafts"               element={<Navigate to="/messages/broadcasts" replace />} />
+            <Route path="/messages/templates"            element={<Navigate to="/messages/broadcasts" replace />} />
 
             {/* ── Shared utility pages ──────────────────────────────── */}
-            <Route path="/settings"      element={<SettingsPage />} />
+            <Route path="/settings"                    element={<SettingsPage />} />
+            <Route path="/settings/school-profile"      element={<SettingsPage />} />
+            <Route path="/settings/academic-year"       element={<SettingsPage />} />
+            <Route path="/settings/users"               element={<SettingsPage />} />
+            <Route path="/settings/roles-permissions"   element={<SettingsPage />} />
+            <Route path="/settings/access-control"      element={<SettingsPage />} />
+            <Route path="/settings/security"            element={<SettingsPage />} />
+            <Route path="/settings/audit-logs"          element={<SettingsPage />} />
+            <Route path="/settings/attendance"          element={<SettingsPage />} />
+            <Route path="/settings/exam-grading"        element={<SettingsPage />} />
+            <Route path="/settings/fees"                element={<SettingsPage />} />
+            <Route path="/settings/notifications"       element={<SettingsPage />} />
+            <Route path="/settings/appearance"          element={<SettingsPage />} />
+            <Route path="/settings/backup"              element={<SettingsPage />} />
             <Route path="/help"              element={<HelpDeskPage />} />
             <Route path="/help/tickets/new"  element={<HelpTicketCreatePage />} />
             <Route path="/help/tickets/:id"  element={<HelpTicketDetailsPage />} />
             <Route path="/search"        element={<SearchPage />} />
-            <Route path="/account"       element={<AccountPage />} />
+            <Route path="/account"              element={<AccountPage />} />
+            <Route path="/account/profile"      element={<AccountPage />} />
+            <Route path="/account/security"     element={<AccountPage />} />
+            <Route path="/account/sessions"     element={<AccountPage />} />
+            <Route path="/account/preferences"  element={<AccountPage />} />
+            <Route path="/account/organization" element={<Navigate to="/settings/school-profile" replace />} />
+            <Route path="/account/audit-logs"   element={<Navigate to="/settings/audit-logs" replace />} />
             <Route path="/notifications" element={<NotificationsPage />} />
 
             {/* ── Finance / Billing ─────────────────────────────────── */}

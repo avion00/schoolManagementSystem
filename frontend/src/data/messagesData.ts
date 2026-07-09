@@ -1,812 +1,346 @@
-export type MessageStatus   = "unread" | "read" | "replied" | "archived" | "draft" | "scheduled" | "sent" | "failed";
-export type MessagePriority = "Low" | "Normal" | "High" | "Urgent";
-export type MessageType     = "General" | "Announcement" | "Fee Reminder" | "Exam Notice" | "Attendance Alert" | "Parent Meeting" | "Emergency" | "Academic Notice";
-export type SendMethod      = "In-app" | "Email" | "SMS" | "Push Notification";
-export type RecipientType   =
-  | "All Users" | "Students" | "Parents" | "Teachers" | "Staff"
-  | "Specific Class" | "Specific Section" | "Specific Student"
-  | "Specific Parent" | "Specific Teacher";
+// Static, backend-ready seed data for the real-time messaging module.
+// Shape mirrors what a WebSocket/REST backend would eventually serve — see
+// lib/messagesService.ts and lib/realtimeService.ts for the mutation/pub-sub
+// layer built on top of this seed.
+
+export type ChatRole = "Super Admin" | "Admin" | "Principal" | "Teacher" | "Parent" | "Student" | "Staff";
+export type PresenceStatus = "online" | "offline" | "away";
+
+export interface ChatUser {
+  id: string;
+  name: string;
+  role: ChatRole;
+  email: string;
+  avatar: string;
+  status: PresenceStatus;
+  lastSeen: string;
+}
+
+export type ConversationType =
+  | "direct" | "group" | "class_group" | "staff_group"
+  | "parent_teacher" | "admin_broadcast" | "support_request";
+
+export type ConversationPriority = "low" | "normal" | "high" | "urgent";
+
+export interface GroupPermissions {
+  whoCanSend: "everyone" | "admins";
+  whoCanAddMembers: "everyone" | "admins";
+  whoCanUploadFiles: "everyone" | "admins";
+  whoCanDeleteMessages: "everyone" | "admins" | "own";
+  whoCanViewMembers: "everyone" | "admins";
+}
+
+export interface Conversation {
+  id: string;
+  type: ConversationType;
+  title: string;
+  avatar: string;
+  participantIds: string[];
+  adminIds: string[];
+  lastMessage: string;
+  lastMessageAt: string;
+  unreadCount: number;
+  pinned: boolean;
+  muted: boolean;
+  archived: boolean;
+  locked: boolean;
+  priority: ConversationPriority;
+  permissions?: GroupPermissions;
+}
+
+export type MessageContentType = "text" | "image" | "file" | "audio" | "system";
+export type MessageDeliveryStatus = "sent" | "delivered" | "seen";
 
 export interface MessageAttachment {
-  id: number;
+  id: string;
   name: string;
-  type: "PDF" | "Image" | "Spreadsheet" | "Document";
+  kind: "image" | "pdf" | "doc" | "sheet" | "audio" | "video" | "other";
   size: string;
 }
 
-export interface MessageActivityRecord {
-  id: number;
-  action: "sent" | "delivered" | "read" | "replied" | "failed" | "scheduled" | "draft_saved";
-  actor: string;
-  timestamp: string;
-  note?: string;
+export interface MessageReaction {
+  emoji: string;
+  userIds: string[];
 }
 
-export interface MessageStats {
-  totalRecipients: number;
+export interface ChatMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  body: string;
+  type: MessageContentType;
+  attachments: MessageAttachment[];
+  createdAt: string;
+  editedAt: string | null;
+  status: MessageDeliveryStatus;
+  reactions: MessageReaction[];
+  replyTo: string | null;
+  deleted: boolean;
+  pinned: boolean;
+  flagged: boolean;
+}
+
+export interface Broadcast {
+  id: string;
+  title: string;
+  body: string;
+  audience: string;
+  audienceCount: number;
+  sentBy: string;
+  sentAt: string;
   delivered: number;
   read: number;
-  unread: number;
-  failed: number;
-  replied?: number;
+  allowReplies: boolean;
 }
 
-export interface Message {
-  id: number;
+export type MessageRequestStatus = "pending" | "approved" | "rejected" | "blocked";
+
+export interface MessageRequestItem {
+  id: string;
+  fromUserId: string;
+  toUserId: string;
+  reason: string;
+  status: MessageRequestStatus;
+  requestedAt: string;
+}
+
+export type ModerationStatus = "open" | "reviewed" | "dismissed" | "actioned";
+
+export interface ModerationReport {
+  id: string;
   messageId: string;
-  subject: string;
-  type: MessageType;
-  priority: MessagePriority;
-  sendMethod: SendMethod;
-  sender: string;
-  senderRole: string;
-  senderAvatar?: string;
-  recipientType: RecipientType;
-  recipients: string[];
-  body: string;
-  attachments: MessageAttachment[];
-  status: MessageStatus;
-  sentAt?: string;
-  scheduledAt?: string;
-  updatedAt: string;
-  stats: MessageStats;
-  activities: MessageActivityRecord[];
-  isStarred: boolean;
-  requireAcknowledgement: boolean;
-  sendCopyToAdmin: boolean;
+  conversationId: string;
+  senderId: string;
+  reportedById: string;
+  reason: string;
+  priority: "low" | "normal" | "high";
+  status: ModerationStatus;
+  reportedAt: string;
 }
 
-export interface MessageTemplate {
-  id: number;
-  title: string;
-  category: MessageType;
-  subject: string;
-  body: string;
-  tags: string[];
-  usageCount: number;
-  lastUsed?: string;
+export type AuditEventType =
+  | "admin_opened_conversation" | "message_exported" | "message_deleted_by_admin"
+  | "conversation_locked" | "member_removed" | "file_downloaded" | "moderation_action";
+
+export interface MessageAuditEvent {
+  id: string;
+  type: AuditEventType;
+  actorId: string;
+  conversationId: string;
+  detail: string;
+  timestamp: string;
 }
 
-export interface MessageSummary {
-  total: number;
-  unread: number;
-  sent: number;
-  drafts: number;
-  failed: number;
-  scheduled: number;
-  starred: number;
-  archived: number;
+/* ─── Users ───────────────────────────────────────────────────────────── */
+
+export const CHAT_USERS: ChatUser[] = [
+  { id: "u-admin",      name: "Platform Admin",   role: "Super Admin", email: "admin@platform.test",       avatar: "", status: "online",  lastSeen: "now" },
+  { id: "u-principal",  name: "Demo Principal",   role: "Principal",   email: "principal@demo.school",     avatar: "", status: "online",  lastSeen: "now" },
+  { id: "u-accountant",  name: "Demo Accountant",  role: "Admin",        email: "accountant@demo.school",    avatar: "", status: "away",    lastSeen: "12 min ago" },
+  { id: "u-teacher-01", name: "Kazi Fahim",       role: "Teacher",     email: "kffahim@schoolos.np",       avatar: "", status: "online",  lastSeen: "now" },
+  { id: "u-teacher-02", name: "Sita Rai",         role: "Teacher",     email: "srai@schoolos.np",          avatar: "", status: "offline", lastSeen: "2h ago" },
+  { id: "u-teacher-03", name: "Demo Teacher",     role: "Teacher",     email: "teacher@demo.school",       avatar: "", status: "online",  lastSeen: "now" },
+  { id: "u-parent-01",  name: "Anita Gurung",     role: "Parent",      email: "anita.gurung@gmail.com",    avatar: "", status: "offline", lastSeen: "1d ago" },
+  { id: "u-parent-02",  name: "Bishnu Adhikari",  role: "Parent",      email: "bishnu.a@gmail.com",        avatar: "", status: "online",  lastSeen: "now" },
+  { id: "u-parent-03",  name: "Rita Shrestha",    role: "Parent",      email: "rita.s@gmail.com",          avatar: "", status: "away",    lastSeen: "30 min ago" },
+  { id: "u-student-01", name: "Liam Smith",       role: "Student",     email: "student@demo.school",       avatar: "", status: "online",  lastSeen: "now" },
+  { id: "u-student-02", name: "Priya Karki",      role: "Student",     email: "priya.k@student.schoolos.np", avatar: "", status: "offline", lastSeen: "3h ago" },
+  { id: "u-staff-01",   name: "Front Desk",       role: "Staff",       email: "reception@demo.school",     avatar: "", status: "online",  lastSeen: "now" },
+  { id: "u-staff-02",   name: "Mira Shrestha",    role: "Staff",       email: "mshrestha@schoolos.np",     avatar: "", status: "offline", lastSeen: "5h ago" },
+];
+
+export function chatUserById(id: string): ChatUser | undefined {
+  return CHAT_USERS.find((u) => u.id === id);
+}
+
+/* ─── Conversations ───────────────────────────────────────────────────── */
+
+const EVERYONE_SEND: GroupPermissions = {
+  whoCanSend: "everyone", whoCanAddMembers: "admins", whoCanUploadFiles: "everyone", whoCanDeleteMessages: "own", whoCanViewMembers: "everyone",
+};
+const ADMINS_ONLY_SEND: GroupPermissions = {
+  whoCanSend: "admins", whoCanAddMembers: "admins", whoCanUploadFiles: "admins", whoCanDeleteMessages: "admins", whoCanViewMembers: "everyone",
+};
+
+export const CONVERSATIONS: Conversation[] = [
+  {
+    id: "c-001", type: "direct", title: "Kazi Fahim", avatar: "",
+    participantIds: ["u-admin", "u-teacher-01"], adminIds: [],
+    lastMessage: "Please review Grade 8 attendance.", lastMessageAt: "2026-07-10T10:30:00",
+    unreadCount: 2, pinned: true, muted: false, archived: false, locked: false, priority: "normal",
+  },
+  {
+    id: "c-002", type: "direct", title: "Anita Gurung", avatar: "",
+    participantIds: ["u-teacher-03", "u-parent-01"], adminIds: [],
+    lastMessage: "Thank you, I'll speak with her tonight.", lastMessageAt: "2026-07-10T09:05:00",
+    unreadCount: 0, pinned: false, muted: false, archived: false, locked: false, priority: "normal",
+  },
+  {
+    id: "c-003", type: "class_group", title: "Grade 8 Section A", avatar: "",
+    participantIds: ["u-admin", "u-principal", "u-teacher-01", "u-parent-01", "u-parent-02", "u-student-01"],
+    adminIds: ["u-teacher-01"],
+    lastMessage: "Reminder: science project due Friday.", lastMessageAt: "2026-07-10T08:40:00",
+    unreadCount: 5, pinned: true, muted: false, archived: false, locked: false, priority: "normal",
+    permissions: EVERYONE_SEND,
+  },
+  {
+    id: "c-004", type: "staff_group", title: "Teachers Staff Room", avatar: "",
+    participantIds: ["u-admin", "u-principal", "u-teacher-01", "u-teacher-02", "u-teacher-03"],
+    adminIds: ["u-principal"],
+    lastMessage: "Staff meeting moved to 3 PM tomorrow.", lastMessageAt: "2026-07-09T16:20:00",
+    unreadCount: 0, pinned: false, muted: true, archived: false, locked: false, priority: "normal",
+    permissions: EVERYONE_SEND,
+  },
+  {
+    id: "c-005", type: "parent_teacher", title: "Grade 10 Parents", avatar: "",
+    participantIds: ["u-teacher-02", "u-parent-02", "u-parent-03"],
+    adminIds: ["u-teacher-02"],
+    lastMessage: "Result cards will be ready by Friday.", lastMessageAt: "2026-07-09T14:10:00",
+    unreadCount: 1, pinned: false, muted: false, archived: false, locked: false, priority: "high",
+    permissions: EVERYONE_SEND,
+  },
+  {
+    id: "c-006", type: "group", title: "Exam Committee", avatar: "",
+    participantIds: ["u-admin", "u-principal", "u-teacher-01", "u-teacher-02"],
+    adminIds: ["u-admin", "u-principal"],
+    lastMessage: "Final schedule approved.", lastMessageAt: "2026-07-08T11:00:00",
+    unreadCount: 0, pinned: false, muted: false, archived: false, locked: false, priority: "normal",
+    permissions: ADMINS_ONLY_SEND,
+  },
+  {
+    id: "c-007", type: "group", title: "Accounts Department", avatar: "",
+    participantIds: ["u-admin", "u-accountant", "u-staff-02"],
+    adminIds: ["u-accountant"],
+    lastMessage: "July invoices are now finalized.", lastMessageAt: "2026-07-07T09:00:00",
+    unreadCount: 0, pinned: false, muted: false, archived: true, locked: false, priority: "low",
+    permissions: EVERYONE_SEND,
+  },
+  {
+    id: "c-008", type: "group", title: "Principal Office", avatar: "",
+    participantIds: ["u-admin", "u-principal", "u-staff-01"],
+    adminIds: ["u-principal"],
+    lastMessage: "Visitor log updated for this week.", lastMessageAt: "2026-07-06T13:30:00",
+    unreadCount: 0, pinned: false, muted: false, archived: false, locked: false, priority: "normal",
+    permissions: ADMINS_ONLY_SEND,
+  },
+  {
+    id: "c-009", type: "support_request", title: "Priya Karki", avatar: "",
+    participantIds: ["u-teacher-01", "u-student-02"],
+    adminIds: [],
+    lastMessage: "Can I ask about the homework deadline?", lastMessageAt: "2026-07-10T07:50:00",
+    unreadCount: 1, pinned: false, muted: false, archived: false, locked: false, priority: "normal",
+  },
+  {
+    id: "c-010", type: "direct", title: "Bishnu Adhikari", avatar: "",
+    participantIds: ["u-principal", "u-parent-02"],
+    adminIds: [],
+    lastMessage: "Thanks for the update, Principal.", lastMessageAt: "2026-07-05T15:00:00",
+    unreadCount: 0, pinned: false, muted: false, archived: true, locked: true, priority: "low",
+  },
+];
+
+export function conversationById(id: string): Conversation | undefined {
+  return CONVERSATIONS.find((c) => c.id === id);
 }
 
 /* ─── Messages ────────────────────────────────────────────────────────── */
 
-export const MESSAGES: Message[] = [
+export const CHAT_MESSAGES: ChatMessage[] = [
+  // c-001 — direct, admin <-> teacher-01
+  { id: "m-0011", conversationId: "c-001", senderId: "u-teacher-01", body: "Good morning! Grade 8 attendance for last week is ready for review.", type: "text", attachments: [], createdAt: "2026-07-10T09:58:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+  { id: "m-0012", conversationId: "c-001", senderId: "u-teacher-01", body: "", type: "file", attachments: [{ id: "a-1", name: "attendance-grade8-w27.xlsx", kind: "sheet", size: "84 KB" }], createdAt: "2026-07-10T09:59:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: true, flagged: false },
+  { id: "m-0013", conversationId: "c-001", senderId: "u-admin", body: "Thanks Kazi, looking now.", type: "text", attachments: [], createdAt: "2026-07-10T10:05:00", editedAt: null, status: "seen", reactions: [{ emoji: "👍", userIds: ["u-teacher-01"] }], replyTo: null, deleted: false, pinned: false, flagged: false },
+  { id: "m-0014", conversationId: "c-001", senderId: "u-teacher-01", body: "Please review Grade 8 attendance.", type: "text", attachments: [], createdAt: "2026-07-10T10:30:00", editedAt: null, status: "delivered", reactions: [], replyTo: "m-0012", deleted: false, pinned: false, flagged: false },
+
+  // c-002 — direct, teacher-03 <-> parent-01
+  { id: "m-0021", conversationId: "c-002", senderId: "u-teacher-03", body: "Hi Anita, Liam did great on today's quiz — 9/10!", type: "text", attachments: [], createdAt: "2026-07-10T08:55:00", editedAt: null, status: "seen", reactions: [{ emoji: "🎉", userIds: ["u-parent-01"] }], replyTo: null, deleted: false, pinned: false, flagged: false },
+  { id: "m-0022", conversationId: "c-002", senderId: "u-parent-01", body: "That's wonderful news, thank you for letting me know!", type: "text", attachments: [], createdAt: "2026-07-10T09:00:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+  { id: "m-0023", conversationId: "c-002", senderId: "u-teacher-03", body: "He's a little behind on reading homework though — could you check in with him?", type: "text", attachments: [], createdAt: "2026-07-10T09:02:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+  { id: "m-0024", conversationId: "c-002", senderId: "u-parent-01", body: "Thank you, I'll speak with her tonight.", type: "text", attachments: [], createdAt: "2026-07-10T09:05:00", editedAt: "2026-07-10T09:06:00", status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+
+  // c-003 — class group Grade 8 Section A
+  { id: "m-0031", conversationId: "c-003", senderId: "u-teacher-01", body: "Good morning everyone! A quick note about this week's schedule.", type: "text", attachments: [], createdAt: "2026-07-10T08:00:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+  { id: "m-0032", conversationId: "c-003", senderId: "u-teacher-01", body: "", type: "image", attachments: [{ id: "a-2", name: "science-fair-poster.png", kind: "image", size: "1.2 MB" }], createdAt: "2026-07-10T08:05:00", editedAt: null, status: "seen", reactions: [{ emoji: "🔥", userIds: ["u-parent-02", "u-student-01"] }], replyTo: null, deleted: false, pinned: true, flagged: false },
+  { id: "m-0033", conversationId: "c-003", senderId: "u-parent-02", body: "Looks great, thanks for sharing!", type: "text", attachments: [], createdAt: "2026-07-10T08:10:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+  { id: "m-0034", conversationId: "c-003", senderId: "system", body: "Priya Karki added to the group by Kazi Fahim", type: "system", attachments: [], createdAt: "2026-07-10T08:15:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+  { id: "m-0035", conversationId: "c-003", senderId: "u-student-01", body: "Is the project group of 2 or 3?", type: "text", attachments: [], createdAt: "2026-07-10T08:30:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+  { id: "m-0036", conversationId: "c-003", senderId: "u-teacher-01", body: "Reminder: science project due Friday.", type: "text", attachments: [], createdAt: "2026-07-10T08:40:00", editedAt: null, status: "delivered", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+
+  // c-004 — staff group
+  { id: "m-0041", conversationId: "c-004", senderId: "u-principal", body: "Staff meeting moved to 3 PM tomorrow.", type: "text", attachments: [], createdAt: "2026-07-09T16:20:00", editedAt: null, status: "seen", reactions: [{ emoji: "👍", userIds: ["u-teacher-01", "u-teacher-02", "u-teacher-03"] }], replyTo: null, deleted: false, pinned: true, flagged: false },
+  { id: "m-0042", conversationId: "c-004", senderId: "u-teacher-02", body: "Got it, thank you.", type: "text", attachments: [], createdAt: "2026-07-09T16:22:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+
+  // c-005 — parent-teacher Grade 10 Parents
+  { id: "m-0051", conversationId: "c-005", senderId: "u-teacher-02", body: "Result cards will be ready by Friday.", type: "text", attachments: [], createdAt: "2026-07-09T14:10:00", editedAt: null, status: "delivered", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+  { id: "m-0052", conversationId: "c-005", senderId: "u-parent-03", body: "Will they be available for pickup or emailed?", type: "text", attachments: [], createdAt: "2026-07-09T14:15:00", editedAt: null, status: "delivered", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+
+  // c-006 — Exam Committee
+  { id: "m-0061", conversationId: "c-006", senderId: "u-admin", body: "Final schedule approved.", type: "text", attachments: [], createdAt: "2026-07-08T11:00:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+  { id: "m-0062", conversationId: "c-006", senderId: "u-principal", body: "Great, publishing to admit cards now.", type: "text", attachments: [], createdAt: "2026-07-08T11:02:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+
+  // c-007 — Accounts Department (archived)
+  { id: "m-0071", conversationId: "c-007", senderId: "u-accountant", body: "July invoices are now finalized.", type: "text", attachments: [], createdAt: "2026-07-07T09:00:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+
+  // c-008 — Principal Office
+  { id: "m-0081", conversationId: "c-008", senderId: "u-staff-01", body: "Visitor log updated for this week.", type: "text", attachments: [], createdAt: "2026-07-06T13:30:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+
+  // c-009 — support request, teacher-01 <-> student-02
+  { id: "m-0091", conversationId: "c-009", senderId: "u-student-02", body: "Hello sir, can I ask about the homework deadline?", type: "text", attachments: [], createdAt: "2026-07-10T07:50:00", editedAt: null, status: "delivered", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+
+  // c-010 — locked/archived direct
+  { id: "m-0101", conversationId: "c-010", senderId: "u-parent-02", body: "Thanks for the update, Principal.", type: "text", attachments: [], createdAt: "2026-07-05T15:00:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+];
+
+/* ─── Broadcasts ──────────────────────────────────────────────────────── */
+
+export const BROADCASTS: Broadcast[] = [
   {
-    id: 1,
-    messageId: "MSG-2026-0001",
-    subject: "Final Exam Routine Published",
-    type: "Exam Notice",
-    priority: "High",
-    sendMethod: "In-app",
-    sender: "Platform Admin",
-    senderRole: "Administrator",
-    recipientType: "Students",
-    recipients: ["Grade 8", "Grade 9", "Grade 10"],
-    body: "Dear Students and Parents,\n\nWe are pleased to announce that the Final Examination Routine for the academic session 2025–2026 has been officially published. Please review the schedule carefully and prepare accordingly.\n\nKey highlights:\n- Examinations will commence from July 15, 2026\n- Each paper is 3 hours duration\n- Students must arrive 30 minutes before the exam begins\n- All students must carry their admit cards\n\nPlease contact the examination office for any queries.\n\nBest regards,\nPlatform Admin",
-    attachments: [{ id: 1, name: "exam-routine-2026.pdf", type: "PDF", size: "240 KB" }],
-    status: "sent",
-    sentAt: "2026-06-20 10:30 AM",
-    updatedAt: "2026-06-20",
-    stats: { totalRecipients: 420, delivered: 410, read: 312, unread: 98, failed: 10 },
-    activities: [
-      { id: 1, action: "sent",      actor: "Platform Admin", timestamp: "2026-06-20 10:30 AM" },
-      { id: 2, action: "delivered", actor: "System",         timestamp: "2026-06-20 10:31 AM", note: "410 of 420 delivered" },
-      { id: 3, action: "read",      actor: "System",         timestamp: "2026-06-20 11:00 AM", note: "312 recipients opened" },
-    ],
-    isStarred: true,
-    requireAcknowledgement: false,
-    sendCopyToAdmin: true,
+    id: "b-001", title: "Eid al-Adha Holiday Notice",
+    body: "School will remain closed on July 17, 2026 for Eid al-Adha. Classes resume July 20.",
+    audience: "All Users", audienceCount: 1200, sentBy: "Platform Admin", sentAt: "2026-07-14T11:00:00",
+    delivered: 1195, read: 980, allowReplies: false,
   },
   {
-    id: 2,
-    messageId: "MSG-2026-0002",
-    subject: "Monthly Fee Reminder – July 2026",
-    type: "Fee Reminder",
-    priority: "Urgent",
-    sendMethod: "In-app",
-    sender: "Accounts Office",
-    senderRole: "Accounts",
-    recipientType: "Parents",
-    recipients: ["All Parents"],
-    body: "Dear Parent/Guardian,\n\nThis is a reminder that the school fees for the month of July 2026 are due by July 10, 2026.\n\nFee Details:\n- Tuition Fee: NPR 4,500\n- Library Fee: NPR 200\n- Sports Fee: NPR 150\n\nPlease clear dues on time to avoid late charges. Payment can be made at the school accounts office or via online banking.\n\nThank you.\n\nAccounts Department",
-    attachments: [],
-    status: "sent",
-    sentAt: "2026-07-01 09:00 AM",
-    updatedAt: "2026-07-01",
-    stats: { totalRecipients: 580, delivered: 578, read: 421, unread: 157, failed: 2 },
-    activities: [
-      { id: 1, action: "sent",      actor: "Accounts Office", timestamp: "2026-07-01 09:00 AM" },
-      { id: 2, action: "delivered", actor: "System",          timestamp: "2026-07-01 09:01 AM", note: "578 of 580 delivered" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: true,
-    sendCopyToAdmin: true,
+    id: "b-002", title: "Emergency: School Closed Tomorrow",
+    body: "Due to a water supply disruption, school will remain closed on July 7, 2026.",
+    audience: "All Users", audienceCount: 1200, sentBy: "Principal", sentAt: "2026-07-06T16:00:00",
+    delivered: 1198, read: 1150, allowReplies: false,
   },
   {
-    id: 3,
-    messageId: "MSG-2026-0003",
-    subject: "Parent-Teacher Meeting – Grade 9 & 10",
-    type: "Parent Meeting",
-    priority: "High",
-    sendMethod: "In-app",
-    sender: "Principal",
-    senderRole: "Principal",
-    recipientType: "Parents",
-    recipients: ["Grade 9", "Grade 10"],
-    body: "Dear Parents,\n\nWe cordially invite you to the Parent-Teacher Meeting scheduled for July 12, 2026 from 10:00 AM to 1:00 PM at the school auditorium.\n\nAgenda:\n- Academic performance review\n- Upcoming examination preparation\n- Attendance and discipline discussion\n- Q&A session\n\nYour presence is highly appreciated. Please confirm your attendance by July 10, 2026.\n\nWith regards,\nThe Principal",
-    attachments: [{ id: 2, name: "ptm-agenda.pdf", type: "PDF", size: "185 KB" }],
-    status: "sent",
-    sentAt: "2026-07-03 08:45 AM",
-    updatedAt: "2026-07-03",
-    stats: { totalRecipients: 210, delivered: 210, read: 198, unread: 12, failed: 0, replied: 87 },
-    activities: [
-      { id: 1, action: "sent",      actor: "Principal", timestamp: "2026-07-03 08:45 AM" },
-      { id: 2, action: "delivered", actor: "System",    timestamp: "2026-07-03 08:46 AM" },
-      { id: 3, action: "replied",   actor: "System",    timestamp: "2026-07-04 10:00 AM", note: "87 parents confirmed attendance" },
-    ],
-    isStarred: true,
-    requireAcknowledgement: true,
-    sendCopyToAdmin: false,
-  },
-  {
-    id: 4,
-    messageId: "MSG-2026-0004",
-    subject: "Eid al-Adha Holiday Notice",
-    type: "Announcement",
-    priority: "Normal",
-    sendMethod: "In-app",
-    sender: "Platform Admin",
-    senderRole: "Administrator",
-    recipientType: "All Users",
-    recipients: ["All Students", "All Parents", "All Teachers", "All Staff"],
-    body: "Dear All,\n\nPlease be informed that the school will remain closed on July 17, 2026 (Friday) on account of Eid al-Adha. Classes will resume normally on July 20, 2026 (Monday).\n\nWe wish all celebrating families Eid Mubarak!\n\nManagement",
-    attachments: [],
-    status: "sent",
-    sentAt: "2026-07-14 11:00 AM",
-    updatedAt: "2026-07-14",
-    stats: { totalRecipients: 1200, delivered: 1195, read: 980, unread: 215, failed: 5 },
-    activities: [
-      { id: 1, action: "sent",      actor: "Platform Admin", timestamp: "2026-07-14 11:00 AM" },
-      { id: 2, action: "delivered", actor: "System",         timestamp: "2026-07-14 11:01 AM" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: false,
-    sendCopyToAdmin: false,
-  },
-  {
-    id: 5,
-    messageId: "MSG-2026-0005",
-    subject: "Low Attendance Warning – Grade 7A",
-    type: "Attendance Alert",
-    priority: "High",
-    sendMethod: "In-app",
-    sender: "Class Teacher",
-    senderRole: "Teacher",
-    recipientType: "Parents",
-    recipients: ["Grade 7A Parents"],
-    body: "Dear Parent,\n\nThis is to inform you that your child's attendance for the month of June 2026 has fallen below the required 80% threshold.\n\nCurrent attendance: 68%\nRequired minimum: 80%\n\nPlease ensure regular attendance going forward. Continued absence may affect your child's eligibility to appear in the final examination.\n\nFor queries, please visit the school office.\n\nClass Teacher – Grade 7A",
-    attachments: [],
-    status: "sent",
-    sentAt: "2026-07-01 10:15 AM",
-    updatedAt: "2026-07-01",
-    stats: { totalRecipients: 8, delivered: 8, read: 6, unread: 2, failed: 0 },
-    activities: [
-      { id: 1, action: "sent",      actor: "Sita Rai (Class Teacher)", timestamp: "2026-07-01 10:15 AM" },
-      { id: 2, action: "delivered", actor: "System",                   timestamp: "2026-07-01 10:15 AM" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: true,
-    sendCopyToAdmin: true,
-  },
-  {
-    id: 6,
-    messageId: "MSG-2026-0006",
-    subject: "Science Fair Registration Open",
-    type: "Announcement",
-    priority: "Normal",
-    sendMethod: "In-app",
-    sender: "Academic Department",
-    senderRole: "Academic Head",
-    recipientType: "Students",
-    recipients: ["Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"],
-    body: "Dear Students,\n\nRegistrations for the Annual Science Fair 2026 are now open. The event will be held on August 5, 2026.\n\nParticipation Categories:\n- Physics & Technology\n- Biology & Environment\n- Chemistry & Materials\n- Computer Science & Robotics\n\nTeams of 2-4 students are encouraged. Deadline for registration is July 25, 2026.\n\nContact your class teacher to register.",
-    attachments: [{ id: 3, name: "science-fair-guidelines.pdf", type: "PDF", size: "320 KB" }],
-    status: "sent",
-    sentAt: "2026-07-06 09:30 AM",
-    updatedAt: "2026-07-06",
-    stats: { totalRecipients: 650, delivered: 645, read: 512, unread: 133, failed: 5 },
-    activities: [
-      { id: 1, action: "sent",      actor: "Academic Department", timestamp: "2026-07-06 09:30 AM" },
-      { id: 2, action: "delivered", actor: "System",              timestamp: "2026-07-06 09:31 AM" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: false,
-    sendCopyToAdmin: false,
-  },
-  {
-    id: 7,
-    messageId: "MSG-2026-0007",
-    subject: "Emergency: School Closed Tomorrow (Water Supply Issue)",
-    type: "Emergency",
-    priority: "Urgent",
-    sendMethod: "In-app",
-    sender: "Principal",
-    senderRole: "Principal",
-    recipientType: "All Users",
-    recipients: ["All Students", "All Parents", "All Teachers", "All Staff"],
-    body: "URGENT NOTICE\n\nDue to a water supply disruption affecting the school premises, school will remain CLOSED on July 7, 2026 (Monday).\n\nAll classes and activities scheduled for the day are suspended. Online assignments may be issued by subject teachers.\n\nWe apologize for the inconvenience. Normal operations will resume on July 8, 2026.\n\nThank you for your understanding.\n\nPrincipal",
-    attachments: [],
-    status: "sent",
-    sentAt: "2026-07-06 04:00 PM",
-    updatedAt: "2026-07-06",
-    stats: { totalRecipients: 1200, delivered: 1198, read: 1150, unread: 48, failed: 2 },
-    activities: [
-      { id: 1, action: "sent",      actor: "Principal", timestamp: "2026-07-06 04:00 PM" },
-      { id: 2, action: "delivered", actor: "System",    timestamp: "2026-07-06 04:01 PM" },
-    ],
-    isStarred: true,
-    requireAcknowledgement: false,
-    sendCopyToAdmin: true,
-  },
-  {
-    id: 8,
-    messageId: "MSG-2026-0008",
-    subject: "Staff Professional Development Workshop",
-    type: "Announcement",
-    priority: "Normal",
-    sendMethod: "In-app",
-    sender: "HR Department",
-    senderRole: "HR Manager",
-    recipientType: "Teachers",
-    recipients: ["All Teaching Staff"],
-    body: "Dear Teaching Staff,\n\nWe are organising a Professional Development Workshop on Innovative Teaching Methodologies on July 19, 2026.\n\nVenue: Conference Room B, Admin Block\nTime: 9:00 AM – 4:00 PM\nFacilitator: Dr. Ramesh Sharma (Education Consultant)\n\nTopics covered:\n- Active Learning Strategies\n- Technology Integration in Classrooms\n- Assessment for Learning\n- Student Engagement Techniques\n\nAttendance is mandatory for all teaching staff. Please confirm by July 15.",
-    attachments: [{ id: 4, name: "workshop-agenda.pdf", type: "PDF", size: "210 KB" }],
-    status: "sent",
-    sentAt: "2026-07-05 02:00 PM",
-    updatedAt: "2026-07-05",
-    stats: { totalRecipients: 42, delivered: 42, read: 38, unread: 4, failed: 0 },
-    activities: [
-      { id: 1, action: "sent",      actor: "HR Department", timestamp: "2026-07-05 02:00 PM" },
-      { id: 2, action: "delivered", actor: "System",        timestamp: "2026-07-05 02:01 PM" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: true,
-    sendCopyToAdmin: false,
-  },
-  {
-    id: 9,
-    messageId: "MSG-2026-0009",
-    subject: "Scholarship Application Now Open – Merit 2026",
-    type: "Academic Notice",
-    priority: "High",
-    sendMethod: "In-app",
-    sender: "Academic Department",
-    senderRole: "Academic Head",
-    recipientType: "Students",
-    recipients: ["Grade 10", "Grade 11", "Grade 12"],
-    body: "Dear Students,\n\nApplications for the Merit Scholarship 2026 are now open. Eligible students with an aggregate of 80% or above in their most recent examinations are encouraged to apply.\n\nScholarship Benefits:\n- 50% tuition fee waiver\n- Certificate of Excellence\n- Priority consideration for leadership roles\n\nApplication forms are available at the admin office and on the school portal. Last date to apply: July 20, 2026.\n\nBest of luck!\nAcademic Department",
-    attachments: [{ id: 5, name: "scholarship-form-2026.pdf", type: "PDF", size: "175 KB" }],
-    status: "sent",
-    sentAt: "2026-07-04 10:00 AM",
-    updatedAt: "2026-07-04",
-    stats: { totalRecipients: 280, delivered: 278, read: 220, unread: 58, failed: 2 },
-    activities: [
-      { id: 1, action: "sent",      actor: "Academic Department", timestamp: "2026-07-04 10:00 AM" },
-      { id: 2, action: "delivered", actor: "System",              timestamp: "2026-07-04 10:01 AM" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: false,
-    sendCopyToAdmin: false,
-  },
-  {
-    id: 10,
-    messageId: "MSG-2026-0010",
-    subject: "Library Book Return Reminder",
-    type: "General",
-    priority: "Low",
-    sendMethod: "In-app",
-    sender: "Library",
-    senderRole: "Librarian",
-    recipientType: "Students",
-    recipients: ["All Students"],
-    body: "Dear Students,\n\nThis is a gentle reminder to return all borrowed library books on or before July 10, 2026.\n\nStudents with overdue books will be charged a fine of NPR 5 per day.\n\nPlease visit the library during school hours (8:00 AM – 3:00 PM) to return your books.\n\nThank you,\nThe Librarian",
-    attachments: [],
-    status: "sent",
-    sentAt: "2026-07-05 08:00 AM",
-    updatedAt: "2026-07-05",
-    stats: { totalRecipients: 780, delivered: 775, read: 480, unread: 295, failed: 5 },
-    activities: [
-      { id: 1, action: "sent",      actor: "Library",  timestamp: "2026-07-05 08:00 AM" },
-      { id: 2, action: "delivered", actor: "System",   timestamp: "2026-07-05 08:01 AM" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: false,
-    sendCopyToAdmin: false,
-  },
-  {
-    id: 11,
-    messageId: "MSG-2026-0011",
-    subject: "Sports Day 2026 – Event Schedule",
-    type: "Announcement",
-    priority: "Normal",
-    sendMethod: "In-app",
-    sender: "Sports Department",
-    senderRole: "Sports Coordinator",
-    recipientType: "All Users",
-    recipients: ["All Students", "All Parents", "All Teachers"],
-    body: "Dear All,\n\nWe are excited to announce the Annual Sports Day 2026 to be held on August 2, 2026 (Saturday) from 8:00 AM onwards at the school grounds.\n\nEvents Include:\n- Track & Field events (100m, 200m, 400m, relay)\n- Football tournament\n- Basketball showcase\n- Volleyball competition\n- Tug of War\n\nParents are cordially invited to cheer for their children.\n\nSports Department",
-    attachments: [{ id: 6, name: "sports-day-schedule.pdf", type: "PDF", size: "290 KB" }],
-    status: "sent",
-    sentAt: "2026-07-06 11:00 AM",
-    updatedAt: "2026-07-06",
-    stats: { totalRecipients: 1100, delivered: 1095, read: 820, unread: 275, failed: 5 },
-    activities: [
-      { id: 1, action: "sent",      actor: "Sports Department", timestamp: "2026-07-06 11:00 AM" },
-      { id: 2, action: "delivered", actor: "System",            timestamp: "2026-07-06 11:01 AM" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: false,
-    sendCopyToAdmin: false,
-  },
-  {
-    id: 12,
-    messageId: "MSG-2026-0012",
-    subject: "Uniform Policy Reminder – New Academic Year",
-    type: "General",
-    priority: "Normal",
-    sendMethod: "In-app",
-    sender: "Platform Admin",
-    senderRole: "Administrator",
-    recipientType: "Students",
-    recipients: ["All Students"],
-    body: "Dear Students,\n\nAs we enter the new academic session, please note that the school uniform policy will be strictly enforced from July 8, 2026.\n\nAll students are required to:\n- Wear the complete school uniform daily\n- Wear ID cards at all times within the school premises\n- Maintain proper grooming standards\n\nStudents found in violation will face disciplinary action as per school rules.\n\nThank you for your cooperation.",
-    attachments: [],
-    status: "sent",
-    sentAt: "2026-07-05 07:30 AM",
-    updatedAt: "2026-07-05",
-    stats: { totalRecipients: 780, delivered: 780, read: 650, unread: 130, failed: 0 },
-    activities: [
-      { id: 1, action: "sent",      actor: "Platform Admin", timestamp: "2026-07-05 07:30 AM" },
-      { id: 2, action: "delivered", actor: "System",         timestamp: "2026-07-05 07:31 AM" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: false,
-    sendCopyToAdmin: false,
-  },
-  {
-    id: 13,
-    messageId: "MSG-2026-0013",
-    subject: "Computer Lab Booking – July 2026",
-    type: "General",
-    priority: "Low",
-    sendMethod: "In-app",
-    sender: "IT Department",
-    senderRole: "IT Coordinator",
-    recipientType: "Teachers",
-    recipients: ["All Teachers"],
-    body: "Dear Teachers,\n\nThe computer lab booking sheet for July 2026 is now available. Please fill in your preferred slots to reserve lab time for your classes.\n\nBooking is on a first-come, first-served basis. Maximum two consecutive periods per class booking.\n\nPlease contact the IT department for any technical support requirements.\n\nIT Department",
-    attachments: [{ id: 7, name: "lab-booking-july.xlsx", type: "Spreadsheet", size: "95 KB" }],
-    status: "sent",
-    sentAt: "2026-07-01 07:00 AM",
-    updatedAt: "2026-07-01",
-    stats: { totalRecipients: 42, delivered: 42, read: 35, unread: 7, failed: 0 },
-    activities: [
-      { id: 1, action: "sent",      actor: "IT Department", timestamp: "2026-07-01 07:00 AM" },
-      { id: 2, action: "delivered", actor: "System",        timestamp: "2026-07-01 07:01 AM" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: false,
-    sendCopyToAdmin: false,
-  },
-  {
-    id: 14,
-    messageId: "MSG-2026-0014",
-    subject: "Online Exam Portal – Access Instructions",
-    type: "Exam Notice",
-    priority: "High",
-    sendMethod: "In-app",
-    sender: "Examination Controller",
-    senderRole: "Exam Controller",
-    recipientType: "Students",
-    recipients: ["Grade 9", "Grade 10", "Grade 11", "Grade 12"],
-    body: "Dear Students,\n\nPlease find below the instructions for accessing the online examination portal for the upcoming Final Examinations 2026.\n\nPortal URL: examportal.schoolos.np\nLogin: Your student ID number\nPassword: First 4 digits of your mobile number + '@SMS'\n\nImportant:\n- Ensure stable internet before starting the exam\n- Clear browser cache before logging in\n- Contact the IT helpdesk if you face any issues\n\nTechnical support: it@schoolos.np | Extension: 105",
-    attachments: [{ id: 8, name: "exam-portal-guide.pdf", type: "PDF", size: "450 KB" }],
-    status: "sent",
-    sentAt: "2026-07-02 09:00 AM",
-    updatedAt: "2026-07-02",
-    stats: { totalRecipients: 380, delivered: 375, read: 340, unread: 35, failed: 5 },
-    activities: [
-      { id: 1, action: "sent",      actor: "Examination Controller", timestamp: "2026-07-02 09:00 AM" },
-      { id: 2, action: "delivered", actor: "System",                 timestamp: "2026-07-02 09:01 AM" },
-    ],
-    isStarred: true,
-    requireAcknowledgement: false,
-    sendCopyToAdmin: true,
-  },
-  {
-    id: 15,
-    messageId: "MSG-2026-0015",
-    subject: "Grade 6 Welcome Back – New Session Begins",
-    type: "General",
-    priority: "Normal",
-    sendMethod: "In-app",
-    sender: "Principal",
-    senderRole: "Principal",
-    recipientType: "Parents",
-    recipients: ["Grade 6 Parents"],
-    body: "Dear Parents of Grade 6,\n\nWelcome to the new academic session 2026–2027! We are delighted to have your children join us for another year of learning and growth.\n\nKey dates:\n- First day of classes: July 8, 2026\n- Orientation for new students: July 8, 10:00 AM – 11:30 AM\n- Stationery & book list: Attached\n\nWe look forward to a productive and enriching year ahead.\n\nWarm regards,\nThe Principal",
-    attachments: [{ id: 9, name: "booklist-grade6-2026.pdf", type: "PDF", size: "130 KB" }],
-    status: "sent",
-    sentAt: "2026-07-06 10:00 AM",
-    updatedAt: "2026-07-06",
-    stats: { totalRecipients: 75, delivered: 75, read: 68, unread: 7, failed: 0 },
-    activities: [
-      { id: 1, action: "sent",      actor: "Principal", timestamp: "2026-07-06 10:00 AM" },
-      { id: 2, action: "delivered", actor: "System",    timestamp: "2026-07-06 10:01 AM" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: false,
-    sendCopyToAdmin: false,
-  },
-  {
-    id: 16,
-    messageId: "MSG-2026-0016",
-    subject: "Annual Report Cards – Distribution Schedule",
-    type: "Academic Notice",
-    priority: "High",
-    sendMethod: "In-app",
-    sender: "Academic Department",
-    senderRole: "Academic Head",
-    recipientType: "Parents",
-    recipients: ["All Parents"],
-    body: "Dear Parents,\n\nThe Annual Report Cards for 2025–2026 will be distributed as follows:\n\n- Grade 1–3: July 10, 2026 (9:00 AM – 11:00 AM)\n- Grade 4–6: July 10, 2026 (11:00 AM – 1:00 PM)\n- Grade 7–9: July 11, 2026 (9:00 AM – 11:00 AM)\n- Grade 10–12: July 11, 2026 (11:00 AM – 1:00 PM)\n\nParents are requested to collect the report cards in person. Kindly bring your ID card.\n\nAcademic Department",
-    attachments: [],
-    status: "sent",
-    sentAt: "2026-07-06 08:00 AM",
-    updatedAt: "2026-07-06",
-    stats: { totalRecipients: 580, delivered: 578, read: 510, unread: 68, failed: 2 },
-    activities: [
-      { id: 1, action: "sent",      actor: "Academic Department", timestamp: "2026-07-06 08:00 AM" },
-      { id: 2, action: "delivered", actor: "System",              timestamp: "2026-07-06 08:01 AM" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: false,
-    sendCopyToAdmin: false,
-  },
-  {
-    id: 17,
-    messageId: "MSG-2026-0017",
-    subject: "Staff Salary Disbursement – July 2026",
-    type: "General",
-    priority: "Normal",
-    sendMethod: "In-app",
-    sender: "HR Department",
-    senderRole: "HR Manager",
-    recipientType: "Staff",
-    recipients: ["All Staff"],
-    body: "Dear Staff Members,\n\nPlease be informed that the salary for the month of July 2026 will be disbursed on July 28, 2026.\n\nFor any discrepancies in your payslip, kindly contact the HR department by July 25, 2026.\n\nPlease ensure your bank account details are up to date in the HR portal.\n\nHR Department",
-    attachments: [],
-    status: "scheduled",
-    scheduledAt: "2026-07-25 08:00 AM",
-    updatedAt: "2026-07-06",
-    stats: { totalRecipients: 85, delivered: 0, read: 0, unread: 0, failed: 0 },
-    activities: [
-      { id: 1, action: "scheduled", actor: "HR Department", timestamp: "2026-07-06 02:00 PM", note: "Scheduled for July 25" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: false,
-    sendCopyToAdmin: false,
-  },
-  {
-    id: 18,
-    messageId: "MSG-2026-0018",
-    subject: "Quiz Competition – Registration Deadline Extended",
-    type: "Announcement",
-    priority: "Low",
-    sendMethod: "In-app",
-    sender: "Academic Department",
-    senderRole: "Academic Head",
-    recipientType: "Students",
-    recipients: ["Grade 7", "Grade 8", "Grade 9"],
-    body: "Dear Students,\n\nThe registration deadline for the Inter-School Quiz Competition 2026 has been extended to July 15, 2026.\n\nEligibility: Students from Grade 7–9 with a minimum GPA of 3.0 in the last terminal examination.\n\nSubjects: Science, Mathematics, English, Social Studies\n\nInterested students should register with their class teacher by July 15, 2026.\n\nAcademic Department",
-    attachments: [],
-    status: "sent",
-    sentAt: "2026-07-04 12:00 PM",
-    updatedAt: "2026-07-04",
-    stats: { totalRecipients: 240, delivered: 238, read: 185, unread: 53, failed: 2 },
-    activities: [
-      { id: 1, action: "sent",      actor: "Academic Department", timestamp: "2026-07-04 12:00 PM" },
-      { id: 2, action: "delivered", actor: "System",              timestamp: "2026-07-04 12:01 PM" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: false,
-    sendCopyToAdmin: false,
-  },
-  {
-    id: 19,
-    messageId: "MSG-2026-0019",
-    subject: "Transport Route Change – Sector 4 Bus",
-    type: "General",
-    priority: "High",
-    sendMethod: "In-app",
-    sender: "Transport Office",
-    senderRole: "Transport Coordinator",
-    recipientType: "Parents",
-    recipients: ["Bus Route 4 Parents"],
-    body: "Dear Parents using Bus Route 4,\n\nDue to road construction work on Main Street, Bus Route 4 will follow a detour effective from July 8, 2026 until further notice.\n\nNew pickup/drop points:\n- Sector 4A: 5 minutes earlier than usual\n- Sector 4B: Same timing via Ring Road\n- Sector 4C: Will now stop at Park Gate instead of Library Junction\n\nWe apologize for any inconvenience. Please plan accordingly.\n\nTransport Office",
-    attachments: [{ id: 10, name: "route4-map-updated.pdf", type: "PDF", size: "380 KB" }],
-    status: "sent",
-    sentAt: "2026-07-06 03:00 PM",
-    updatedAt: "2026-07-06",
-    stats: { totalRecipients: 65, delivered: 65, read: 58, unread: 7, failed: 0 },
-    activities: [
-      { id: 1, action: "sent",      actor: "Transport Office", timestamp: "2026-07-06 03:00 PM" },
-      { id: 2, action: "delivered", actor: "System",           timestamp: "2026-07-06 03:01 PM" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: true,
-    sendCopyToAdmin: false,
-  },
-  {
-    id: 20,
-    messageId: "MSG-2026-0020",
-    subject: "Hostel Admission Form – 2026–27",
-    type: "General",
-    priority: "Normal",
-    sendMethod: "In-app",
-    sender: "Hostel Warden",
-    senderRole: "Hostel Warden",
-    recipientType: "Parents",
-    recipients: ["Grade 6 Parents", "Grade 7 Parents"],
-    body: "Dear Parents,\n\nHostel admission forms for the academic year 2026–27 are now available. Limited seats are available on a first-come, first-served basis.\n\nEligibility:\n- Currently enrolled in Grades 6–12\n- Minimum 75% attendance in previous year\n- Good academic standing\n\nMonthly hostel fee: NPR 8,500 (includes meals, laundry, and room)\n\nPlease collect forms from the hostel office (Room 201, Block C) between 9 AM – 4 PM.\n\nHostel Warden",
-    attachments: [{ id: 11, name: "hostel-admission-form.pdf", type: "PDF", size: "195 KB" }],
-    status: "sent",
-    sentAt: "2026-07-03 09:00 AM",
-    updatedAt: "2026-07-03",
-    stats: { totalRecipients: 150, delivered: 149, read: 112, unread: 37, failed: 1 },
-    activities: [
-      { id: 1, action: "sent",      actor: "Hostel Warden", timestamp: "2026-07-03 09:00 AM" },
-      { id: 2, action: "delivered", actor: "System",        timestamp: "2026-07-03 09:01 AM" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: false,
-    sendCopyToAdmin: false,
-  },
-  {
-    id: 21,
-    messageId: "MSG-2026-0021",
-    subject: "Draft: Upcoming School Magazine – Submission Call",
-    type: "Announcement",
-    priority: "Low",
-    sendMethod: "In-app",
-    sender: "Platform Admin",
-    senderRole: "Administrator",
-    recipientType: "Students",
-    recipients: ["All Students"],
-    body: "Dear Students,\n\nThe editorial team for the school magazine 'EduVoice 2026' is calling for submissions.\n\nSubmissions open: [DATE TBD]\nCategories: Creative Writing, Poetry, Art & Illustration, Photography, Tech Insights\n\nSubmit your work to the editorial office or email to magazine@schoolos.np\n\nDo not miss this chance to showcase your talent!",
-    attachments: [],
-    status: "draft",
-    updatedAt: "2026-07-05",
-    stats: { totalRecipients: 0, delivered: 0, read: 0, unread: 0, failed: 0 },
-    activities: [
-      { id: 1, action: "draft_saved", actor: "Platform Admin", timestamp: "2026-07-05 01:30 PM" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: false,
-    sendCopyToAdmin: false,
-  },
-  {
-    id: 22,
-    messageId: "MSG-2026-0022",
-    subject: "Draft: Term 2 Academic Calendar",
-    type: "Academic Notice",
-    priority: "Normal",
-    sendMethod: "In-app",
-    sender: "Academic Department",
-    senderRole: "Academic Head",
-    recipientType: "All Users",
-    recipients: [],
-    body: "Dear All,\n\nPlease find the academic calendar for Term 2 (August–December 2026) attached below.\n\n[Content pending final approval from Principal]\n\nKey dates will include:\n- Term 2 commencement: August 1\n- Mid-term break: October [TBD]\n- Final exams: December [TBD]",
-    attachments: [],
-    status: "draft",
-    updatedAt: "2026-07-06",
-    stats: { totalRecipients: 0, delivered: 0, read: 0, unread: 0, failed: 0 },
-    activities: [
-      { id: 1, action: "draft_saved", actor: "Academic Department", timestamp: "2026-07-06 09:00 AM" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: false,
-    sendCopyToAdmin: false,
-  },
-  {
-    id: 23,
-    messageId: "MSG-2026-0023",
-    subject: "Fee Payment Failed – Action Required",
-    type: "Fee Reminder",
-    priority: "Urgent",
-    sendMethod: "In-app",
-    sender: "Accounts Office",
-    senderRole: "Accounts",
-    recipientType: "Parents",
-    recipients: ["Specific Parents"],
-    body: "Dear Parent,\n\nWe regret to inform you that your recent online fee payment of NPR 4,850 failed to process.\n\nPossible reasons:\n- Insufficient balance\n- Bank server timeout\n- Payment gateway error\n\nPlease retry the payment or visit the school accounts office at the earliest. Continued non-payment may result in suspension of access to school services.\n\nAccounts Department",
-    attachments: [],
-    status: "failed",
-    sentAt: "2026-07-05 03:45 PM",
-    updatedAt: "2026-07-05",
-    stats: { totalRecipients: 15, delivered: 0, read: 0, unread: 0, failed: 15 },
-    activities: [
-      { id: 1, action: "sent",   actor: "Accounts Office", timestamp: "2026-07-05 03:45 PM" },
-      { id: 2, action: "failed", actor: "System",          timestamp: "2026-07-05 03:46 PM", note: "Delivery failed for all 15 recipients" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: false,
-    sendCopyToAdmin: true,
-  },
-  {
-    id: 24,
-    messageId: "MSG-2026-0024",
-    subject: "New Canteen Menu – Healthy Eating Initiative",
-    type: "Announcement",
-    priority: "Low",
-    sendMethod: "In-app",
-    sender: "Canteen Committee",
-    senderRole: "Staff",
-    recipientType: "All Users",
-    recipients: ["All Students", "All Staff"],
-    body: "Dear Students and Staff,\n\nAs part of our Healthy Eating Initiative, the school canteen is introducing a new menu for July 2026.\n\nHighlights:\n- Fresh fruit cups available daily\n- No fried snacks on Tuesdays & Thursdays\n- New wholesome meals for NPR 80–120\n- Sugar-free drink options available\n\nWe encourage everyone to make healthier food choices. The full menu is displayed at the canteen counter.\n\nCanteen Committee",
-    attachments: [{ id: 12, name: "july-canteen-menu.pdf", type: "PDF", size: "165 KB" }],
-    status: "sent",
-    sentAt: "2026-07-01 11:30 AM",
-    updatedAt: "2026-07-01",
-    stats: { totalRecipients: 865, delivered: 860, read: 620, unread: 240, failed: 5 },
-    activities: [
-      { id: 1, action: "sent",      actor: "Canteen Committee", timestamp: "2026-07-01 11:30 AM" },
-      { id: 2, action: "delivered", actor: "System",            timestamp: "2026-07-01 11:31 AM" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: false,
-    sendCopyToAdmin: false,
-  },
-  {
-    id: 25,
-    messageId: "MSG-2026-0025",
-    subject: "Draft: Student Council Election 2026",
-    type: "Announcement",
-    priority: "Normal",
-    sendMethod: "In-app",
-    sender: "Platform Admin",
-    senderRole: "Administrator",
-    recipientType: "Students",
-    recipients: ["Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"],
-    body: "Dear Students,\n\nNominations for the Student Council Election 2026 are now open.\n\nPositions Available:\n- President\n- Vice President\n- Secretary\n- Treasurer\n- House Captains (4 positions)\n\nNomination forms are available from your class teacher. Completed forms must be submitted by [DATE TBD].\n\nElection date: [TBD]\n\n[Pending final approval]",
-    attachments: [],
-    status: "draft",
-    updatedAt: "2026-07-06",
-    stats: { totalRecipients: 0, delivered: 0, read: 0, unread: 0, failed: 0 },
-    activities: [
-      { id: 1, action: "draft_saved", actor: "Platform Admin", timestamp: "2026-07-06 11:00 AM" },
-    ],
-    isStarred: false,
-    requireAcknowledgement: false,
-    sendCopyToAdmin: false,
+    id: "b-003", title: "Monthly Fee Reminder – July 2026",
+    body: "School fees for July 2026 are due by July 10. Please clear dues to avoid late charges.",
+    audience: "All Parents", audienceCount: 580, sentBy: "Accounts Office", sentAt: "2026-07-01T09:00:00",
+    delivered: 578, read: 421, allowReplies: true,
   },
 ];
 
-/* ─── Templates ───────────────────────────────────────────────────────── */
+/* ─── Message Requests ────────────────────────────────────────────────── */
 
-export const MESSAGE_TEMPLATES: MessageTemplate[] = [
-  {
-    id: 1,
-    title: "Fee Reminder",
-    category: "Fee Reminder",
-    subject: "Monthly Fee Reminder – [Month] [Year]",
-    body: "Dear Parent/Guardian,\n\nThis is a reminder that the school fees for the month of [Month] [Year] are due by [Due Date].\n\nFee Details:\n- Tuition Fee: NPR [Amount]\n- Additional Charges: NPR [Amount]\n\nPlease clear dues on time to avoid late charges.\n\nAccounts Department",
-    tags: ["fees", "parents", "monthly"],
-    usageCount: 12,
-    lastUsed: "2026-07-01",
-  },
-  {
-    id: 2,
-    title: "Exam Notice",
-    category: "Exam Notice",
-    subject: "Examination Schedule – [Exam Name] [Year]",
-    body: "Dear Students and Parents,\n\nWe are pleased to inform you that the [Exam Name] Examinations will be held from [Start Date] to [End Date].\n\nKey Instructions:\n- Carry admit card at all times\n- Arrive 30 minutes before exam time\n- No electronic devices permitted in the hall\n\nBest of luck!\n\nExamination Office",
-    tags: ["exam", "students", "parents"],
-    usageCount: 8,
-    lastUsed: "2026-06-20",
-  },
-  {
-    id: 3,
-    title: "Attendance Alert",
-    category: "Attendance Alert",
-    subject: "Low Attendance Warning – [Student Name]",
-    body: "Dear Parent/Guardian of [Student Name],\n\nThis is to inform you that [his/her] attendance has fallen to [X]%, which is below the required 80% threshold.\n\nPlease ensure regular attendance to maintain eligibility for examinations.\n\nFor any concerns, please visit the school office.\n\nClass Teacher",
-    tags: ["attendance", "parents", "warning"],
-    usageCount: 15,
-    lastUsed: "2026-07-01",
-  },
-  {
-    id: 4,
-    title: "Parent Meeting Invitation",
-    category: "Parent Meeting",
-    subject: "Parent-Teacher Meeting – [Class/Grade] – [Date]",
-    body: "Dear Parents,\n\nYou are cordially invited to the Parent-Teacher Meeting for [Class/Grade] on [Date] from [Start Time] to [End Time] at [Venue].\n\nAgenda:\n- Academic performance review\n- Student progress discussion\n- Upcoming events\n- Q&A session\n\nYour presence is greatly valued.\n\nWith regards,\nClass Teacher",
-    tags: ["meeting", "parents", "teachers"],
-    usageCount: 6,
-    lastUsed: "2026-07-03",
-  },
-  {
-    id: 5,
-    title: "Holiday Notice",
-    category: "Announcement",
-    subject: "School Closed – [Holiday Name] – [Date]",
-    body: "Dear All,\n\nPlease be informed that school will remain closed on [Date] on account of [Holiday Name].\n\nClasses will resume on [Resume Date].\n\nWe wish all celebrating families a joyful occasion!\n\nManagement",
-    tags: ["holiday", "all users", "closure"],
-    usageCount: 9,
-    lastUsed: "2026-07-14",
-  },
-  {
-    id: 6,
-    title: "Result Published",
-    category: "Academic Notice",
-    subject: "Results Published – [Exam Name] – [Year]",
-    body: "Dear Students and Parents,\n\nWe are pleased to announce that the results for [Exam Name] [Year] have been published.\n\nYou may view your results:\n- On the school portal (student login required)\n- At the school office during working hours\n\nReport cards will be distributed on [Distribution Date].\n\nAcademic Department",
-    tags: ["results", "students", "parents"],
-    usageCount: 4,
-    lastUsed: "2026-06-15",
-  },
-  {
-    id: 7,
-    title: "Emergency Notice",
-    category: "Emergency",
-    subject: "URGENT: [Emergency Subject]",
-    body: "URGENT NOTICE\n\n[Describe the emergency situation clearly and concisely.]\n\nAction Required:\n- [Action 1]\n- [Action 2]\n\nNormal operations will resume on [Date].\n\nWe apologize for any inconvenience.\n\nPrincipal",
-    tags: ["emergency", "urgent", "all users"],
-    usageCount: 2,
-    lastUsed: "2026-07-06",
-  },
+export const MESSAGE_REQUESTS: MessageRequestItem[] = [
+  { id: "r-001", fromUserId: "u-student-02", toUserId: "u-teacher-01", reason: "Question about homework deadline extension.", status: "pending", requestedAt: "2026-07-10T07:49:00" },
+  { id: "r-002", fromUserId: "u-parent-03", toUserId: "u-admin", reason: "Request to discuss transport route change.", status: "pending", requestedAt: "2026-07-09T18:20:00" },
+  { id: "r-003", fromUserId: "u-student-01", toUserId: "u-principal", reason: "Asking about student council nomination.", status: "approved", requestedAt: "2026-07-08T10:00:00" },
+  { id: "r-004", fromUserId: "u-parent-01", toUserId: "u-teacher-02", reason: "Unrelated promotional message flagged by filter.", status: "rejected", requestedAt: "2026-07-07T09:15:00" },
 ];
 
-/* ─── Summary ─────────────────────────────────────────────────────────── */
+/* ─── Moderation ──────────────────────────────────────────────────────── */
 
-export const MESSAGE_SUMMARY: MessageSummary = {
-  total:     MESSAGES.length,
-  unread:    MESSAGES.filter(m => m.status === "unread").length
-           + MESSAGES.filter(m => m.status === "sent" && m.stats.unread > 0).length,
-  sent:      MESSAGES.filter(m => m.status === "sent").length,
-  drafts:    MESSAGES.filter(m => m.status === "draft").length,
-  failed:    MESSAGES.filter(m => m.status === "failed").length,
-  scheduled: MESSAGES.filter(m => m.status === "scheduled").length,
-  starred:   MESSAGES.filter(m => m.isStarred).length,
-  archived:  0,
-};
+export const MODERATION_REPORTS: ModerationReport[] = [
+  { id: "mo-001", messageId: "m-0035", conversationId: "c-003", senderId: "u-student-01", reportedById: "u-teacher-01", reason: "Off-topic message during class hours", priority: "low", status: "dismissed", reportedAt: "2026-07-10T08:31:00" },
+  { id: "mo-002", messageId: "m-0091", conversationId: "c-009", senderId: "u-student-02", reportedById: "u-teacher-01", reason: "Unclear intent, flagged for review before approval", priority: "normal", status: "open", reportedAt: "2026-07-10T07:51:00" },
+  { id: "mo-003", messageId: "m-0101", conversationId: "c-010", senderId: "u-parent-02", reportedById: "u-principal", reason: "Suspicious external link shared in direct message", priority: "high", status: "actioned", reportedAt: "2026-07-05T15:05:00" },
+];
 
-/* ─── Options ─────────────────────────────────────────────────────────── */
+/* ─── Audit Trail ─────────────────────────────────────────────────────── */
 
-export const MESSAGE_TYPE_OPTIONS: MessageType[] = [
-  "General", "Announcement", "Fee Reminder", "Exam Notice",
-  "Attendance Alert", "Parent Meeting", "Emergency", "Academic Notice",
+export const MESSAGE_AUDIT_EVENTS: MessageAuditEvent[] = [
+  { id: "au-001", type: "admin_opened_conversation", actorId: "u-admin", conversationId: "c-010", detail: "Opened locked conversation for moderation review", timestamp: "2026-07-05T15:10:00" },
+  { id: "au-002", type: "conversation_locked", actorId: "u-admin", conversationId: "c-010", detail: "Locked conversation after suspicious link report", timestamp: "2026-07-05T15:12:00" },
+  { id: "au-003", type: "moderation_action", actorId: "u-admin", conversationId: "c-010", detail: "Flagged message actioned — sender warned", timestamp: "2026-07-05T15:15:00" },
+  { id: "au-004", type: "message_exported", actorId: "u-admin", conversationId: "c-001", detail: "Exported conversation as JSON for record-keeping", timestamp: "2026-07-09T10:00:00" },
 ];
-export const MESSAGE_PRIORITY_OPTIONS: MessagePriority[] = ["Low", "Normal", "High", "Urgent"];
-export const SEND_METHOD_OPTIONS: SendMethod[] = ["In-app", "Email", "SMS", "Push Notification"];
-export const RECIPIENT_TYPE_OPTIONS: RecipientType[] = [
-  "All Users", "Students", "Parents", "Teachers", "Staff",
-  "Specific Class", "Specific Section", "Specific Student",
-  "Specific Parent", "Specific Teacher",
-];
-export const CLASS_OPTIONS_MESSAGES = [
-  "Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6",
-  "Grade 7","Grade 8","Grade 9","Grade 10","Grade 11","Grade 12",
-];
-export const SECTION_OPTIONS_MESSAGES = ["A","B","C","D"];
+
+/* ─── Filters / options ───────────────────────────────────────────────── */
+
+export const CONVERSATION_FILTER_TABS = ["All", "Unread", "Groups", "Parents", "Teachers", "Students", "Staff", "Archived"] as const;
+export type ConversationFilterTab = (typeof CONVERSATION_FILTER_TABS)[number];

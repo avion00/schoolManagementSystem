@@ -1,7 +1,6 @@
 /* ─── Types ────────────────────────────────────────────────────────────── */
 
 export type AcademicYearStatus = "Active" | "Upcoming" | "Archived";
-export type UserStatus         = "Active" | "Inactive" | "Suspended";
 export type BackupStatus       = "Success" | "Running" | "Failed" | "Pending";
 
 /* ─── School Profile ─────────────────────────────────────────────────── */
@@ -63,80 +62,6 @@ export const ACADEMIC_YEARS: AcademicYear[] = [
   { id: 3, year: "2024–2025", startDate: "2024-04-01", endDate: "2025-03-31", status: "Archived", admissionOpen: false, resultPublished: true,  attendanceLock: "2025-03-25" },
   { id: 4, year: "2027–2028", startDate: "2027-04-01", endDate: "2028-03-31", status: "Upcoming", admissionOpen: false, resultPublished: false, attendanceLock: "2028-03-25" },
 ];
-
-/* ─── Admin Users ────────────────────────────────────────────────────── */
-
-export interface AdminUser {
-  id:        number;
-  name:      string;
-  email:     string;
-  role:      string;
-  status:    UserStatus;
-  lastLogin: string;
-  avatar?:   string;
-}
-
-export const ADMIN_USERS: AdminUser[] = [
-  { id: 1, name: "Platform Admin",       email: "admin@schoolos.np",       role: "Super Admin",   status: "Active",    lastLogin: "2026-07-06 09:15 AM" },
-  { id: 2, name: "Dr. Rajesh Sharma",    email: "principal@schoolos.np",   role: "Principal",     status: "Active",    lastLogin: "2026-07-06 08:30 AM" },
-  { id: 3, name: "Sunita Gurung",        email: "accounts@schoolos.np",    role: "Accountant",    status: "Active",    lastLogin: "2026-07-05 03:45 PM" },
-  { id: 4, name: "Kazi Fahim",           email: "kffahim@schoolos.np",     role: "Teacher",       status: "Active",    lastLogin: "2026-07-06 07:55 AM" },
-  { id: 5, name: "Mira Shrestha",        email: "mshrestha@schoolos.np",   role: "Receptionist",  status: "Active",    lastLogin: "2026-07-04 12:00 PM" },
-  { id: 6, name: "Binod Karki",          email: "bkarki@schoolos.np",      role: "Teacher",       status: "Inactive",  lastLogin: "2026-06-28 10:20 AM" },
-  { id: 7, name: "Kavita Joshi",         email: "kjoshi@schoolos.np",      role: "HR Manager",    status: "Active",    lastLogin: "2026-07-06 09:00 AM" },
-  { id: 8, name: "Ramesh Adhikari",      email: "radhikari@schoolos.np",   role: "Teacher",       status: "Suspended", lastLogin: "2026-06-15 09:30 AM" },
-];
-
-/* ─── Roles & Permissions ────────────────────────────────────────────── */
-
-export interface Role {
-  id:             number;
-  name:           string;
-  description:    string;
-  userCount:      number;
-  permissionCount:number;
-  color:          string;
-  isSystem:       boolean;
-}
-
-export const ROLES: Role[] = [
-  { id: 1, name: "Super Admin",   description: "Full system access, all settings", userCount: 1,  permissionCount: 78, color: "rose",    isSystem: true  },
-  { id: 2, name: "Principal",     description: "School management, reports, staff", userCount: 1,  permissionCount: 62, color: "violet",  isSystem: true  },
-  { id: 3, name: "Teacher",       description: "Classes, attendance, marks entry",  userCount: 28, permissionCount: 34, color: "blue",    isSystem: true  },
-  { id: 4, name: "Accountant",    description: "Fees, payments, invoices, reports", userCount: 3,  permissionCount: 28, color: "emerald", isSystem: true  },
-  { id: 5, name: "Receptionist",  description: "Admissions, queries, notices",      userCount: 4,  permissionCount: 18, color: "amber",   isSystem: false },
-  { id: 6, name: "HR Manager",    description: "Staff records, payroll, leaves",    userCount: 2,  permissionCount: 22, color: "cyan",    isSystem: false },
-  { id: 7, name: "Parent",        description: "Student info, fees, results view",  userCount: 580,permissionCount: 8,  color: "slate",   isSystem: true  },
-  { id: 8, name: "Student",       description: "Own profile, attendance, results",  userCount: 780,permissionCount: 6,  color: "neutral", isSystem: true  },
-];
-
-export type PermModule = "Dashboard"|"Students"|"Teachers"|"Parents"|"Classes"|"Subjects"|"Attendance"|"Exams"|"Fees"|"Notices"|"Messages"|"Reports"|"Settings";
-export type PermAction = "view"|"create"|"edit"|"delete"|"export"|"approve";
-
-export const PERM_MODULES: PermModule[] = ["Dashboard","Students","Teachers","Parents","Classes","Subjects","Attendance","Exams","Fees","Notices","Messages","Reports","Settings"];
-export const PERM_ACTIONS: PermAction[] = ["view","create","edit","delete","export","approve"];
-
-export type PermMatrix = Record<PermModule, Record<PermAction, boolean>>;
-
-export const SUPER_ADMIN_PERMS: PermMatrix = Object.fromEntries(
-  PERM_MODULES.map((m) => [m, Object.fromEntries(PERM_ACTIONS.map((a) => [a, true]))])
-) as PermMatrix;
-
-export const TEACHER_PERMS: PermMatrix = {
-  Dashboard:  { view:true,  create:false, edit:false,  delete:false, export:false, approve:false },
-  Students:   { view:true,  create:false, edit:false,  delete:false, export:false, approve:false },
-  Teachers:   { view:true,  create:false, edit:false,  delete:false, export:false, approve:false },
-  Parents:    { view:true,  create:false, edit:false,  delete:false, export:false, approve:false },
-  Classes:    { view:true,  create:false, edit:false,  delete:false, export:false, approve:false },
-  Subjects:   { view:true,  create:false, edit:false,  delete:false, export:false, approve:false },
-  Attendance: { view:true,  create:true,  edit:true,   delete:false, export:true,  approve:false },
-  Exams:      { view:true,  create:false, edit:true,   delete:false, export:false, approve:false },
-  Fees:       { view:false, create:false, edit:false,  delete:false, export:false, approve:false },
-  Notices:    { view:true,  create:false, edit:false,  delete:false, export:false, approve:false },
-  Messages:   { view:true,  create:true,  edit:false,  delete:false, export:false, approve:false },
-  Reports:    { view:true,  create:false, edit:false,  delete:false, export:true,  approve:false },
-  Settings:   { view:false, create:false, edit:false,  delete:false, export:false, approve:false },
-};
 
 /* ─── Notification Settings ──────────────────────────────────────────── */
 
@@ -361,37 +286,6 @@ export const BACKUP_INFO: BackupInfo = {
     { id:5, date:"2026-07-01 02:00 PM", size:"2.2 GB", status:"Success", type:"Manual",    createdBy:"Platform Admin"  },
   ],
 };
-
-/* ─── Audit Logs ─────────────────────────────────────────────────────── */
-
-export interface AuditLog {
-  id:        number;
-  date:      string;
-  user:      string;
-  role:      string;
-  action:    string;
-  module:    string;
-  ipAddress: string;
-  status:    "Success" | "Failed" | "Warning";
-}
-
-export const AUDIT_LOGS: AuditLog[] = [
-  { id:1,  date:"2026-07-06 09:15 AM", user:"Platform Admin",    role:"Super Admin",  action:"Updated school profile",         module:"Settings",   ipAddress:"192.168.1.10", status:"Success" },
-  { id:2,  date:"2026-07-06 09:00 AM", user:"Kavita Joshi",      role:"HR Manager",   action:"Added new staff record",         module:"Teachers",   ipAddress:"192.168.1.15", status:"Success" },
-  { id:3,  date:"2026-07-06 08:45 AM", user:"Kazi Fahim",        role:"Teacher",      action:"Marked attendance – Grade 6A",   module:"Attendance", ipAddress:"192.168.1.22", status:"Success" },
-  { id:4,  date:"2026-07-06 08:30 AM", user:"Dr. Rajesh Sharma", role:"Principal",    action:"Approved exam results",          module:"Exams",      ipAddress:"192.168.1.12", status:"Success" },
-  { id:5,  date:"2026-07-05 04:00 PM", user:"Sunita Gurung",     role:"Accountant",   action:"Generated fee invoice INV-0245", module:"Fees",       ipAddress:"192.168.1.18", status:"Success" },
-  { id:6,  date:"2026-07-05 03:45 PM", user:"Sunita Gurung",     role:"Accountant",   action:"Fee payment failed (gateway)",   module:"Fees",       ipAddress:"192.168.1.18", status:"Failed"  },
-  { id:7,  date:"2026-07-05 02:00 PM", user:"Platform Admin",    role:"Super Admin",  action:"Created manual backup",          module:"Settings",   ipAddress:"192.168.1.10", status:"Success" },
-  { id:8,  date:"2026-07-05 01:30 PM", user:"Mira Shrestha",     role:"Receptionist", action:"Created new student admission",  module:"Students",   ipAddress:"192.168.1.30", status:"Success" },
-  { id:9,  date:"2026-07-05 11:00 AM", user:"Platform Admin",    role:"Super Admin",  action:"Updated notification settings",  module:"Settings",   ipAddress:"192.168.1.10", status:"Success" },
-  { id:10, date:"2026-07-04 09:30 AM", user:"Unknown",           role:"—",            action:"Failed login attempt (3 tries)", module:"Auth",       ipAddress:"103.22.45.12", status:"Warning" },
-  { id:11, date:"2026-07-04 08:00 AM", user:"Kazi Fahim",        role:"Teacher",      action:"Published exam schedule",        module:"Exams",      ipAddress:"192.168.1.22", status:"Success" },
-  { id:12, date:"2026-07-03 04:45 PM", user:"Dr. Rajesh Sharma", role:"Principal",    action:"Sent school-wide notice",        module:"Notices",    ipAddress:"192.168.1.12", status:"Success" },
-  { id:13, date:"2026-07-03 02:30 PM", user:"Platform Admin",    role:"Super Admin",  action:"Changed user role – Receptionist→HR", module:"Settings", ipAddress:"192.168.1.10", status:"Success" },
-  { id:14, date:"2026-07-02 10:00 AM", user:"Sunita Gurung",     role:"Accountant",   action:"Exported fee report (PDF)",      module:"Fees",       ipAddress:"192.168.1.18", status:"Success" },
-  { id:15, date:"2026-07-01 09:00 AM", user:"Platform Admin",    role:"Super Admin",  action:"System auto-backup completed",   module:"System",     ipAddress:"127.0.0.1",    status:"Success" },
-];
 
 /* ─── Appearance Settings (defaults) ─────────────────────────────────── */
 
