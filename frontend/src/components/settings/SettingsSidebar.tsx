@@ -1,11 +1,12 @@
 import {
   School, CalendarDays, Users, ShieldCheck, Bell, CreditCard,
   CalendarCheck, ClipboardList, Palette, Lock, HardDrive, ScrollText,
-  Fingerprint,
+  Fingerprint, CircleUserRound, KeyRound, Laptop2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type SettingsPanel =
+  | "my-profile" | "my-security" | "my-sessions"
   | "school" | "academic" | "users" | "roles" | "access"
   | "notifications" | "fees" | "attendance" | "exams"
   | "appearance" | "security" | "backup" | "audit";
@@ -21,6 +22,14 @@ interface NavGroup {
 }
 
 const GROUPS: NavGroup[] = [
+  {
+    label: "My Account",
+    items: [
+      { id: "my-profile",  label: "My Profile",  icon: CircleUserRound },
+      { id: "my-security", label: "My Security",  icon: KeyRound        },
+      { id: "my-sessions", label: "My Sessions",  icon: Laptop2         },
+    ],
+  },
   {
     label: "General",
     items: [

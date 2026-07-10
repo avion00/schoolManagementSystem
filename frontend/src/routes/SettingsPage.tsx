@@ -3,6 +3,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import { Card } from "@/components/ui/card";
 import { SettingsSidebar } from "@/components/settings/SettingsSidebar";
+import { MyProfileSettings }        from "@/components/settings/MyProfileSettings";
+import { MySecuritySettings }       from "@/components/settings/MySecuritySettings";
+import { MySessionsSettings }       from "@/components/settings/MySessionsSettings";
 import { SchoolProfileSettings }    from "@/components/settings/SchoolProfileSettings";
 import { AcademicYearSettings }     from "@/components/settings/AcademicYearSettings";
 import { NotificationSettings }     from "@/components/settings/NotificationSettings";
@@ -18,6 +21,9 @@ import { AuditLogsPage }            from "@/routes/AuditLogsPage";
 import type { SettingsPanel }       from "@/components/settings/SettingsSidebar";
 
 const PANEL_PATH: Record<SettingsPanel, string> = {
+  "my-profile":  "/settings/my-profile",
+  "my-security": "/settings/my-security",
+  "my-sessions": "/settings/my-sessions",
   school:        "/settings/school-profile",
   academic:      "/settings/academic-year",
   users:         "/settings/users",
@@ -39,6 +45,7 @@ function panelFromPath(pathname: string): SettingsPanel {
 }
 
 const PANEL_LABELS: Record<SettingsPanel, string> = {
+  "my-profile": "My Profile", "my-security": "My Security", "my-sessions": "My Sessions",
   school: "School Profile", academic: "Academic Year", users: "Users",
   roles: "Roles & Permissions", access: "Access Control", security: "Security",
   audit: "Audit Logs", attendance: "Attendance Settings", exams: "Exam & Grading",
@@ -48,6 +55,9 @@ const PANEL_LABELS: Record<SettingsPanel, string> = {
 
 function PanelContent({ panel }: { panel: SettingsPanel }) {
   switch (panel) {
+    case "my-profile":    return <MyProfileSettings />;
+    case "my-security":   return <MySecuritySettings />;
+    case "my-sessions":   return <MySessionsSettings />;
     case "school":        return <SchoolProfileSettings />;
     case "academic":      return <AcademicYearSettings />;
     case "users":         return <UsersPage />;

@@ -3,13 +3,11 @@ import {
   Bell,
   ChevronRight,
   CircleHelp,
-  CreditCard,
   LogOut,
   MoreVertical,
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
-  UserRound,
   type LucideIcon,
 } from "lucide-react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -55,7 +53,6 @@ const FOOTER_NAV: NavItem[] = [
 
 /* Paths not in the nav tree — fallback breadcrumbs */
 const EXTRA_CRUMBS: Record<string, string[]> = {
-  "/account":       ["Portal", "Account"],
   "/billing":       ["Portal", "Billing"],
   "/notifications": ["Portal", "Notifications"],
   "/search":        ["Portal", "Search"],
@@ -106,15 +103,11 @@ function deriveBreadcrumb(pathname: string, nav: NavGroup[], brand: string): str
   // Help / Support
   if (pathname === "/help")                                                  return ["Portal", "Support", "Get Help"];
 
-  // Account (personal)
-  if (pathname === "/account")                                               return ["Portal", "Account"];
-  if (pathname === "/account/profile")                                       return ["Portal", "Account", "Profile"];
-  if (pathname === "/account/security")                                      return ["Portal", "Account", "Security"];
-  if (pathname === "/account/sessions")                                      return ["Portal", "Account", "Sessions"];
-  if (pathname === "/account/preferences")                                   return ["Portal", "Account", "Preferences"];
-
-  // Settings (system / administration)
+  // Settings (system / administration + personal account)
   if (pathname === "/settings")                                              return ["Portal", "Settings"];
+  if (pathname === "/settings/my-profile")                                   return ["Portal", "Settings", "My Profile"];
+  if (pathname === "/settings/my-security")                                  return ["Portal", "Settings", "My Security"];
+  if (pathname === "/settings/my-sessions")                                  return ["Portal", "Settings", "My Sessions"];
   if (pathname === "/settings/school-profile")                               return ["Portal", "Settings", "School Profile"];
   if (pathname === "/settings/academic-year")                                return ["Portal", "Settings", "Academic Year"];
   if (pathname === "/settings/users")                                        return ["Portal", "Settings", "Users"];
@@ -201,7 +194,7 @@ function deriveBreadcrumb(pathname: string, nav: NavGroup[], brand: string): str
  * inside that shell. Collapse them to their section root so only navigating
  * into/out of the section (not between its sub-pages) replays the transition.
  */
-const SHARED_SHELL_SECTIONS = ["/settings", "/account"];
+const SHARED_SHELL_SECTIONS = ["/settings", "/messages"];
 
 function transitionKeyFor(pathname: string): string {
   const section = SHARED_SHELL_SECTIONS.find((s) => pathname === s || pathname.startsWith(s + "/"));
@@ -417,13 +410,11 @@ function ProfileDropdown({
   name,
   email,
   side,
-  onNavigate,
   onLogout,
 }: {
   name: string;
   email: string;
   side: "right" | "top" | "bottom";
-  onNavigate: (to: string) => void;
   onLogout: () => void;
 }) {
   return (
@@ -456,35 +447,6 @@ function ProfileDropdown({
       <DropdownMenuSeparator className="m-0 bg-border/60" />
 
       <div className="p-1.5">
-        {(
-          [
-            { to: "/account",       icon: UserRound,  label: "Account"       },
-            { to: "/billing",       icon: CreditCard, label: "Billing"       },
-            { to: "/notifications", icon: Bell,       label: "Notifications" },
-          ] as const
-        ).map(({ to, icon: Icon, label }) => (
-          <DropdownMenuItem
-            key={to}
-            onClick={() => onNavigate(to)}
-            className="
-              flex cursor-pointer items-center gap-3
-              rounded-lg px-3 py-2.5 text-[13.5px] font-medium
-              text-foreground/80
-              transition-colors duration-100
-              hover:bg-accent/70 hover:text-foreground
-              focus:bg-accent/70 focus:text-foreground
-              data-[highlighted]:bg-accent/70 data-[highlighted]:text-foreground
-            "
-          >
-            <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-            {label}
-          </DropdownMenuItem>
-        ))}
-      </div>
-
-      <DropdownMenuSeparator className="m-0 bg-border/60" />
-
-      <div className="p-1.5">
         <DropdownMenuItem
           onClick={onLogout}
           className="
@@ -508,7 +470,6 @@ function ProfileDropdown({
 /* ── User menu ─────────────────────────────────────────────────────────── */
 function UserMenu({ collapsed, compact }: { collapsed?: boolean; compact?: boolean }) {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const name = user?.full_name || user?.email || "";
   const email = user?.email ?? "";
 
@@ -522,7 +483,7 @@ function UserMenu({ collapsed, compact }: { collapsed?: boolean; compact?: boole
             </Avatar>
           </button>
         </DropdownMenuTrigger>
-        <ProfileDropdown name={name} email={email} side="bottom" onNavigate={navigate} onLogout={logout} />
+        <ProfileDropdown name={name} email={email} side="bottom" onLogout={logout} />
       </DropdownMenu>
     );
   }
@@ -537,7 +498,7 @@ function UserMenu({ collapsed, compact }: { collapsed?: boolean; compact?: boole
             </Avatar>
           </button>
         </DropdownMenuTrigger>
-        <ProfileDropdown name={name} email={email} side="right" onNavigate={navigate} onLogout={logout} />
+        <ProfileDropdown name={name} email={email} side="right" onLogout={logout} />
       </DropdownMenu>
     );
   }
@@ -562,7 +523,7 @@ function UserMenu({ collapsed, compact }: { collapsed?: boolean; compact?: boole
           <MoreVertical className="h-4 w-4 shrink-0 text-muted-foreground/50" />
         </button>
       </DropdownMenuTrigger>
-      <ProfileDropdown name={name} email={email} side="right" onNavigate={navigate} onLogout={logout} />
+      <ProfileDropdown name={name} email={email} side="right" onLogout={logout} />
     </DropdownMenu>
   );
 }
@@ -571,6 +532,7 @@ function UserMenu({ collapsed, compact }: { collapsed?: boolean; compact?: boole
 export function Shell({ nav, brand }: { nav: NavGroup[]; brand: string }) {
   const { hasPermission } = useAuth();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem("sidebar-collapsed") === "1",
   );
@@ -726,6 +688,7 @@ export function Shell({ nav, brand }: { nav: NavGroup[]; brand: string }) {
                 <button
                   type="button"
                   aria-label="Notifications"
+                  onClick={() => navigate("/notifications")}
                   className="relative flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground/70 transition-all duration-150 hover:bg-accent/70 hover:text-foreground active:scale-95"
                 >
                   <Bell className="h-[1.05rem] w-[1.05rem]" />

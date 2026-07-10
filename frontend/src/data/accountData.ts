@@ -2,7 +2,8 @@
 // Fields already served by the API (name, email, org, roles, permissions, users,
 // roles, permissions, audit logs) are NOT duplicated here — see lib/auth.tsx,
 // lib/admin.ts, and lib/audit.ts for those. This file only covers profile/security/
-// session/preference fields the backend does not expose yet.
+// session fields the backend does not expose yet. Theme/density preferences live
+// under Settings → Appearance; notification channel config under Settings → Notifications.
 
 export interface ProfileExtras {
   phone: string;
@@ -67,40 +68,3 @@ export const ACCOUNT_SESSIONS: AccountSession[] = [
   { id: 3, device: "iPhone 15",            browser: "Mobile Safari", location: "Pokhara, Nepal", ipAddress: "110.44.2.19",   lastActive: "1d ago",     status: "Active", isCurrent: false },
   { id: 4, device: "Windows 10 · Desktop", browser: "Edge 124",    location: "Biratnagar, Nepal", ipAddress: "202.51.3.77",  lastActive: "6d ago",     status: "Expired", isCurrent: false },
 ];
-
-export interface AccountPreferences {
-  language: string;
-  timezone: string;
-  dateFormat: string;
-  currency: string;
-  emailSummary: boolean;
-  compactMode: boolean;
-  sidebarCollapsedByDefault: boolean;
-}
-
-export const DEFAULT_ACCOUNT_PREFERENCES: AccountPreferences = {
-  language: "English",
-  timezone: "Asia/Kathmandu (UTC+05:45)",
-  dateFormat: "YYYY-MM-DD",
-  currency: "USD",
-  emailSummary: true,
-  compactMode: false,
-  sidebarCollapsedByDefault: false,
-};
-
-export const NOTIFICATION_CHANNELS = ["In-app", "Email", "SMS", "Push"] as const;
-export type NotificationChannelName = (typeof NOTIFICATION_CHANNELS)[number];
-
-export const NOTIFICATION_PREF_CATEGORIES = [
-  "Admissions", "Attendance", "Exams", "Billing", "Payroll", "Notices", "Messages", "Security", "System",
-] as const;
-export type NotificationPrefCategory = (typeof NOTIFICATION_PREF_CATEGORIES)[number];
-
-export function defaultNotificationPrefs(): Record<NotificationPrefCategory, Record<NotificationChannelName, boolean>> {
-  return Object.fromEntries(
-    NOTIFICATION_PREF_CATEGORIES.map((cat) => [
-      cat,
-      Object.fromEntries(NOTIFICATION_CHANNELS.map((ch) => [ch, ch !== "SMS"])) as Record<NotificationChannelName, boolean>,
-    ]),
-  ) as Record<NotificationPrefCategory, Record<NotificationChannelName, boolean>>;
-}

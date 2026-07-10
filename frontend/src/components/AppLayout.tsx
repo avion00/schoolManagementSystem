@@ -7,7 +7,6 @@ import {
   Bus,
   CalendarCheck,
   CalendarDays,
-  CircleUserRound,
   ClipboardList,
   CreditCard,
   Download,
@@ -116,12 +115,6 @@ const NAV: NavGroup[] = [
           { to: "/messages/settings",   label: "Message Settings", icon: Settings,      perm: "message.settings" },
         ],
       },
-    ],
-  },
-  {
-    label: "Account",
-    items: [
-      { to: "/account", label: "My Account", icon: CircleUserRound },
     ],
   },
 ];

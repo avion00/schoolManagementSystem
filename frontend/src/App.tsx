@@ -11,7 +11,6 @@ import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { StudentLayout } from "@/components/StudentLayout";
 import { useAuth } from "@/lib/auth";
-import { AccountPage } from "@/routes/AccountPage";
 import { BillingPage } from "@/routes/BillingPage";
 import { BillingStudentFeesPage } from "@/routes/BillingStudentFeesPage";
 import { BillingInvoicesPage } from "@/routes/BillingInvoicesPage";
@@ -252,6 +251,9 @@ export default function App() {
 
             {/* ── Shared utility pages ──────────────────────────────── */}
             <Route path="/settings"                    element={<SettingsPage />} />
+            <Route path="/settings/my-profile"          element={<SettingsPage />} />
+            <Route path="/settings/my-security"         element={<SettingsPage />} />
+            <Route path="/settings/my-sessions"         element={<SettingsPage />} />
             <Route path="/settings/school-profile"      element={<SettingsPage />} />
             <Route path="/settings/academic-year"       element={<SettingsPage />} />
             <Route path="/settings/users"               element={<SettingsPage />} />
@@ -269,11 +271,11 @@ export default function App() {
             <Route path="/help/tickets/new"  element={<HelpTicketCreatePage />} />
             <Route path="/help/tickets/:id"  element={<HelpTicketDetailsPage />} />
             <Route path="/search"        element={<SearchPage />} />
-            <Route path="/account"              element={<AccountPage />} />
-            <Route path="/account/profile"      element={<AccountPage />} />
-            <Route path="/account/security"     element={<AccountPage />} />
-            <Route path="/account/sessions"     element={<AccountPage />} />
-            <Route path="/account/preferences"  element={<AccountPage />} />
+            <Route path="/account"              element={<Navigate to="/settings/my-profile" replace />} />
+            <Route path="/account/profile"      element={<Navigate to="/settings/my-profile" replace />} />
+            <Route path="/account/security"     element={<Navigate to="/settings/my-security" replace />} />
+            <Route path="/account/sessions"     element={<Navigate to="/settings/my-sessions" replace />} />
+            <Route path="/account/preferences"  element={<Navigate to="/settings/appearance" replace />} />
             <Route path="/account/organization" element={<Navigate to="/settings/school-profile" replace />} />
             <Route path="/account/audit-logs"   element={<Navigate to="/settings/audit-logs" replace />} />
             <Route path="/notifications" element={<NotificationsPage />} />
