@@ -45,11 +45,6 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-/* Footer utility links */
-const FOOTER_NAV: NavItem[] = [
-  { to: "/settings", label: "Settings",  icon: Settings   },
-  { to: "/help",     label: "Help",  icon: CircleHelp },
-];
 
 /* Paths not in the nav tree — fallback breadcrumbs */
 const EXTRA_CRUMBS: Record<string, string[]> = {
@@ -66,7 +61,7 @@ function deriveBreadcrumb(pathname: string, nav: NavGroup[], brand: string): str
   // Help Desk (Super Admin) vs. the student/parent "Get Help" support page —
   // both routes are literally "/help" but resolve to different page components
   // depending on which Shell (brand) renders them.
-  if (brand !== "Student Portal") {
+  if (brand !== "Student Portal" && brand !== "Teacher Portal") {
     if (pathname === "/help")             return ["Super Admin", "Support", "Help Desk"];
     if (pathname === "/help/tickets/new") return ["Super Admin", "Support", "Help Desk", "New Ticket"];
     if (pathname.startsWith("/help/tickets/")) return ["Super Admin", "Support", "Help Desk", "Ticket Details"];
@@ -151,6 +146,14 @@ function deriveBreadcrumb(pathname: string, nav: NavGroup[], brand: string): str
   if (pathname === "/attendance/class")          return ["Portal", "Operations", "Attendance", "Class Report"];
   if (pathname === "/attendance/reports")        return ["Portal", "Operations", "Attendance", "Analytics"];
 
+  // Teacher workspace detail/sub-routes not present verbatim in teacherSidebar
+  if (pathname.startsWith("/teacher/classes/"))          return ["Portal", "Teaching Workspace", "My Classes", "Class Details"];
+  if (pathname.startsWith("/teacher/students/"))          return ["Portal", "Teaching Workspace", "My Students", "Student Details"];
+  if (pathname === "/teacher/homework/new")               return ["Portal", "Academics", "Homework", "Assign Homework"];
+  if (pathname.startsWith("/teacher/homework/"))          return ["Portal", "Academics", "Homework", "Homework Details"];
+  if (pathname === "/teacher/assignments/new")            return ["Portal", "Academics", "Assignments", "Create Assignment"];
+  if (pathname.startsWith("/teacher/assignments/"))       return ["Portal", "Academics", "Assignments", "Assignment Details"];
+
   for (const group of nav) {
     const item = group.items.find((i) => i.to === pathname);
     if (item) {
@@ -162,8 +165,6 @@ function deriveBreadcrumb(pathname: string, nav: NavGroup[], brand: string): str
       if (child) return ["Portal", group.label, it.label, child.label];
     }
   }
-  const footer = FOOTER_NAV.find((i) => i.to === pathname);
-  if (footer) return ["Portal", footer.label];
   if (pathname === "/classes/new")                                    return ["Portal", "Academics", "Classes", "Add Class"];
   if (pathname === "/classes/class-form/print")                       return ["Portal", "Academics", "Classes", "Class Form"];
   if (pathname.startsWith("/classes/") && pathname.endsWith("/edit")) return ["Portal", "Academics", "Classes", "Edit Class"];
@@ -417,6 +418,7 @@ function ProfileDropdown({
   side: "right" | "top" | "bottom";
   onLogout: () => void;
 }) {
+  const navigate = useNavigate();
   return (
     <DropdownMenuContent
       side={side}
@@ -442,6 +444,34 @@ function ProfileDropdown({
             {email}
           </p>
         </div>
+      </div>
+
+      <DropdownMenuSeparator className="m-0 bg-border/60" />
+
+      <div className="p-1.5">
+        {(
+          [
+            { to: "/settings", icon: Settings,   label: "Settings" },
+            { to: "/help",     icon: CircleHelp, label: "Help"     },
+          ]
+        ).map(({ to, icon: Icon, label }) => (
+          <DropdownMenuItem
+            key={to}
+            onClick={() => navigate(to)}
+            className="
+              flex cursor-pointer items-center gap-3
+              rounded-lg px-3 py-2.5 text-[13.5px] font-medium
+              text-foreground/80
+              transition-colors duration-100
+              hover:bg-accent/70 hover:text-foreground
+              focus:bg-accent/70 focus:text-foreground
+              data-[highlighted]:bg-accent/70 data-[highlighted]:text-foreground
+            "
+          >
+            <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+            {label}
+          </DropdownMenuItem>
+        ))}
       </div>
 
       <DropdownMenuSeparator className="m-0 bg-border/60" />
@@ -611,18 +641,6 @@ export function Shell({ nav, brand }: { nav: NavGroup[]; brand: string }) {
 
         {/* ── Pinned footer ─────────────────────────────────────────── */}
         <div className="shrink-0">
-          <div className={cn("border-t border-border/60 py-2", collapsed ? "px-2" : "px-3")}>
-            <div className="flex flex-col gap-0.5">
-              {FOOTER_NAV.map((item) => (
-                <SideNavItem
-                  key={item.to}
-                  item={item}
-                  active={pathname === item.to}
-                  collapsed={collapsed}
-                />
-              ))}
-            </div>
-          </div>
           <div className={cn("border-t border-border/60", collapsed ? "p-2" : "p-2.5")}>
             <UserMenu collapsed={collapsed} />
           </div>

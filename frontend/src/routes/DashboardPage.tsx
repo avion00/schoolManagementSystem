@@ -12,15 +12,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { stats, summaryCards, upcomingExams } from "@/data/dashboardData";
 import { useAuth } from "@/lib/auth";
 import { AccountantDashboardPage } from "@/routes/AccountantDashboardPage";
-import { TeacherDashboardPage } from "@/routes/TeacherDashboardPage";
 
 export function DashboardPage() {
   const { user } = useAuth();
   const roles = user?.roles ?? [];
 
-  // Route to role-specific dashboard — only superusers/platform admins/Principals
-  // see the full admin view.
-  if (roles.includes("Teacher")) return <TeacherDashboardPage />;
+  // Route to role-specific dashboard — Teachers get their own workspace at
+  // /teacher/dashboard (see App.tsx); only superusers/platform admins/
+  // Principals/Accountants reach this shared admin dashboard.
   if (roles.includes("Accountant")) return <AccountantDashboardPage />;
 
   // Principal / superuser / platform admin → full admin dashboard below

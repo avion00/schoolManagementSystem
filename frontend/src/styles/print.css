@@ -1,0 +1,37 @@
+/* Print stylesheet — shared rules layered on top of each printable page's own
+   Tailwind `print:` utilities (print:hidden on chrome, print:block on the
+   printable body). This file covers concerns that apply everywhere printing
+   happens rather than being repeated per page. */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Anything explicitly marked to never print (debug overlays, floating
+     action buttons that slipped past a page's own print:hidden). */
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  /* Motion has no meaning on paper. */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Flatten elevation — shadows read as smudges on paper. */
+  [class*="shadow"] {
+    box-shadow: none !important;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  @page {
+    margin: 12mm;
+  }
+}

@@ -3,6 +3,7 @@ import {
   BookOpen,
   Building2,
   Bus,
+  Loader2,
   UserRound,
 } from "lucide-react";
 import { Navigate, Route, Routes } from "react-router-dom";
@@ -10,6 +11,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { StudentLayout } from "@/components/StudentLayout";
+import { TeacherLayout } from "@/components/TeacherLayout";
 import { useAuth } from "@/lib/auth";
 import { BillingPage } from "@/routes/BillingPage";
 import { BillingStudentFeesPage } from "@/routes/BillingStudentFeesPage";
@@ -89,9 +91,54 @@ import { StudentDashboardPage } from "@/routes/student/StudentDashboardPage";
 import { StudentFeesPage } from "@/routes/student/StudentFeesPage";
 import { StudentProfilePage } from "@/routes/student/StudentProfilePage";
 import { StudentResultsPage } from "@/routes/student/StudentResultsPage";
+import { TeacherDashboard } from "@/pages/teacher/TeacherDashboard";
+import { TeacherToday } from "@/pages/teacher/TeacherToday";
+import { TeacherClasses } from "@/pages/teacher/TeacherClasses";
+import { TeacherClassDetails } from "@/pages/teacher/TeacherClassDetails";
+import { TeacherStudents } from "@/pages/teacher/TeacherStudents";
+import { TeacherStudentDetails } from "@/pages/teacher/TeacherStudentDetails";
+import { TeacherTimetable } from "@/pages/teacher/TeacherTimetable";
+import { TeacherLessonPlans } from "@/pages/teacher/TeacherLessonPlans";
+import { TeacherMaterials } from "@/pages/teacher/TeacherMaterials";
+import { TeacherAttendance } from "@/pages/teacher/TeacherAttendance";
+import { TeacherAttendanceReports } from "@/pages/teacher/TeacherAttendanceReports";
+import { TeacherAssignments } from "@/pages/teacher/TeacherAssignments";
+import { TeacherAssignmentDetails } from "@/pages/teacher/TeacherAssignmentDetails";
+import { TeacherMarks } from "@/pages/teacher/TeacherMarks";
+import { TeacherGradebook } from "@/pages/teacher/TeacherGradebook";
+import { TeacherExams } from "@/pages/teacher/TeacherExams";
+import { TeacherInsights } from "@/pages/teacher/TeacherInsights";
+import { TeacherNotices } from "@/pages/teacher/TeacherNotices";
+import { TeacherParents } from "@/pages/teacher/TeacherParents";
+import { TeacherMessages } from "@/pages/teacher/TeacherMessages";
+import { TeacherAccount } from "@/pages/teacher/TeacherAccount";
 
 export default function App() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+
+  // Route selection below (Student / Teacher / Admin) depends on `user.roles`
+  // and `user.is_student`. Until that first load resolves, `user` is
+  // undefined — matching routes against it would pick the wrong branch (e.g.
+  // treat a Teacher as Admin) and the catch-all `*` route would fire a
+  // premature client-side redirect that overwrites the originally-requested
+  // URL. So on a hard reload, wait for the real user before deciding routes.
+  if (isLoading) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="*"
+          element={
+            <div className="grid h-screen place-items-center text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          }
+        />
+      </Routes>
+    );
+  }
+
+  const isTeacher = !user?.is_student && (user?.roles ?? []).includes("Teacher");
 
   return (
     <Routes>
@@ -128,6 +175,61 @@ export default function App() {
                 />
               }
             />
+          </Route>
+        ) : isTeacher ? (
+          <Route element={<TeacherLayout />}>
+            <Route path="/teacher/today"              element={<TeacherToday />} />
+            <Route path="/teacher/dashboard"          element={<TeacherDashboard />} />
+
+            <Route path="/teacher/classes"            element={<TeacherClasses />} />
+            <Route path="/teacher/classes/:id"        element={<TeacherClassDetails />} />
+            <Route path="/teacher/students"           element={<TeacherStudents />} />
+            <Route path="/teacher/students/:id"       element={<TeacherStudentDetails />} />
+            <Route path="/teacher/timetable"          element={<TeacherTimetable />} />
+            <Route path="/teacher/lesson-plans"       element={<TeacherLessonPlans />} />
+            <Route path="/teacher/materials"          element={<TeacherMaterials />} />
+
+            <Route path="/teacher/attendance"         element={<TeacherAttendance />} />
+            <Route path="/teacher/attendance/reports" element={<TeacherAttendanceReports />} />
+
+            <Route path="/teacher/assignments"        element={<TeacherAssignments />} />
+            <Route path="/teacher/assignments/:id"    element={<TeacherAssignmentDetails />} />
+            <Route path="/teacher/marks"              element={<TeacherMarks />} />
+            <Route path="/teacher/gradebook"          element={<TeacherGradebook />} />
+            <Route path="/teacher/exams"              element={<TeacherExams />} />
+            <Route path="/teacher/insights"           element={<TeacherInsights />} />
+
+            <Route path="/teacher/messages"                 element={<TeacherMessages />} />
+            <Route path="/teacher/messages/:conversationId" element={<TeacherMessages />} />
+            <Route path="/teacher/parents"            element={<TeacherParents />} />
+            <Route path="/teacher/notices"            element={<TeacherNotices />} />
+
+            <Route path="/teacher/account"            element={<TeacherAccount />} />
+            <Route path="/help"              element={<HelpDeskPage />} />
+            <Route path="/help/tickets/new"  element={<HelpTicketCreatePage />} />
+            <Route path="/help/tickets/:id"  element={<HelpTicketDetailsPage />} />
+            <Route path="/notifications"     element={<NotificationsPage />} />
+            <Route path="/search"            element={<SearchPage />} />
+
+            {/* ── Redirects from the previous, more fragmented route set ── */}
+            <Route path="/teacher/weak-students"        element={<Navigate to="/teacher/insights?tab=needs-attention" replace />} />
+            <Route path="/teacher/top-students"         element={<Navigate to="/teacher/insights?tab=top" replace />} />
+            <Route path="/teacher/performance"          element={<Navigate to="/teacher/insights" replace />} />
+            <Route path="/teacher/homework"             element={<Navigate to="/teacher/assignments" replace />} />
+            <Route path="/teacher/homework/:id"         element={<Navigate to="/teacher/assignments" replace />} />
+            <Route path="/teacher/assignments/new"      element={<Navigate to="/teacher/assignments" replace />} />
+            <Route path="/teacher/marks-entry"          element={<Navigate to="/teacher/marks" replace />} />
+            <Route path="/teacher/attendance/daily"     element={<Navigate to="/teacher/attendance" replace />} />
+            <Route path="/teacher/attendance/monthly"   element={<Navigate to="/teacher/attendance/reports" replace />} />
+            <Route path="/teacher/attendance/low-attendance" element={<Navigate to="/teacher/insights?tab=low-attendance" replace />} />
+            <Route path="/teacher/meetings"             element={<Navigate to="/teacher/parents" replace />} />
+            <Route path="/teacher/subjects"             element={<Navigate to="/teacher/classes" replace />} />
+            <Route path="/teacher/reports/classes"       element={<Navigate to="/teacher/classes" replace />} />
+            <Route path="/teacher/reports/students"      element={<Navigate to="/teacher/students" replace />} />
+            <Route path="/teacher/reports/progress"      element={<Navigate to="/teacher/insights" replace />} />
+            <Route path="/teacher/reports/teaching"      element={<Navigate to="/teacher/dashboard" replace />} />
+
+            <Route path="*" element={<Navigate to="/teacher/today" replace />} />
           </Route>
         ) : (
           <Route element={<AppLayout />}>
@@ -295,7 +397,7 @@ export default function App() {
           </Route>
         )}
       </Route>
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to={isTeacher ? "/teacher/today" : "/dashboard"} replace />} />
     </Routes>
   );
 }

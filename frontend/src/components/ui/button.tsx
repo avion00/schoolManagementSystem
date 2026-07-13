@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
+import { Check, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -37,17 +38,37 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  /** Shows a spinner in place of the icon slot and disables the button. */
+  loading?: boolean;
+  /** Briefly shows a checkmark (e.g. after a successful save) — caller controls duration. */
+  success?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, loading, success, disabled, children, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
+    if (asChild) {
+      return (
+        <Comp
+          className={cn(buttonVariants({ variant, size, className }), "active:scale-[0.97] transition-transform")}
+          ref={ref}
+          disabled={disabled}
+          {...props}
+        >
+          {children}
+        </Comp>
+      );
+    }
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(buttonVariants({ variant, size, className }), "active:scale-[0.97] transition-transform")}
         ref={ref}
+        disabled={disabled || loading}
         {...props}
-      />
+      >
+        {loading ? <Loader2 className="animate-spin" /> : success ? <Check /> : null}
+        {children}
+      </Comp>
     );
   },
 );

@@ -1,26 +1,29 @@
-/* transitions.dev — motion tokens (install once) + the transitions used app-wide.
-   Pure CSS, no animation library. Each effect ships a reduced-motion guard. */
+/* Motion system — pure CSS, no animation library. Every class here ships a
+   prefers-reduced-motion guard at the bottom of the file. Import tokens.css
+   before this file; effect-specific tokens below resolve back to it so there
+   is exactly one place that owns "what 150ms means". */
+
 :root {
-  /* Durations */
+  /* Effect-specific durations — each maps back to a base --motion-* token. */
   --duration-stagger: 40ms;
   --duration-micro: 80ms;
-  --duration-quick: 150ms;
-  --duration-fast: 250ms;
+  --duration-quick: var(--motion-fast);
+  --duration-fast: var(--motion-medium);
   --duration-medium: 350ms;
-  --duration-slow: 400ms;
+  --duration-slow: var(--motion-slow);
   --duration-very-slow: 500ms;
   /* Easings */
-  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-smooth-out: var(--motion-ease-standard);
   --ease-in-out: ease-in-out;
   --ease-out: ease-out;
   --ease-linear: linear;
-  --ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --ease-bounce: var(--motion-ease-spring);
   --ease-bounce-strong: cubic-bezier(0.34, 3.85, 0.64, 1);
   /* Distances */
   --distance-micro: 4px;
-  --distance-small: 6px;
+  --distance-small: var(--motion-distance-sm);
   --distance-base: 8px;
-  --distance-medium: 12px;
+  --distance-medium: var(--motion-distance-md);
   --distance-large: 30px;
   /* Scales */
   --scale-large: 0.96;
@@ -28,7 +31,7 @@
   --scale-small: 0.98;
   --scale-tiny: 0.99;
   /* Blur */
-  --blur-small: 2px;
+  --blur-small: var(--motion-blur);
   --blur-medium: 3px;
   --blur-large: 8px;
 
@@ -45,30 +48,48 @@
   --badge-blur: 2px;
   --badge-offset-x: -8.2px;
   --badge-offset-y: 12.4px;
-  --badge-pop-ease: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --badge-pop-ease: var(--motion-ease-spring);
   /* Texts / block reveal */
   --stagger-dur: 500ms;
-  --stagger-distance: 12px;
+  --stagger-distance: var(--motion-distance-md);
   --stagger-stagger: 40ms;
   --stagger-blur: 3px;
-  --stagger-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --stagger-ease: var(--motion-ease-standard);
   /* Shimmer text */
   --shimmer-dur: 2000ms;
   --shimmer-band: 300%;
   --shimmer-ease: linear;
   /* Card hover lift */
-  --lift-dur: 250ms;
-  --lift-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --lift-dur: var(--motion-medium);
+  --lift-ease: var(--motion-ease-standard);
   /* Tabs sliding */
-  --tabs-dur: 250ms;
-  --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --tabs-dur: var(--motion-medium);
+  --tabs-ease: var(--motion-ease-standard);
   /* Card tilt */
   --tilt-return: 600ms;
-  --tilt-return-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --tilt-return-ease: var(--motion-ease-standard);
   --tilt-follow: 120ms;
   /* Error shake */
   --shake-distance: 8px;
-  --shake-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --shake-ease: var(--motion-ease-standard);
+  /* Panel / drawer reveal */
+  --panel-dur: var(--motion-medium);
+  --panel-ease: var(--motion-ease-standard);
+  /* Dropdown / menu morph */
+  --menu-dur: var(--motion-fast);
+  --menu-ease: var(--motion-ease-spring);
+  /* Accordion */
+  --accordion-dur: var(--motion-medium);
+  --accordion-ease: var(--motion-ease-standard);
+  /* Clear input button */
+  --clear-dur: var(--motion-fast);
+  --clear-ease: var(--motion-ease-spring);
+  /* Avatar group hover spread */
+  --avatar-spread-dur: var(--motion-medium);
+  --avatar-spread-ease: var(--motion-ease-spring);
+  /* Card resize */
+  --card-resize-dur: var(--motion-medium);
+  --card-resize-ease: var(--motion-ease-standard);
 }
 
 /* ── Block reveal (texts reveal, generalized) ──────────────────────── */
@@ -129,9 +150,7 @@
     opacity: 0;
     filter: blur(var(--badge-blur));
   }
-  60% {
-    opacity: 1;
-  }
+  60% { opacity: 1; }
   100% {
     transform: translate(0, 0) scale(1);
     opacity: 1;
@@ -285,16 +304,8 @@
 
 /* ── Page transition ───────────────────────────────────────────────── */
 @keyframes t-page-enter {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-    filter: blur(1.5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
-  }
+  from { opacity: 0; transform: translateY(6px); filter: blur(1.5px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
 .t-page {
   animation: t-page-enter var(--duration-fast) var(--ease-smooth-out) both;
@@ -303,16 +314,8 @@
 
 /* ── Icon swap enter ───────────────────────────────────────────────── */
 @keyframes t-icon-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.6) rotate(-8deg);
-    filter: blur(var(--blur-small));
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) rotate(0deg);
-    filter: blur(0);
-  }
+  from { opacity: 0; transform: scale(0.6) rotate(-8deg); filter: blur(var(--blur-small)); }
+  to { opacity: 1; transform: scale(1) rotate(0deg); filter: blur(0); }
 }
 .t-icon-enter {
   animation: t-icon-enter var(--duration-fast) var(--ease-bounce) both;
@@ -320,14 +323,8 @@
 
 /* ── Content-in (loading → loaded reveal) ──────────────────────────── */
 @keyframes t-content-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .t-content-in {
   animation: t-content-in var(--duration-medium) var(--ease-smooth-out) both;
@@ -340,6 +337,181 @@
 }
 .t-skeleton-pulse {
   animation: t-skeleton-pulse 1.8s var(--ease-in-out) infinite;
+}
+
+/* ── Panel / drawer reveal (slide in from an edge) ─────────────────── */
+.t-panel[data-side="right"] { transform: translateX(16px); }
+.t-panel[data-side="left"] { transform: translateX(-16px); }
+.t-panel[data-side="bottom"] { transform: translateY(16px); }
+.t-panel[data-side="top"] { transform: translateY(-16px); }
+.t-panel {
+  opacity: 0;
+  filter: blur(var(--blur-small));
+  transition:
+    opacity var(--panel-dur) var(--panel-ease),
+    transform var(--panel-dur) var(--panel-ease),
+    filter var(--panel-dur) var(--panel-ease);
+}
+.t-panel.is-shown {
+  opacity: 1;
+  transform: translate(0, 0);
+  filter: blur(0);
+}
+
+/* ── Dropdown / menu morph — scales from its trigger-relative corner ─ */
+.t-menu {
+  transform-origin: var(--menu-origin, top center);
+  animation: t-menu-in var(--menu-dur) var(--menu-ease) both;
+}
+@keyframes t-menu-in {
+  from { opacity: 0; transform: scale(0.96) translateY(-4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+/* Guaranteed-solid surface for any menu/dropdown/popover — never translucent. */
+.t-menu-surface {
+  background: hsl(var(--popover));
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 8px 30px -6px rgba(0, 0, 0, 0.18), 0 2px 8px -2px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Tooltip motion ────────────────────────────────────────────────── */
+.t-tooltip {
+  animation: t-tooltip-in var(--duration-quick) var(--ease-smooth-out) both;
+}
+@keyframes t-tooltip-in {
+  from { opacity: 0; transform: scale(0.95) translateY(2px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Accordion expand/collapse ─────────────────────────────────────── */
+.t-accordion-content {
+  overflow: hidden;
+}
+.t-accordion-content[data-state="open"] {
+  animation: t-accordion-down var(--accordion-dur) var(--accordion-ease);
+}
+.t-accordion-content[data-state="closed"] {
+  animation: t-accordion-up var(--accordion-dur) var(--accordion-ease);
+}
+@keyframes t-accordion-down {
+  from { height: 0; opacity: 0.4; }
+  to { height: var(--radix-collapsible-content-height); opacity: 1; }
+}
+@keyframes t-accordion-up {
+  from { height: var(--radix-collapsible-content-height); opacity: 1; }
+  to { height: 0; opacity: 0.4; }
+}
+
+/* ── Clear button (inputs) ─────────────────────────────────────────── */
+.t-clear-btn {
+  opacity: 0;
+  transform: scale(0.7);
+  transition:
+    opacity var(--clear-dur) var(--clear-ease),
+    transform var(--clear-dur) var(--clear-ease);
+}
+.t-clear-btn.is-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ── Avatar group hover spread ─────────────────────────────────────── */
+.t-avatar-group .t-avatar-item {
+  transition: transform var(--avatar-spread-dur) var(--avatar-spread-ease);
+}
+.t-avatar-group:hover .t-avatar-item {
+  transform: translateX(var(--avatar-spread-offset, 4px));
+}
+
+/* ── Card resize (smooth height/width transitions) ─────────────────── */
+.t-card-resize {
+  transition:
+    height var(--card-resize-dur) var(--card-resize-ease),
+    width var(--card-resize-dur) var(--card-resize-ease);
+  overflow: hidden;
+}
+
+/* ── Dropdown / menu morph (explicit open/closing state machine) ────
+   For components that manage their own three-state open/closing/closed
+   lifecycle (PremiumSelect, PremiumDropdownMenu) rather than relying on a
+   Radix data-state attribute. Distinct open vs. close durations/eases —
+   opening is a touch springier, closing is quicker and calmer. */
+:root {
+  --dropdown-open-dur: var(--motion-medium);
+  --dropdown-close-dur: var(--motion-fast);
+  --dropdown-pre-scale: 0.97;
+  --dropdown-closing-scale: 0.99;
+  --dropdown-ease: var(--motion-ease);
+}
+.t-dropdown {
+  transform-origin: top left;
+  transform: scale(var(--dropdown-pre-scale));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--dropdown-open-dur) var(--dropdown-ease),
+    opacity var(--dropdown-open-dur) var(--dropdown-ease);
+  will-change: transform, opacity;
+}
+.t-dropdown[data-origin="top-right"] { transform-origin: top right; }
+.t-dropdown[data-origin="top-center"] { transform-origin: top center; }
+.t-dropdown[data-origin="bottom-left"] { transform-origin: bottom left; }
+.t-dropdown[data-origin="bottom-center"] { transform-origin: bottom center; }
+.t-dropdown[data-origin="bottom-right"] { transform-origin: bottom right; }
+.t-dropdown.is-open {
+  transform: scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+.t-dropdown.is-closing {
+  transform: scale(var(--dropdown-closing-scale));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--dropdown-close-dur) var(--dropdown-ease),
+    opacity var(--dropdown-close-dur) var(--dropdown-ease);
+}
+
+/* ── Modal open/close (explicit state machine) ─────────────────────── */
+:root {
+  --modal-open-dur: var(--motion-medium);
+  --modal-close-dur: var(--motion-fast);
+  --modal-scale: 0.96;
+  --modal-scale-close: 0.96;
+  --modal-ease: var(--motion-ease);
+}
+.t-modal-morph {
+  transform-origin: center;
+  transform: scale(var(--modal-scale));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--modal-open-dur) var(--modal-ease),
+    opacity var(--modal-open-dur) var(--modal-ease);
+  will-change: transform, opacity;
+}
+.t-modal-morph.is-open {
+  transform: scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+.t-modal-morph.is-closing {
+  transform: scale(var(--modal-scale-close));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--modal-close-dur) var(--modal-ease),
+    opacity var(--modal-close-dur) var(--modal-ease);
+}
+
+/* ── Row fade-in (staggered table row entrance) ────────────────────── */
+@keyframes t-row-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.t-row-in {
+  animation: t-row-in var(--motion-medium) var(--motion-ease) both;
+  animation-delay: calc(var(--row-index, 0) * 22ms);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -355,7 +527,17 @@
   .t-page,
   .t-icon-enter,
   .t-content-in,
-  .t-skeleton-pulse {
+  .t-skeleton-pulse,
+  .t-panel,
+  .t-menu,
+  .t-tooltip,
+  .t-accordion-content,
+  .t-clear-btn,
+  .t-avatar-group .t-avatar-item,
+  .t-card-resize,
+  .t-dropdown,
+  .t-modal-morph,
+  .t-row-in {
     transition: none !important;
     animation: none !important;
     opacity: 1 !important;
