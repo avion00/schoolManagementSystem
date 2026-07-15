@@ -4,7 +4,6 @@ import {
   Building2,
   Bus,
   Loader2,
-  UserRound,
 } from "lucide-react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
@@ -26,7 +25,6 @@ import { BillingSettingsPage } from "@/routes/BillingSettingsPage";
 import { BillingReceiptDetailsPage } from "@/routes/BillingReceiptDetailsPage";
 import { ComingSoonPage } from "@/routes/ComingSoonPage";
 import { DashboardPage } from "@/routes/DashboardPage";
-import { HelpPage } from "@/routes/HelpPage";
 import { HelpDeskPage } from "@/routes/HelpDeskPage";
 import { HelpTicketCreatePage } from "@/routes/HelpTicketCreatePage";
 import { HelpTicketDetailsPage } from "@/routes/HelpTicketDetailsPage";
@@ -86,11 +84,25 @@ import { NoticeFormPage }          from "@/routes/NoticeFormPage";
 import { TeacherDetailsPage } from "@/routes/TeacherDetailsPage";
 import { TeacherFormPage } from "@/routes/TeacherFormPage";
 import { TeachersPage } from "@/routes/TeachersPage";
-import { StudentAttendancePage } from "@/routes/student/StudentAttendancePage";
-import { StudentDashboardPage } from "@/routes/student/StudentDashboardPage";
-import { StudentFeesPage } from "@/routes/student/StudentFeesPage";
-import { StudentProfilePage } from "@/routes/student/StudentProfilePage";
-import { StudentResultsPage } from "@/routes/student/StudentResultsPage";
+import { StudentToday } from "@/pages/student/StudentToday";
+import { StudentDashboard } from "@/pages/student/StudentDashboard";
+import { StudentProfile } from "@/pages/student/StudentProfile";
+import { StudentAttendance } from "@/pages/student/StudentAttendance";
+import { StudentTimetable } from "@/pages/student/StudentTimetable";
+import { StudentSubjects } from "@/pages/student/StudentSubjects";
+import { StudentClassmates } from "@/pages/student/StudentClassmates";
+import { StudentAssignments } from "@/pages/student/StudentAssignments";
+import { StudentAssignmentDetails } from "@/pages/student/StudentAssignmentDetails";
+import { StudentMaterials } from "@/pages/student/StudentMaterials";
+import { StudentExams } from "@/pages/student/StudentExams";
+import { StudentResults } from "@/pages/student/StudentResults";
+import { StudentProgress } from "@/pages/student/StudentProgress";
+import { StudentMessages } from "@/pages/student/StudentMessages";
+import { StudentNotices } from "@/pages/student/StudentNotices";
+import { StudentFees } from "@/pages/student/StudentFees";
+import { StudentHelp } from "@/pages/student/StudentHelp";
+import { StudentAccount } from "@/pages/student/StudentAccount";
+import { StudentSettings } from "@/pages/student/StudentSettings";
 import { TeacherDashboard } from "@/pages/teacher/TeacherDashboard";
 import { TeacherToday } from "@/pages/teacher/TeacherToday";
 import { TeacherClasses } from "@/pages/teacher/TeacherClasses";
@@ -109,8 +121,10 @@ import { TeacherGradebook } from "@/pages/teacher/TeacherGradebook";
 import { TeacherExams } from "@/pages/teacher/TeacherExams";
 import { TeacherInsights } from "@/pages/teacher/TeacherInsights";
 import { TeacherNotices } from "@/pages/teacher/TeacherNotices";
-import { TeacherParents } from "@/pages/teacher/TeacherParents";
+import { TeacherParentCommunication } from "@/pages/teacher/TeacherParentCommunication";
 import { TeacherMessages } from "@/pages/teacher/TeacherMessages";
+import { TeacherHelp } from "@/pages/teacher/TeacherHelp";
+import { TeacherHelpTicketDetails } from "@/pages/teacher/TeacherHelpTicketDetails";
 import { TeacherAccount } from "@/pages/teacher/TeacherAccount";
 
 export default function App() {
@@ -146,25 +160,27 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         {user?.is_student ? (
           <Route element={<StudentLayout />}>
-            <Route path="/dashboard"     element={<StudentDashboardPage />} />
-            <Route path="/profile"       element={<StudentProfilePage />} />
-            <Route path="/attendance"    element={<StudentAttendancePage />} />
-            <Route path="/results"       element={<StudentResultsPage />} />
-            <Route path="/fees"          element={<StudentFeesPage />} />
-            <Route path="/settings"      element={<SettingsPage />} />
-            <Route path="/help"          element={<HelpPage />} />
-            <Route path="/search"        element={<SearchPage />} />
-            <Route
-              path="/account"
-              element={
-                <ComingSoonPage
-                  icon={UserRound}
-                  title="Account"
-                  description="Your profile, password, and linked accounts will be manageable here."
-                />
-              }
-            />
-            <Route path="/billing"       element={<Navigate to="/fees" replace />} />
+            <Route path="/student/today"                    element={<StudentToday />} />
+            <Route path="/student/dashboard"                element={<StudentDashboard />} />
+            <Route path="/student/profile"                  element={<StudentProfile />} />
+            <Route path="/student/attendance"                element={<StudentAttendance />} />
+            <Route path="/student/timetable"                element={<StudentTimetable />} />
+            <Route path="/student/subjects"                  element={<StudentSubjects />} />
+            <Route path="/student/classmates"                element={<StudentClassmates />} />
+            <Route path="/student/assignments"               element={<StudentAssignments />} />
+            <Route path="/student/assignments/:id"           element={<StudentAssignmentDetails />} />
+            <Route path="/student/materials"                 element={<StudentMaterials />} />
+            <Route path="/student/exams"                     element={<StudentExams />} />
+            <Route path="/student/results"                   element={<StudentResults />} />
+            <Route path="/student/progress"                  element={<StudentProgress />} />
+            <Route path="/student/messages/:conversationId?" element={<StudentMessages />} />
+            <Route path="/student/notices"                   element={<StudentNotices />} />
+            <Route path="/student/fees"                      element={<StudentFees />} />
+            <Route path="/student/help"                       element={<StudentHelp />} />
+            <Route path="/student/account"                    element={<StudentAccount />} />
+            <Route path="/student/settings"                   element={<StudentSettings />} />
+
+            <Route path="/search" element={<SearchPage />} />
             <Route
               path="/notifications"
               element={
@@ -175,6 +191,20 @@ export default function App() {
                 />
               }
             />
+
+            {/* Old bare routes → new /student/* routes, so existing bookmarks still work */}
+            <Route path="/dashboard"    element={<Navigate to="/student/dashboard" replace />} />
+            <Route path="/profile"      element={<Navigate to="/student/profile" replace />} />
+            <Route path="/attendance"   element={<Navigate to="/student/attendance" replace />} />
+            <Route path="/results"      element={<Navigate to="/student/results" replace />} />
+            <Route path="/fees"         element={<Navigate to="/student/fees" replace />} />
+            <Route path="/billing"      element={<Navigate to="/student/fees" replace />} />
+            <Route path="/settings"     element={<Navigate to="/student/settings" replace />} />
+            <Route path="/help"         element={<Navigate to="/student/help" replace />} />
+            <Route path="/account"      element={<Navigate to="/student/account" replace />} />
+
+            {/* Anything else (admin/teacher-only routes, unknown paths) redirects home */}
+            <Route path="*" element={<Navigate to="/student/dashboard" replace />} />
           </Route>
         ) : isTeacher ? (
           <Route element={<TeacherLayout />}>
@@ -199,15 +229,14 @@ export default function App() {
             <Route path="/teacher/exams"              element={<TeacherExams />} />
             <Route path="/teacher/insights"           element={<TeacherInsights />} />
 
-            <Route path="/teacher/messages"                 element={<TeacherMessages />} />
-            <Route path="/teacher/messages/:conversationId" element={<TeacherMessages />} />
-            <Route path="/teacher/parents"            element={<TeacherParents />} />
+            <Route path="/teacher/messages/:conversationId?" element={<TeacherMessages />} />
+            <Route path="/teacher/parents"            element={<TeacherParentCommunication />} />
             <Route path="/teacher/notices"            element={<TeacherNotices />} />
 
             <Route path="/teacher/account"            element={<TeacherAccount />} />
-            <Route path="/help"              element={<HelpDeskPage />} />
-            <Route path="/help/tickets/new"  element={<HelpTicketCreatePage />} />
-            <Route path="/help/tickets/:id"  element={<HelpTicketDetailsPage />} />
+            <Route path="/teacher/help"               element={<TeacherHelp />} />
+            <Route path="/teacher/help/:ticketId"     element={<TeacherHelpTicketDetails />} />
+            <Route path="/help"              element={<Navigate to="/teacher/help" replace />} />
             <Route path="/notifications"     element={<NotificationsPage />} />
             <Route path="/search"            element={<SearchPage />} />
 

@@ -46,6 +46,11 @@ export interface Conversation {
   locked: boolean;
   priority: ConversationPriority;
   permissions?: GroupPermissions;
+  /** Optional context line under the title (e.g. "Guardian of Aarav Khan · Grade 8-A"). */
+  subtitle?: string;
+  /** Links this conversation back to a specific student/class for context panels (e.g. a teacher's parent chat). */
+  relatedStudentId?: string;
+  relatedClassId?: string;
 }
 
 export type MessageContentType = "text" | "image" | "file" | "audio" | "system";
@@ -147,6 +152,19 @@ export const CHAT_USERS: ChatUser[] = [
   { id: "u-student-02", name: "Priya Karki",      role: "Student",     email: "priya.k@student.schoolos.np", avatar: "", status: "offline", lastSeen: "3h ago" },
   { id: "u-staff-01",   name: "Front Desk",       role: "Staff",       email: "reception@demo.school",     avatar: "", status: "online",  lastSeen: "now" },
   { id: "u-staff-02",   name: "Mira Shrestha",    role: "Staff",       email: "mshrestha@schoolos.np",     avatar: "", status: "offline", lastSeen: "5h ago" },
+  { id: "u-staff-03",   name: "Academic Coordinator", role: "Staff",   email: "coordinator@demo.school",    avatar: "", status: "online",  lastSeen: "now" },
+
+  // Guardians of Demo Teacher's assigned students (teacherDashboardData.ts) —
+  // used by Teacher Messages / Parent Communication so those pages have real,
+  // pre-seeded conversations rather than only being populated on first click.
+  { id: "u-parent-david-khan",    name: "David Khan",     role: "Parent", email: "david.khan@example.com",    avatar: "", status: "offline", lastSeen: "2h ago" },
+  { id: "u-parent-ravi-sharma",   name: "Ravi Sharma",    role: "Parent", email: "ravi.sharma@example.com",   avatar: "", status: "online",  lastSeen: "now" },
+  { id: "u-parent-michael-brown", name: "Michael Brown",  role: "Parent", email: "michael.brown@example.com", avatar: "", status: "offline", lastSeen: "1d ago" },
+
+  // Students in Demo Teacher's assigned classes
+  { id: "u-student-aarav-khan",   name: "Aarav Khan",     role: "Student", email: "aarav.khan@example.com",   avatar: "", status: "online",  lastSeen: "now" },
+  { id: "u-student-aisha-sharma", name: "Aisha Sharma",   role: "Student", email: "aisha.sharma@example.com", avatar: "", status: "offline", lastSeen: "3h ago" },
+  { id: "u-student-arjun-patel",  name: "Arjun Patel",    role: "Student", email: "arjun.patel@example.com",  avatar: "", status: "offline", lastSeen: "1d ago" },
 ];
 
 export function chatUserById(id: string): ChatUser | undefined {
@@ -177,7 +195,7 @@ export const CONVERSATIONS: Conversation[] = [
   },
   {
     id: "c-003", type: "class_group", title: "Grade 8 Section A", avatar: "",
-    participantIds: ["u-admin", "u-principal", "u-teacher-01", "u-parent-01", "u-parent-02", "u-student-01"],
+    participantIds: ["u-admin", "u-principal", "u-teacher-01", "u-teacher-03", "u-parent-01", "u-parent-02", "u-student-01"],
     adminIds: ["u-teacher-01"],
     lastMessage: "Reminder: science project due Friday.", lastMessageAt: "2026-07-10T08:40:00",
     unreadCount: 5, pinned: true, muted: false, archived: false, locked: false, priority: "normal",
@@ -193,7 +211,7 @@ export const CONVERSATIONS: Conversation[] = [
   },
   {
     id: "c-005", type: "parent_teacher", title: "Grade 10 Parents", avatar: "",
-    participantIds: ["u-teacher-02", "u-parent-02", "u-parent-03"],
+    participantIds: ["u-teacher-02", "u-teacher-03", "u-parent-02", "u-parent-03"],
     adminIds: ["u-teacher-02"],
     lastMessage: "Result cards will be ready by Friday.", lastMessageAt: "2026-07-09T14:10:00",
     unreadCount: 1, pinned: false, muted: false, archived: false, locked: false, priority: "high",
@@ -236,6 +254,75 @@ export const CONVERSATIONS: Conversation[] = [
     adminIds: [],
     lastMessage: "Thanks for the update, Principal.", lastMessageAt: "2026-07-05T15:00:00",
     unreadCount: 0, pinned: false, muted: false, archived: true, locked: true, priority: "low",
+  },
+
+  /* ── Demo Teacher's parent/student/staff conversations ──────────────── */
+  {
+    id: "c-parent-david-khan", type: "direct", title: "David Khan", avatar: "",
+    subtitle: "Guardian of Aarav Khan · Grade 8-A",
+    relatedStudentId: "1", relatedClassId: "class-8-a",
+    participantIds: ["u-teacher-03", "u-parent-david-khan"], adminIds: [],
+    lastMessage: "Could you share Aarav's progress in Mathematics this term?", lastMessageAt: "2026-07-14T09:12:00",
+    unreadCount: 1, pinned: false, muted: false, archived: false, locked: false, priority: "normal",
+  },
+  {
+    id: "c-parent-ravi-sharma", type: "direct", title: "Ravi Sharma", avatar: "",
+    subtitle: "Guardian of Aisha Sharma · Grade 8-A",
+    relatedStudentId: "2", relatedClassId: "class-8-a",
+    participantIds: ["u-teacher-03", "u-parent-ravi-sharma"], adminIds: [],
+    lastMessage: "Thank you for the update on Aisha's project.", lastMessageAt: "2026-07-13T17:20:00",
+    unreadCount: 0, pinned: false, muted: false, archived: false, locked: false, priority: "normal",
+  },
+  {
+    id: "c-parent-michael-brown", type: "direct", title: "Michael Brown", avatar: "",
+    subtitle: "Guardian of Noah Brown · Grade 8-A",
+    relatedStudentId: "3", relatedClassId: "class-8-a",
+    participantIds: ["u-teacher-03", "u-parent-michael-brown"], adminIds: [],
+    lastMessage: "We'll work on the missing homework this weekend.", lastMessageAt: "2026-07-12T18:05:00",
+    unreadCount: 0, pinned: false, muted: false, archived: false, locked: false, priority: "normal",
+  },
+  {
+    id: "c-student-aarav-khan", type: "direct", title: "Aarav Khan", avatar: "",
+    subtitle: "Grade 8-A",
+    relatedStudentId: "1", relatedClassId: "class-8-a",
+    participantIds: ["u-teacher-03", "u-student-aarav-khan"], adminIds: [],
+    lastMessage: "Thank you, sir! I'll submit it tomorrow.", lastMessageAt: "2026-07-11T13:40:00",
+    unreadCount: 0, pinned: false, muted: false, archived: false, locked: false, priority: "normal",
+  },
+  {
+    id: "c-student-aisha-sharma", type: "direct", title: "Aisha Sharma", avatar: "",
+    subtitle: "Grade 8-A",
+    relatedStudentId: "2", relatedClassId: "class-8-a",
+    participantIds: ["u-teacher-03", "u-student-aisha-sharma"], adminIds: [],
+    lastMessage: "Can I resubmit the worksheet with corrections?", lastMessageAt: "2026-07-10T15:10:00",
+    unreadCount: 1, pinned: false, muted: false, archived: false, locked: false, priority: "normal",
+  },
+  {
+    id: "c-student-arjun-patel", type: "support_request", title: "Arjun Patel", avatar: "",
+    subtitle: "Grade 8-A",
+    relatedStudentId: "5", relatedClassId: "class-8-a",
+    participantIds: ["u-teacher-03", "u-student-arjun-patel"], adminIds: [],
+    lastMessage: "Sir, could you explain question 4 again?", lastMessageAt: "2026-07-09T12:30:00",
+    unreadCount: 1, pinned: false, muted: false, archived: false, locked: false, priority: "normal",
+  },
+  {
+    id: "c-grade9-sectionb", type: "class_group", title: "Grade 9 Section B", avatar: "",
+    participantIds: ["u-teacher-03", "u-parent-01", "u-parent-02"], adminIds: ["u-teacher-03"],
+    lastMessage: "Unit test 3 results will be shared by Friday.", lastMessageAt: "2026-07-11T10:00:00",
+    unreadCount: 0, pinned: false, muted: false, archived: false, locked: false, priority: "normal",
+    permissions: EVERYONE_SEND,
+  },
+  {
+    id: "c-teacher-principal", type: "direct", title: "Principal Office", avatar: "",
+    participantIds: ["u-teacher-03", "u-principal"], adminIds: [],
+    lastMessage: "Please submit mid-term lesson plans by Friday.", lastMessageAt: "2026-07-09T08:30:00",
+    unreadCount: 1, pinned: false, muted: false, archived: false, locked: false, priority: "normal",
+  },
+  {
+    id: "c-academic-coord", type: "direct", title: "Academic Coordinator", avatar: "",
+    participantIds: ["u-teacher-03", "u-staff-03"], adminIds: [],
+    lastMessage: "Syllabus tracker updated for this term.", lastMessageAt: "2026-07-08T11:15:00",
+    unreadCount: 0, pinned: false, muted: false, archived: false, locked: false, priority: "normal",
   },
 ];
 
@@ -289,6 +376,37 @@ export const CHAT_MESSAGES: ChatMessage[] = [
 
   // c-010 — locked/archived direct
   { id: "m-0101", conversationId: "c-010", senderId: "u-parent-02", body: "Thanks for the update, Principal.", type: "text", attachments: [], createdAt: "2026-07-05T15:00:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+
+  // c-parent-david-khan — Demo Teacher <-> David Khan (guardian of Aarav Khan)
+  { id: "m-pdk-1", conversationId: "c-parent-david-khan", senderId: "u-parent-david-khan", body: "Hello, hope you're doing well.", type: "text", attachments: [], createdAt: "2026-07-14T09:10:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+  { id: "m-pdk-2", conversationId: "c-parent-david-khan", senderId: "u-parent-david-khan", body: "Could you share Aarav's progress in Mathematics this term?", type: "text", attachments: [], createdAt: "2026-07-14T09:12:00", editedAt: null, status: "delivered", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+
+  // c-parent-ravi-sharma — Demo Teacher <-> Ravi Sharma (guardian of Aisha Sharma)
+  { id: "m-prs-1", conversationId: "c-parent-ravi-sharma", senderId: "u-teacher-03", body: "Aisha did excellent work on her project this week.", type: "text", attachments: [], createdAt: "2026-07-13T17:15:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+  { id: "m-prs-2", conversationId: "c-parent-ravi-sharma", senderId: "u-parent-ravi-sharma", body: "Thank you for the update on Aisha's project.", type: "text", attachments: [], createdAt: "2026-07-13T17:20:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+
+  // c-parent-michael-brown — Demo Teacher <-> Michael Brown (guardian of Noah Brown)
+  { id: "m-pmb-1", conversationId: "c-parent-michael-brown", senderId: "u-teacher-03", body: "Noah has a few missing homework submissions this week.", type: "text", attachments: [], createdAt: "2026-07-12T18:00:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+  { id: "m-pmb-2", conversationId: "c-parent-michael-brown", senderId: "u-parent-michael-brown", body: "We'll work on the missing homework this weekend.", type: "text", attachments: [], createdAt: "2026-07-12T18:05:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+
+  // c-student-aarav-khan
+  { id: "m-sak-1", conversationId: "c-student-aarav-khan", senderId: "u-teacher-03", body: "Please resubmit yesterday's worksheet by tomorrow.", type: "text", attachments: [], createdAt: "2026-07-11T13:35:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+  { id: "m-sak-2", conversationId: "c-student-aarav-khan", senderId: "u-student-aarav-khan", body: "Thank you, sir! I'll submit it tomorrow.", type: "text", attachments: [], createdAt: "2026-07-11T13:40:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+
+  // c-student-aisha-sharma
+  { id: "m-sas-1", conversationId: "c-student-aisha-sharma", senderId: "u-student-aisha-sharma", body: "Can I resubmit the worksheet with corrections?", type: "text", attachments: [], createdAt: "2026-07-10T15:10:00", editedAt: null, status: "delivered", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+
+  // c-student-arjun-patel — support request
+  { id: "m-sap-1", conversationId: "c-student-arjun-patel", senderId: "u-student-arjun-patel", body: "Sir, could you explain question 4 again?", type: "text", attachments: [], createdAt: "2026-07-09T12:30:00", editedAt: null, status: "delivered", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+
+  // c-grade9-sectionb
+  { id: "m-g9b-1", conversationId: "c-grade9-sectionb", senderId: "u-teacher-03", body: "Unit test 3 results will be shared by Friday.", type: "text", attachments: [], createdAt: "2026-07-11T10:00:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+
+  // c-teacher-principal
+  { id: "m-tp-1", conversationId: "c-teacher-principal", senderId: "u-principal", body: "Please submit mid-term lesson plans by Friday.", type: "text", attachments: [], createdAt: "2026-07-09T08:30:00", editedAt: null, status: "delivered", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
+
+  // c-academic-coord
+  { id: "m-ac-1", conversationId: "c-academic-coord", senderId: "u-staff-03", body: "Syllabus tracker updated for this term.", type: "text", attachments: [], createdAt: "2026-07-08T11:15:00", editedAt: null, status: "seen", reactions: [], replyTo: null, deleted: false, pinned: false, flagged: false },
 ];
 
 /* ─── Broadcasts ──────────────────────────────────────────────────────── */
@@ -343,4 +461,30 @@ export const MESSAGE_AUDIT_EVENTS: MessageAuditEvent[] = [
 /* ─── Filters / options ───────────────────────────────────────────────── */
 
 export const CONVERSATION_FILTER_TABS = ["All", "Unread", "Groups", "Parents", "Teachers", "Students", "Staff", "Archived"] as const;
+
+/* ─── Teacher <-> guardian/student chat identity resolution ─────────────
+ * The 3 guardians/students pre-seeded above (assignedStudents ids 1, 2, 5)
+ * get their real chat identity; everyone else gets a stable, deterministic
+ * one so "Message" always works for any assigned student, not just the
+ * named examples. Shared by Parent Communication and the Teacher Help
+ * center so both features resolve the same chat identity for a given
+ * student. */
+const KNOWN_GUARDIAN_CHAT_IDS: Record<number, string> = {
+  1: "u-parent-david-khan",
+  2: "u-parent-ravi-sharma",
+  3: "u-parent-michael-brown",
+};
+const KNOWN_STUDENT_CHAT_IDS: Record<number, string> = {
+  1: "u-student-aarav-khan",
+  2: "u-student-aisha-sharma",
+  5: "u-student-arjun-patel",
+};
+
+export function guardianChatUserIdForStudent(studentId: number): string {
+  return KNOWN_GUARDIAN_CHAT_IDS[studentId] ?? `u-parent-guardian-${studentId}`;
+}
+
+export function studentChatUserId(studentId: number): string {
+  return KNOWN_STUDENT_CHAT_IDS[studentId] ?? `u-student-${studentId}`;
+}
 export type ConversationFilterTab = (typeof CONVERSATION_FILTER_TABS)[number];

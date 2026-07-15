@@ -44,11 +44,65 @@ export const messagesService = {
   getUserById(id: string): ChatUser | undefined {
     return CHAT_USERS.find((u) => u.id === id);
   },
+  /** Registers a demo chat user on the fly (e.g. a guardian who doesn't have a seeded
+   *  identity yet) so a direct conversation can reference a resolvable participant. */
+  ensureChatUser(params: { id: string; name: string; role: ChatRole; email?: string }): ChatUser {
+    const existing = CHAT_USERS.find((u) => u.id === params.id);
+    if (existing) return existing;
+    const user: ChatUser = {
+      id: params.id, name: params.name, role: params.role,
+      email: params.email ?? "", avatar: "", status: "offline", lastSeen: "recently",
+    };
+    CHAT_USERS.push(user);
+    return user;
+  },
   getConversations(): Conversation[] {
     return conversations;
   },
   getConversation(id: string): Conversation | undefined {
     return conversations.find((c) => c.id === id);
+  },
+  /** Finds an existing direct conversation between the two users, or creates one —
+   *  the "Message" action on any parent/student card should always route through this. */
+  findOrCreateDirectConversation(params: {
+    currentUserId: string;
+    otherUserId: string;
+    otherUserName: string;
+    otherUserRole: ChatRole;
+    subtitle?: string;
+    relatedStudentId?: string;
+    relatedClassId?: string;
+  }): Conversation {
+    const existing = conversations.find(
+      (c) =>
+        (c.type === "direct" || c.type === "support_request") &&
+        c.participantIds.includes(params.currentUserId) &&
+        c.participantIds.includes(params.otherUserId),
+    );
+    if (existing) return existing;
+
+    this.ensureChatUser({ id: params.otherUserId, name: params.otherUserName, role: params.otherUserRole });
+    const conv: Conversation = {
+      id: `c-local-${nextConversationSeq++}`,
+      type: "direct",
+      title: params.otherUserName,
+      avatar: "",
+      subtitle: params.subtitle,
+      relatedStudentId: params.relatedStudentId,
+      relatedClassId: params.relatedClassId,
+      participantIds: [params.currentUserId, params.otherUserId],
+      adminIds: [],
+      lastMessage: "",
+      lastMessageAt: new Date().toISOString(),
+      unreadCount: 0,
+      pinned: false,
+      muted: false,
+      archived: false,
+      locked: false,
+      priority: "normal",
+    };
+    conversations = [conv, ...conversations];
+    return conv;
   },
   getMessages(conversationId: string): ChatMessage[] {
     return messages.filter((m) => m.conversationId === conversationId);

@@ -2,11 +2,14 @@ import {
   Archive,
   Award,
   BarChart2,
+  BookOpen,
   Building2,
   CalendarCheck,
   CalendarClock,
   CalendarDays,
   CircleHelp,
+  CircleUser,
+  ClipboardCheck,
   ClipboardList,
   CreditCard,
   Download,
@@ -23,11 +26,10 @@ import {
   PenLine,
   Radio,
   Receipt,
-  ReceiptText,
-  ScrollText,
   Settings,
   ShieldAlert,
   TrendingDown,
+  TrendingUp,
   UserCheck,
   UserRound,
   Users,
@@ -132,18 +134,59 @@ export const superAdminSidebar: NavGroup[] = [
 /** Same nav tree as Super Admin — permission gating already narrows it per-user. */
 export const adminSidebar: NavGroup[] = superAdminSidebar;
 
+/**
+ * Student workspace nav — deliberately excludes any admin/teacher tooling
+ * (mark attendance, marks entry, class/student/parent management, access
+ * control, payroll, all-school finance/reports). Every route lives under
+ * /student/* so it never collides with the shared admin routes.
+ */
 export const studentSidebar: NavGroup[] = [
   {
     label: "Overview",
-    items: [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+    items: [
+      { to: "/student/today",     label: "Today",     icon: CalendarClock },
+      { to: "/student/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    ],
   },
   {
     label: "My School",
     items: [
-      { to: "/profile", label: "My Profile", icon: UserRound },
-      { to: "/attendance", label: "Attendance", icon: CalendarCheck },
-      { to: "/results", label: "Results", icon: ScrollText },
-      { to: "/fees", label: "Fees", icon: ReceiptText },
+      { to: "/student/profile",    label: "My Profile",    icon: UserRound },
+      { to: "/student/attendance", label: "My Attendance",  icon: CalendarCheck },
+      { to: "/student/timetable",  label: "My Timetable",   icon: CalendarDays },
+      { to: "/student/subjects",   label: "My Subjects",    icon: BookOpen },
+      { to: "/student/classmates", label: "Classmates",     icon: Users },
+    ],
+  },
+  {
+    label: "Learning",
+    items: [
+      { to: "/student/assignments", label: "Homework & Assignments", icon: ClipboardList },
+      { to: "/student/materials",   label: "Learning Materials",     icon: FolderOpen },
+      { to: "/student/exams",       label: "Exams",                  icon: ClipboardCheck },
+      { to: "/student/results",     label: "Results",                icon: Award },
+      { to: "/student/progress",    label: "Progress",               icon: TrendingUp },
+    ],
+  },
+  {
+    label: "Communication",
+    items: [
+      { to: "/student/messages", label: "Messages", icon: MessageSquare },
+      { to: "/student/notices",  label: "Notices",   icon: Megaphone },
+      { to: "/student/help",     label: "Help",      icon: CircleHelp },
+    ],
+  },
+  {
+    label: "Finance",
+    items: [
+      { to: "/student/fees", label: "My Fees", icon: Wallet },
+    ],
+  },
+  {
+    label: "Account",
+    items: [
+      { to: "/student/account",  label: "My Account", icon: CircleUser },
+      { to: "/student/settings", label: "Settings",   icon: Settings },
     ],
   },
 ];
@@ -206,7 +249,7 @@ export const teacherSidebar: NavGroup[] = [
     label: "Account",
     items: [
       { to: "/teacher/account", label: "My Account", icon: UserRound },
-      { to: "/help",            label: "Help",        icon: CircleHelp },
+      { to: "/teacher/help",    label: "Help",        icon: CircleHelp },
     ],
   },
 ];

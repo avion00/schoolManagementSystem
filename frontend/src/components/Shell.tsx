@@ -97,6 +97,13 @@ function deriveBreadcrumb(pathname: string, nav: NavGroup[], brand: string): str
 
   // Help / Support
   if (pathname === "/help")                                                  return ["Portal", "Support", "Get Help"];
+  if (pathname === "/teacher/help")                                          return ["Portal", "Support", "Help Center"];
+  if (pathname.startsWith("/teacher/help/"))                                 return ["Portal", "Support", "Help Center", "Ticket Details"];
+
+  // Student sub-pages not directly in the nav (exact-match loop below handles
+  // every other /student/* leaf page automatically via studentSidebar)
+  if (pathname.startsWith("/student/assignments/"))                          return ["Portal", "Learning", "Homework & Assignments", "Assignment Details"];
+  if (pathname.startsWith("/student/messages/"))                             return ["Portal", "Communication", "Messages", "Conversation"];
 
   // Settings (system / administration + personal account)
   if (pathname === "/settings")                                              return ["Portal", "Settings"];
@@ -195,7 +202,7 @@ function deriveBreadcrumb(pathname: string, nav: NavGroup[], brand: string): str
  * inside that shell. Collapse them to their section root so only navigating
  * into/out of the section (not between its sub-pages) replays the transition.
  */
-const SHARED_SHELL_SECTIONS = ["/settings", "/messages"];
+const SHARED_SHELL_SECTIONS = ["/settings", "/messages", "/teacher/messages", "/student/messages"];
 
 function transitionKeyFor(pathname: string): string {
   const section = SHARED_SHELL_SECTIONS.find((s) => pathname === s || pathname.startsWith(s + "/"));

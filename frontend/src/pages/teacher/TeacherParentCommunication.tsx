@@ -7,16 +7,24 @@ import { Reveal } from "@/components/motion";
 import { StudentAvatar } from "@/components/students/StudentAvatar";
 import { ParentMessageTemplate } from "@/components/teacher/ParentMessageTemplate";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { PremiumBadge, type PremiumBadgeTone } from "@/components/ui/PremiumBadge";
 import { PremiumCard } from "@/components/ui/PremiumCard";
 import { PremiumSearchInput } from "@/components/ui/PremiumSearchInput";
+import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import {
   assignedStudents,
   meetingRequests,
   parentMessages,
   weakStudents,
+  type AssignedStudent,
   type MeetingRequest,
 } from "@/data/teacherDashboardData";
+import { useAuth } from "@/lib/auth";
+import { messagesService, resolveCurrentChatUser } from "@/lib/messagesService";
+import { realtimeService } from "@/lib/realtimeService";
 
 const STATUS_TONE: Record<MeetingRequest["status"], PremiumBadgeTone> = {
   Requested: "warning",
@@ -25,9 +33,26 @@ const STATUS_TONE: Record<MeetingRequest["status"], PremiumBadgeTone> = {
   Cancelled: "neutral",
 };
 
-export function TeacherParents() {
+/** The 3 guardians pre-seeded in messagesData.ts get their real chat identity;
+ *  every other guardian gets a stable, deterministic one created on first contact. */
+const KNOWN_GUARDIAN_CHAT_IDS: Record<number, string> = {
+  1: "u-parent-david-khan",
+  2: "u-parent-ravi-sharma",
+  3: "u-parent-michael-brown",
+};
+function guardianChatUserId(studentId: number) {
+  return KNOWN_GUARDIAN_CHAT_IDS[studentId] ?? `u-parent-guardian-${studentId}`;
+}
+
+export function TeacherParentCommunication() {
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const currentUserId = user ? resolveCurrentChatUser(user).id : "";
+
+  const [templateOpen, setTemplateOpen] = useState(false);
+  const [templateText, setTemplateText] = useState("");
+  const [templateStudentId, setTemplateStudentId] = useState<number>(assignedStudents[0]?.id ?? 0);
 
   const guardians = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -42,6 +67,47 @@ export function TeacherParents() {
   const followUps = weakStudents.filter((s) => s.reasons.includes("Low attendance") || s.reasons.includes("Missing homework"));
   const recentReplies = parentMessages.filter((m) => !m.unread).slice(0, 3);
 
+  function messageGuardian(student: AssignedStudent) {
+    const conv = messagesService.findOrCreateDirectConversation({
+      currentUserId,
+      otherUserId: guardianChatUserId(student.id),
+      otherUserName: student.guardian,
+      otherUserRole: "Parent",
+      subtitle: `Guardian of ${student.name} · ${student.className}-${student.section}`,
+      relatedStudentId: String(student.id),
+      relatedClassId: student.classId,
+    });
+    realtimeService.refreshConversations();
+    navigate(`/teacher/messages/${conv.id}`);
+  }
+
+  function openTemplate(rawText: string) {
+    setTemplateText(rawText);
+    setTemplateOpen(true);
+  }
+
+  function sendTemplate() {
+    const student = assignedStudents.find((s) => s.id === templateStudentId);
+    if (!student) return;
+    const conv = messagesService.findOrCreateDirectConversation({
+      currentUserId,
+      otherUserId: guardianChatUserId(student.id),
+      otherUserName: student.guardian,
+      otherUserRole: "Parent",
+      subtitle: `Guardian of ${student.name} · ${student.className}-${student.section}`,
+      relatedStudentId: String(student.id),
+      relatedClassId: student.classId,
+    });
+    const body = templateText.replace(/\{student\}/g, student.name);
+    messagesService.sendMessage({ conversationId: conv.id, senderId: currentUserId, body });
+    realtimeService.refreshConversations();
+    setTemplateOpen(false);
+    toast.success(`Message sent to ${student.guardian}`);
+    navigate(`/teacher/messages/${conv.id}`);
+  }
+
+  const previewText = templateText.replace(/\{student\}/g, assignedStudents.find((s) => s.id === templateStudentId)?.name ?? "the student");
+
   return (
     <div className="space-y-4">
       <Reveal>
@@ -52,7 +118,7 @@ export function TeacherParents() {
       </Reveal>
 
       <Reveal delay={40}>
-        <ParentMessageTemplate />
+        <ParentMessageTemplate onSelect={openTemplate} />
       </Reveal>
 
       <Reveal delay={60} className="grid gap-4 lg:grid-cols-3">
@@ -125,7 +191,7 @@ export function TeacherParents() {
                 size="sm"
                 variant="outline"
                 className="h-8 flex-1 gap-1.5 text-[12px]"
-                onClick={() => toast.info(`Opening a message to ${student.guardian} — coming soon`)}
+                onClick={() => messageGuardian(student)}
               >
                 <MessageSquare className="h-3.5 w-3.5" /> Message
               </Button>
@@ -140,6 +206,38 @@ export function TeacherParents() {
           <p className="text-[13px] font-medium text-foreground">No guardians found</p>
         </PremiumCard>
       )}
+
+      <Dialog open={templateOpen} onOpenChange={setTemplateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send a quick message</DialogTitle>
+            <DialogDescription>Choose a student, then review the message before sending.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-[12px] font-medium text-foreground">Student</label>
+              <PremiumSelect
+                value={String(templateStudentId)}
+                onChange={(v) => setTemplateStudentId(Number(v))}
+                options={assignedStudents.map((s) => ({ value: String(s.id), label: `${s.name} — ${s.guardian} (${s.className}-${s.section})` }))}
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[12px] font-medium text-foreground">Message</label>
+              <textarea
+                value={previewText}
+                onChange={(e) => setTemplateText(e.target.value)}
+                rows={4}
+                className="w-full resize-none rounded-xl border border-input bg-background px-3 py-2 text-[13px] text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTemplateOpen(false)}>Cancel</Button>
+            <Button onClick={sendTemplate}>Send message</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

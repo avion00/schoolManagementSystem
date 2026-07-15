@@ -20,12 +20,14 @@ export function ConversationList({
   activeConversationId,
   onSelect,
   onNewChat,
+  tabs = CONVERSATION_FILTER_TABS,
 }: {
   conversations: Conversation[];
   currentUserId: string;
   activeConversationId?: string;
   onSelect: (id: string) => void;
   onNewChat: () => void;
+  tabs?: readonly ConversationFilterTab[];
 }) {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<ConversationFilterTab>("All");
@@ -65,11 +67,11 @@ export function ConversationList({
           placeholder="Search conversations..."
           className="h-9 w-full rounded-xl border border-input bg-background px-3 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-ring"
         />
-        <div className="overflow-x-auto">
+        <div className="-mx-1 overflow-x-auto px-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <SlidingTabs
             value={tab}
             onValueChange={(v) => setTab(v as ConversationFilterTab)}
-            options={CONVERSATION_FILTER_TABS.map((t) => ({ value: t, label: t }))}
+            options={tabs.map((t) => ({ value: t, label: t }))}
             className="w-max"
           />
         </div>

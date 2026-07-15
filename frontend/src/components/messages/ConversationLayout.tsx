@@ -10,8 +10,11 @@ import { MessageThread } from "@/components/messages/MessageThread";
 import { NewChatModal } from "@/components/messages/NewChatModal";
 import { useConversation } from "@/hooks/useConversation";
 import { useConversations } from "@/hooks/useConversations";
-import { chatUserById, type ChatMessage, type ChatRole } from "@/data/messagesData";
-import { needsApproval } from "@/data/messagePermissions";
+import {
+  chatUserById, CONVERSATION_FILTER_TABS,
+  type ChatMessage, type ChatRole, type ConversationFilterTab,
+} from "@/data/messagesData";
+import { canViewAllConversations, needsApproval } from "@/data/messagePermissions";
 import { messagesService } from "@/lib/messagesService";
 import { realtimeService } from "@/lib/realtimeService";
 import { cn } from "@/lib/utils";
@@ -28,6 +31,7 @@ export function ConversationLayout({
   onSelectConversation,
   onBack,
   autoOpenNewChat = false,
+  tabs = CONVERSATION_FILTER_TABS,
 }: {
   currentUserId: string;
   currentUserRole: ChatRole;
@@ -36,9 +40,24 @@ export function ConversationLayout({
   onSelectConversation: (id: string) => void;
   onBack: () => void;
   autoOpenNewChat?: boolean;
+  /** Which filter tabs to show in the left panel — defaults to the full admin set. */
+  tabs?: readonly ConversationFilterTab[];
 }) {
-  const { conversations } = useConversations();
-  const { conversation, messages, typingUserIds, send, emitTyping } = useConversation(activeConversationId, currentUserId);
+  const { conversations: allConversations } = useConversations();
+  // Only Super Admin gets the unrestricted, all-conversations view (global
+  // oversight is the point of that role). Every other role — Teacher
+  // included — only ever sees conversations they actually participate in.
+  const canSeeAll = canViewAllConversations(currentUserRole);
+  const conversations = canSeeAll
+    ? allConversations
+    : allConversations.filter((c) => c.participantIds.includes(currentUserId));
+
+  const { conversation: rawConversation, messages, typingUserIds, send, emitTyping } = useConversation(activeConversationId, currentUserId);
+  // Defends against a forbidden conversation id being opened directly via URL —
+  // e.g. a teacher can't view a conversation they aren't part of just by typing its id.
+  const conversation = rawConversation && (canSeeAll || rawConversation.participantIds.includes(currentUserId))
+    ? rawConversation
+    : undefined;
   const [newChatOpen, setNewChatOpen] = useState(autoOpenNewChat);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
@@ -100,6 +119,7 @@ export function ConversationLayout({
           activeConversationId={activeConversationId}
           onSelect={onSelectConversation}
           onNewChat={() => setNewChatOpen(true)}
+          tabs={tabs}
         />
       </aside>
 
@@ -181,6 +201,7 @@ export function ConversationLayout({
                 onExport={() => handleAction("export")}
                 onRemoveMember={(userId) => { messagesService.removeMember(conversation.id, userId, currentUserId); realtimeService.refreshConversations(); }}
                 onAddMember={(userId) => { messagesService.addMember(conversation.id, userId); realtimeService.refreshConversations(); }}
+                onSendTemplate={(text) => { send(text); setDetailsOpen(false); }}
               />
             </DialogPrimitive.Content>
           </DialogPrimitive.Portal>

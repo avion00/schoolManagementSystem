@@ -1,16 +1,20 @@
 import { useState } from "react";
 import {
-  Archive, BellOff, Download, Flag, Lock, LogOut, Pin, ScrollText, ShieldAlert, Trash2, UserPlus,
+  Archive, BellOff, CalendarClock, Download, Flag, FolderOpen, GraduationCap, Lock, LogOut,
+  NotebookPen, Phone, Pin, ScrollText, ShieldAlert, Trash2, UserPlus,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 import { GroupMembersPanel } from "@/components/messages/GroupMembersPanel";
+import { ParentMessageTemplate } from "@/components/teacher/ParentMessageTemplate";
 import { PinnedMessagesPanel } from "@/components/messages/PinnedMessagesPanel";
 import { SharedFilesPanel } from "@/components/messages/SharedFilesPanel";
 import { Button } from "@/components/ui/button";
 import {
   CHAT_USERS, chatUserById, type ChatMessage, type Conversation,
 } from "@/data/messagesData";
+import { assignedStudents } from "@/data/teacherDashboardData";
 import { messagesService } from "@/lib/messagesService";
 
 function Section({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
@@ -38,6 +42,7 @@ export function ConversationDetailsPanel({
   onExport,
   onRemoveMember,
   onAddMember,
+  onSendTemplate,
 }: {
   conversation: Conversation;
   messages: ChatMessage[];
@@ -51,6 +56,8 @@ export function ConversationDetailsPanel({
   onExport: () => void;
   onRemoveMember: (userId: string) => void;
   onAddMember: (userId: string) => void;
+  /** Sends a quick-template message straight into this conversation (teacher parent/student chats). */
+  onSendTemplate?: (text: string) => void;
 }) {
   const navigate = useNavigate();
   const [showAddMember, setShowAddMember] = useState(false);
@@ -60,8 +67,59 @@ export function ConversationDetailsPanel({
   const candidates = CHAT_USERS.filter((u) => !conversation.participantIds.includes(u.id));
   const auditForConversation = messagesService.getAuditEvents().filter((e) => e.conversationId === conversation.id).slice(0, 4);
 
+  const otherUserId = !isGroupLike ? conversation.participantIds.find((id) => id !== currentUserId) : undefined;
+  const otherUser = otherUserId ? chatUserById(otherUserId) : undefined;
+  const linkedStudent = conversation.relatedStudentId
+    ? assignedStudents.find((s) => String(s.id) === conversation.relatedStudentId)
+    : undefined;
+
   return (
     <div className="flex h-full flex-col overflow-y-auto">
+      {linkedStudent && (
+        <Section title={otherUser?.role === "Parent" ? "Student & guardian" : "Student"}>
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => navigate(`/teacher/students/${linkedStudent.id}`)}
+              className="flex w-full items-center gap-2.5 rounded-lg border border-border/60 px-2.5 py-2 text-left hover:bg-muted/60"
+            >
+              <GraduationCap className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <div className="min-w-0">
+                <p className="truncate text-[12.5px] font-medium text-foreground">{linkedStudent.name}</p>
+                <p className="truncate text-[11px] text-muted-foreground">{linkedStudent.className}-{linkedStudent.section} · Roll {linkedStudent.roll}</p>
+              </div>
+            </button>
+            {otherUser?.role === "Parent" && (
+              <p className="flex items-center gap-1.5 px-1 text-[11.5px] text-muted-foreground">
+                <Phone className="h-3 w-3" /> {linkedStudent.guardianPhone}
+              </p>
+            )}
+          </div>
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            <Button variant="outline" size="sm" className="h-7 gap-1.5 text-[11px]" onClick={() => navigate("/teacher/parents")}>
+              <CalendarClock className="h-3.5 w-3.5" /> Schedule meeting
+            </Button>
+            <Button variant="outline" size="sm" className="h-7 gap-1.5 text-[11px]" onClick={() => toast.success(`Note added for ${linkedStudent.name} (demo)`)}>
+              <NotebookPen className="h-3.5 w-3.5" /> Add note
+            </Button>
+          </div>
+        </Section>
+      )}
+
+      {otherUser?.role === "Parent" && onSendTemplate && (
+        <Section title="Quick templates">
+          <ParentMessageTemplate onSelect={(text) => onSendTemplate(text.replace("{student}", linkedStudent?.name ?? "your child"))} />
+        </Section>
+      )}
+
+      {isGroupLike && !isSuperAdmin && (
+        <Section title="Class actions">
+          <Button variant="outline" size="sm" className="h-7 gap-1.5 text-[11px]" onClick={() => navigate("/teacher/materials")}>
+            <FolderOpen className="h-3.5 w-3.5" /> Share material
+          </Button>
+        </Section>
+      )}
+
       <Section title="Conversation info">
         <p className="text-[12.5px] text-muted-foreground">
           {isGroupLike ? `${conversation.participantIds.length} members` : "Direct conversation"} · Created via SchoolOS Messages

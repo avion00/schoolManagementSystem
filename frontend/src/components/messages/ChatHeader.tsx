@@ -35,13 +35,16 @@ export function ChatHeader({
   const otherUserId = isDirect ? conversation.participantIds.find((id) => id !== currentUserId) : undefined;
   const otherUser: ChatUser | undefined = otherUserId ? chatUserById(otherUserId) : undefined;
 
-  const subtitle = isDirect
+  const presenceLine = isDirect
     ? otherUser?.status === "online"
       ? "Online"
       : otherUser?.status === "away"
         ? `Away · last seen ${otherUser.lastSeen}`
         : `Last seen ${otherUser?.lastSeen ?? "recently"}`
     : `${TYPE_LABEL[conversation.type]} · ${conversation.participantIds.length} members`;
+  // For a teacher's parent/student chat, the class/student context is more useful
+  // at a glance than raw presence — show it alongside (not instead of) presence.
+  const subtitle = conversation.subtitle ? `${conversation.subtitle} · ${presenceLine}` : presenceLine;
 
   return (
     <div className="flex shrink-0 items-center gap-3 border-b border-border/60 bg-card px-4 py-3">
