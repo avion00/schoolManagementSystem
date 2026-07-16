@@ -104,6 +104,7 @@ function deriveBreadcrumb(pathname: string, nav: NavGroup[], brand: string): str
   // every other /student/* leaf page automatically via studentSidebar)
   if (pathname.startsWith("/student/assignments/"))                          return ["Portal", "Learning", "Homework & Assignments", "Assignment Details"];
   if (pathname.startsWith("/student/messages/"))                             return ["Portal", "Communication", "Messages", "Conversation"];
+  if (pathname.startsWith("/student/subjects/"))                             return ["Portal", "My School", "My Subjects", "Subject Details"];
 
   // Settings (system / administration + personal account)
   if (pathname === "/settings")                                              return ["Portal", "Settings"];

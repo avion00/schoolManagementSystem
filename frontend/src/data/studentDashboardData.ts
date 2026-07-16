@@ -65,12 +65,12 @@ export interface TodayPeriod {
 
 export const todaySchedule: TodayPeriod[] = [
   { id: "tp-1", period: 1, time: "8:00 – 8:45 AM", subject: "Mathematics", teacher: "Demo Teacher", room: "Room 204", status: "Completed" },
-  { id: "tp-2", period: 2, time: "8:45 – 9:30 AM", subject: "Science", teacher: "Anita Gurung", room: "Lab 1", status: "Completed" },
+  { id: "tp-2", period: 2, time: "8:45 – 9:30 AM", subject: "Science", teacher: "Meera Thapa", room: "Lab 1", status: "Completed" },
   { id: "tp-3", period: 3, time: "9:30 – 9:45 AM", subject: "Break", teacher: "", room: "", status: "Completed", isBreak: true },
   { id: "tp-4", period: 4, time: "9:45 – 10:30 AM", subject: "English", teacher: "Sita Rai", room: "Room 108", status: "Ongoing" },
-  { id: "tp-5", period: 5, time: "10:30 – 11:15 AM", subject: "Social Studies", teacher: "Bishnu Adhikari", room: "Room 110", status: "Upcoming" },
-  { id: "tp-6", period: 6, time: "11:15 – 12:00 PM", subject: "Computer Science", teacher: "Academic Coordinator", room: "Lab 2", status: "Upcoming" },
-  { id: "tp-7", period: 7, time: "12:00 – 12:45 PM", subject: "Nepali", teacher: "Rita Shrestha", room: "Room 108", status: "Upcoming" },
+  { id: "tp-5", period: 5, time: "10:30 – 11:15 AM", subject: "Social Studies", teacher: "Rajesh Koirala", room: "Room 110", status: "Upcoming" },
+  { id: "tp-6", period: 6, time: "11:15 – 12:00 PM", subject: "Computer Science", teacher: "Prakash Manandhar", room: "Lab 2", status: "Upcoming" },
+  { id: "tp-7", period: 7, time: "12:00 – 12:45 PM", subject: "Nepali", teacher: "Sunita Basnet", room: "Room 108", status: "Upcoming" },
 ];
 
 export interface TodayTask {
@@ -153,47 +153,47 @@ const DAYS: TimetablePeriod["day"][] = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 const DAY_SUBJECTS: { subject: string; teacher: string; room: string; isBreak?: boolean }[][] = [
   [ // Mon
     { subject: "Mathematics", teacher: "Demo Teacher", room: "Room 204" },
-    { subject: "Science", teacher: "Anita Gurung", room: "Lab 1" },
+    { subject: "Science", teacher: "Meera Thapa", room: "Lab 1" },
     { subject: "Break", teacher: "", room: "", isBreak: true },
     { subject: "English", teacher: "Sita Rai", room: "Room 108" },
-    { subject: "Social Studies", teacher: "Bishnu Adhikari", room: "Room 110" },
-    { subject: "Computer Science", teacher: "Academic Coordinator", room: "Lab 2" },
-    { subject: "Nepali", teacher: "Rita Shrestha", room: "Room 108" },
+    { subject: "Social Studies", teacher: "Rajesh Koirala", room: "Room 110" },
+    { subject: "Computer Science", teacher: "Prakash Manandhar", room: "Lab 2" },
+    { subject: "Nepali", teacher: "Sunita Basnet", room: "Room 108" },
   ],
   [ // Tue
-    { subject: "Science", teacher: "Anita Gurung", room: "Lab 1" },
+    { subject: "Science", teacher: "Meera Thapa", room: "Lab 1" },
     { subject: "Mathematics", teacher: "Demo Teacher", room: "Room 204" },
     { subject: "Break", teacher: "", room: "", isBreak: true },
-    { subject: "Nepali", teacher: "Rita Shrestha", room: "Room 108" },
+    { subject: "Nepali", teacher: "Sunita Basnet", room: "Room 108" },
     { subject: "English", teacher: "Sita Rai", room: "Room 108" },
     { subject: "Physical Education", teacher: "Front Desk", room: "Field" },
-    { subject: "Social Studies", teacher: "Bishnu Adhikari", room: "Room 110" },
+    { subject: "Social Studies", teacher: "Rajesh Koirala", room: "Room 110" },
   ],
   [ // Wed
     { subject: "English", teacher: "Sita Rai", room: "Room 108" },
-    { subject: "Computer Science", teacher: "Academic Coordinator", room: "Lab 2" },
+    { subject: "Computer Science", teacher: "Prakash Manandhar", room: "Lab 2" },
     { subject: "Break", teacher: "", room: "", isBreak: true },
     { subject: "Mathematics", teacher: "Demo Teacher", room: "Room 204" },
-    { subject: "Science", teacher: "Anita Gurung", room: "Lab 1" },
-    { subject: "Social Studies", teacher: "Bishnu Adhikari", room: "Room 110" },
-    { subject: "Art", teacher: "Rita Shrestha", room: "Room 112" },
+    { subject: "Science", teacher: "Meera Thapa", room: "Lab 1" },
+    { subject: "Social Studies", teacher: "Rajesh Koirala", room: "Room 110" },
+    { subject: "Art", teacher: "Sunita Basnet", room: "Room 112" },
   ],
   [ // Thu
     { subject: "Mathematics", teacher: "Demo Teacher", room: "Room 204" },
-    { subject: "Science", teacher: "Anita Gurung", room: "Lab 1" },
+    { subject: "Science", teacher: "Meera Thapa", room: "Lab 1" },
     { subject: "Break", teacher: "", room: "", isBreak: true },
     { subject: "English", teacher: "Sita Rai", room: "Room 108" },
-    { subject: "Social Studies", teacher: "Bishnu Adhikari", room: "Room 110" },
-    { subject: "Computer Science", teacher: "Academic Coordinator", room: "Lab 2" },
-    { subject: "Nepali", teacher: "Rita Shrestha", room: "Room 108" },
+    { subject: "Social Studies", teacher: "Rajesh Koirala", room: "Room 110" },
+    { subject: "Computer Science", teacher: "Prakash Manandhar", room: "Lab 2" },
+    { subject: "Nepali", teacher: "Sunita Basnet", room: "Room 108" },
   ],
   [ // Fri
-    { subject: "Social Studies", teacher: "Bishnu Adhikari", room: "Room 110" },
+    { subject: "Social Studies", teacher: "Rajesh Koirala", room: "Room 110" },
     { subject: "Mathematics", teacher: "Demo Teacher", room: "Room 204" },
     { subject: "Break", teacher: "", room: "", isBreak: true },
-    { subject: "Science", teacher: "Anita Gurung", room: "Lab 1" },
+    { subject: "Science", teacher: "Meera Thapa", room: "Lab 1" },
     { subject: "English", teacher: "Sita Rai", room: "Room 108" },
-    { subject: "Nepali", teacher: "Rita Shrestha", room: "Room 108" },
+    { subject: "Nepali", teacher: "Sunita Basnet", room: "Room 108" },
     { subject: "Library", teacher: "Front Desk", room: "Library" },
   ],
 ];
@@ -224,15 +224,15 @@ export interface StudentSubject {
 export const subjects: StudentSubject[] = [
   { id: "sub-math", name: "Mathematics", teacher: "Demo Teacher", weeklyClasses: 6, syllabusCompleted: 18, syllabusTotal: 24, latestMarks: 78, latestFullMarks: 100, homeworkPending: 1, materialsCount: 5,
     syllabusTopics: ["Algebra basics", "Linear equations", "Geometry — triangles", "Mensuration", "Data handling"] },
-  { id: "sub-sci", name: "Science", teacher: "Anita Gurung", weeklyClasses: 6, syllabusCompleted: 20, syllabusTotal: 22, latestMarks: 75, latestFullMarks: 100, homeworkPending: 0, materialsCount: 7,
+  { id: "sub-sci", name: "Science", teacher: "Meera Thapa", weeklyClasses: 6, syllabusCompleted: 20, syllabusTotal: 22, latestMarks: 75, latestFullMarks: 100, homeworkPending: 0, materialsCount: 7,
     syllabusTopics: ["Cell structure", "Force and motion", "Chemical reactions", "Light and sound", "Ecosystems"] },
   { id: "sub-eng", name: "English", teacher: "Sita Rai", weeklyClasses: 5, syllabusCompleted: 15, syllabusTotal: 20, latestMarks: 82, latestFullMarks: 100, homeworkPending: 0, materialsCount: 4,
     syllabusTopics: ["Grammar — tenses", "Essay writing", "Poetry analysis", "Comprehension"] },
-  { id: "sub-soc", name: "Social Studies", teacher: "Bishnu Adhikari", weeklyClasses: 4, syllabusCompleted: 12, syllabusTotal: 18, latestMarks: 70, latestFullMarks: 100, homeworkPending: 1, materialsCount: 3,
+  { id: "sub-soc", name: "Social Studies", teacher: "Rajesh Koirala", weeklyClasses: 4, syllabusCompleted: 12, syllabusTotal: 18, latestMarks: 70, latestFullMarks: 100, homeworkPending: 1, materialsCount: 3,
     syllabusTopics: ["World geography", "Ancient civilizations", "Government structures"] },
-  { id: "sub-nep", name: "Nepali", teacher: "Rita Shrestha", weeklyClasses: 4, syllabusCompleted: 14, syllabusTotal: 20, latestMarks: 68, latestFullMarks: 100, homeworkPending: 0, materialsCount: 2,
+  { id: "sub-nep", name: "Nepali", teacher: "Sunita Basnet", weeklyClasses: 4, syllabusCompleted: 14, syllabusTotal: 20, latestMarks: 68, latestFullMarks: 100, homeworkPending: 0, materialsCount: 2,
     syllabusTopics: ["व्याकरण", "निबन्ध लेखन", "कविता"] },
-  { id: "sub-cs", name: "Computer Science", teacher: "Academic Coordinator", weeklyClasses: 3, syllabusCompleted: 9, syllabusTotal: 16, latestMarks: 88, latestFullMarks: 100, homeworkPending: 0, materialsCount: 6,
+  { id: "sub-cs", name: "Computer Science", teacher: "Prakash Manandhar", weeklyClasses: 3, syllabusCompleted: 9, syllabusTotal: 16, latestMarks: 88, latestFullMarks: 100, homeworkPending: 0, materialsCount: 6,
     syllabusTopics: ["Intro to programming", "Spreadsheets", "Internet safety"] },
 ];
 
@@ -280,17 +280,17 @@ export interface HomeworkAssignment {
 export let homeworkAssignments: HomeworkAssignment[] = [
   { id: "hw-1", title: "Algebra worksheet — Chapter 6", subject: "Mathematics", teacher: "Demo Teacher", className: "Grade 8-A", dueDate: "2026-07-16", marks: 10, status: "To Do",
     instructions: "Complete all 15 problems on linear equations. Show your working for each step.", attachments: [{ id: "a1", name: "chapter6-worksheet.pdf" }] },
-  { id: "hw-2", title: "Science fair project proposal", subject: "Science", teacher: "Anita Gurung", className: "Grade 8-A", dueDate: "2026-07-17", marks: 20, status: "To Do",
+  { id: "hw-2", title: "Science fair project proposal", subject: "Science", teacher: "Meera Thapa", className: "Grade 8-A", dueDate: "2026-07-17", marks: 20, status: "To Do",
     instructions: "Submit a one-page proposal for your science fair project including hypothesis and materials needed.", attachments: [] },
   { id: "hw-3", title: "Essay: My Favourite Book", subject: "English", teacher: "Sita Rai", className: "Grade 8-A", dueDate: "2026-07-14", marks: 15, status: "Graded",
     instructions: "Write a 400-word essay about your favourite book and why you enjoyed it.", attachments: [{ id: "a2", name: "essay-guidelines.pdf" }] },
-  { id: "hw-4", title: "Map work — World Geography", subject: "Social Studies", teacher: "Bishnu Adhikari", className: "Grade 8-A", dueDate: "2026-07-12", marks: 10, status: "Submitted",
+  { id: "hw-4", title: "Map work — World Geography", subject: "Social Studies", teacher: "Rajesh Koirala", className: "Grade 8-A", dueDate: "2026-07-12", marks: 10, status: "Submitted",
     instructions: "Label the 7 continents and 5 oceans on the provided blank map.", attachments: [{ id: "a3", name: "blank-world-map.pdf" }] },
-  { id: "hw-5", title: "Grammar exercise — Tenses", subject: "Nepali", teacher: "Rita Shrestha", className: "Grade 8-A", dueDate: "2026-07-10", marks: 10, status: "Missing",
+  { id: "hw-5", title: "Grammar exercise — Tenses", subject: "Nepali", teacher: "Sunita Basnet", className: "Grade 8-A", dueDate: "2026-07-10", marks: 10, status: "Missing",
     instructions: "Complete exercises 1–20 in the grammar workbook.", attachments: [] },
-  { id: "hw-6", title: "Spreadsheet basics practice", subject: "Computer Science", teacher: "Academic Coordinator", className: "Grade 8-A", dueDate: "2026-07-20", marks: 10, status: "To Do",
+  { id: "hw-6", title: "Spreadsheet basics practice", subject: "Computer Science", teacher: "Prakash Manandhar", className: "Grade 8-A", dueDate: "2026-07-20", marks: 10, status: "To Do",
     instructions: "Create a spreadsheet tracking your weekly study hours per subject.", attachments: [{ id: "a4", name: "spreadsheet-template.xlsx" }] },
-  { id: "hw-7", title: "Lab report — States of matter", subject: "Science", teacher: "Anita Gurung", className: "Grade 8-A", dueDate: "2026-07-08", marks: 20, status: "Graded",
+  { id: "hw-7", title: "Lab report — States of matter", subject: "Science", teacher: "Meera Thapa", className: "Grade 8-A", dueDate: "2026-07-08", marks: 20, status: "Graded",
     instructions: "Write up your observations from the states-of-matter lab experiment.", attachments: [] },
 ];
 
@@ -339,13 +339,13 @@ export interface LearningMaterial {
 
 export let learningMaterials: LearningMaterial[] = [
   { id: "lm-1", title: "Linear Equations — Slide Deck", subject: "Mathematics", teacher: "Demo Teacher", type: "PDF", size: "2.1 MB", date: "2026-07-15", saved: false },
-  { id: "lm-2", title: "Cell Structure Video Lecture", subject: "Science", teacher: "Anita Gurung", type: "Video", size: "48 MB", date: "2026-07-15", saved: true },
+  { id: "lm-2", title: "Cell Structure Video Lecture", subject: "Science", teacher: "Meera Thapa", type: "Video", size: "48 MB", date: "2026-07-15", saved: true },
   { id: "lm-3", title: "Essay Writing Guidelines", subject: "English", teacher: "Sita Rai", type: "Doc", size: "340 KB", date: "2026-07-14", saved: false },
-  { id: "lm-4", title: "World Map Reference", subject: "Social Studies", teacher: "Bishnu Adhikari", type: "Image", size: "1.4 MB", date: "2026-07-12", saved: false },
+  { id: "lm-4", title: "World Map Reference", subject: "Social Studies", teacher: "Rajesh Koirala", type: "Image", size: "1.4 MB", date: "2026-07-12", saved: false },
   { id: "lm-5", title: "Khan Academy — Algebra Basics", subject: "Mathematics", teacher: "Demo Teacher", type: "Link", size: "—", date: "2026-07-11", saved: true },
-  { id: "lm-6", title: "Grammar Workbook", subject: "Nepali", teacher: "Rita Shrestha", type: "PDF", size: "890 KB", date: "2026-07-10", saved: false },
-  { id: "lm-7", title: "Spreadsheet Template", subject: "Computer Science", teacher: "Academic Coordinator", type: "Doc", size: "120 KB", date: "2026-07-09", saved: false },
-  { id: "lm-8", title: "States of Matter Diagram", subject: "Science", teacher: "Anita Gurung", type: "Image", size: "680 KB", date: "2026-07-07", saved: false },
+  { id: "lm-6", title: "Grammar Workbook", subject: "Nepali", teacher: "Sunita Basnet", type: "PDF", size: "890 KB", date: "2026-07-10", saved: false },
+  { id: "lm-7", title: "Spreadsheet Template", subject: "Computer Science", teacher: "Prakash Manandhar", type: "Doc", size: "120 KB", date: "2026-07-09", saved: false },
+  { id: "lm-8", title: "States of Matter Diagram", subject: "Science", teacher: "Meera Thapa", type: "Image", size: "680 KB", date: "2026-07-07", saved: false },
 ];
 
 export function toggleSaveMaterial(id: string) {
@@ -519,18 +519,27 @@ export function createStudentHelpTicket(input: { category: HelpRequestType; titl
 
 /* ── Achievements & certificates ──────────────────────────────────────── */
 
-export interface Achievement { id: string; title: string; date: string; category: string; }
+export type AchievementCategory = "Academic" | "Attendance" | "Activity" | "Sports";
+export interface Achievement { id: string; title: string; date: string; category: AchievementCategory; }
 export const achievements: Achievement[] = [
   { id: "ach-1", title: "1st Place — Inter-school Science Fair", date: "2026-05-20", category: "Academic" },
   { id: "ach-2", title: "Best Attendance — Term 1", date: "2026-04-30", category: "Attendance" },
   { id: "ach-3", title: "Runner-up — Chess Club Tournament", date: "2026-03-15", category: "Activity" },
+  { id: "ach-4", title: "Most Improved — Mathematics", date: "2026-02-10", category: "Academic" },
+  { id: "ach-5", title: "2nd Place — Inter-house Football", date: "2026-01-22", category: "Sports" },
 ];
 
-export interface Certificate { id: string; title: string; issuedOn: string; }
-export const certificates: Certificate[] = [
-  { id: "cert-1", title: "First Term Completion Certificate", issuedOn: "2026-06-15" },
-  { id: "cert-2", title: "Science Fair Participation Certificate", issuedOn: "2026-05-20" },
+export type CertificateType = "Character Certificate" | "Transfer Certificate" | "Achievement Certificate" | "Participation Certificate" | "Bonafide Certificate";
+export interface Certificate { id: string; title: string; type: CertificateType; issuedOn: string | null; status: "Issued" | "Pending"; }
+export let certificates: Certificate[] = [
+  { id: "cert-1", title: "First Term Completion Certificate", type: "Achievement Certificate", issuedOn: "2026-06-15", status: "Issued" },
+  { id: "cert-2", title: "Science Fair Participation Certificate", type: "Participation Certificate", issuedOn: "2026-05-20", status: "Issued" },
+  { id: "cert-3", title: "Bonafide Certificate", type: "Bonafide Certificate", issuedOn: null, status: "Pending" },
 ];
+let certSeq = 4;
+export function requestCertificate(type: CertificateType) {
+  certificates = [{ id: `cert-${certSeq++}`, title: type, type, issuedOn: null, status: "Pending" }, ...certificates];
+}
 
 /* ── Dashboard preview data (kept independent of the real messaging system
    used on the full Messages page, purely for the small preview card) ───── */
@@ -540,3 +549,219 @@ export const recentTeacherMessages: MessagePreview[] = [
   { id: "mp-1", from: "Demo Teacher", preview: "Great improvement on your last worksheet, Liam!", time: "1d ago", unread: true },
   { id: "mp-2", from: "Sita Rai", preview: "Please revise your essay conclusion before Friday.", time: "2d ago", unread: false },
 ];
+
+/* ── Teachers ─────────────────────────────────────────────────────────── */
+
+export interface StudentTeacher {
+  id: string;
+  name: string;
+  subject: string;
+  department: string;
+  isClassTeacher: boolean;
+  officeHours: string;
+  contactNote: string;
+  latestMaterial: string | null;
+  /** Deterministic chat identity — distinct from any same-named seeded parent/staff user. */
+  chatUserId: string;
+}
+
+export const teachers: StudentTeacher[] = [
+  { id: "t-1", name: "Demo Teacher", subject: "Mathematics", department: "Science & Mathematics", isClassTeacher: true, officeHours: "Mon–Fri, 2:00–3:00 PM", contactNote: "Room 204 staff desk", latestMaterial: "Linear Equations — Slide Deck", chatUserId: "u-teacher-03" },
+  { id: "t-2", name: "Meera Thapa", subject: "Science", department: "Science & Mathematics", isClassTeacher: false, officeHours: "Mon–Fri, 1:00–2:00 PM", contactNote: "Lab 1 staff desk", latestMaterial: "Cell Structure Video Lecture", chatUserId: "u-subject-teacher-science" },
+  { id: "t-3", name: "Sita Rai", subject: "English", department: "Languages", isClassTeacher: false, officeHours: "Tue/Thu, 3:00–4:00 PM", contactNote: "Room 108 staff desk", latestMaterial: "Essay Writing Guidelines", chatUserId: "u-subject-teacher-english" },
+  { id: "t-4", name: "Rajesh Koirala", subject: "Social Studies", department: "Humanities", isClassTeacher: false, officeHours: "Mon/Wed, 2:00–3:00 PM", contactNote: "Room 110 staff desk", latestMaterial: "World Map Reference", chatUserId: "u-subject-teacher-social" },
+  { id: "t-5", name: "Sunita Basnet", subject: "Nepali", department: "Languages", isClassTeacher: false, officeHours: "Wed/Fri, 1:00–2:00 PM", contactNote: "Room 108 staff desk", latestMaterial: "Grammar Workbook", chatUserId: "u-subject-teacher-nepali" },
+  { id: "t-6", name: "Prakash Manandhar", subject: "Computer Science", department: "Technical", isClassTeacher: false, officeHours: "Mon–Fri, 3:00–4:00 PM", contactNote: "Lab 2 staff desk", latestMaterial: "Spreadsheet Template", chatUserId: "u-subject-teacher-cs" },
+];
+
+/* ── Study planner ────────────────────────────────────────────────────── */
+
+export interface StudyTask {
+  id: string;
+  title: string;
+  subject: string | null;
+  suggested: boolean;
+  done: boolean;
+}
+
+export let studyPlannerTasks: StudyTask[] = [
+  { id: "sp-1", title: "Review Science Chapter 4 before Friday's test", subject: "Science", suggested: true, done: false },
+  { id: "sp-2", title: "Complete Math homework — Chapter 6", subject: "Mathematics", suggested: true, done: false },
+  { id: "sp-3", title: "Watch uploaded video — Cell Structure", subject: "Science", suggested: true, done: false },
+  { id: "sp-4", title: "Practice English grammar exercises", subject: "English", suggested: true, done: false },
+  { id: "sp-5", title: "Re-read Nepali grammar notes", subject: "Nepali", suggested: false, done: false },
+];
+
+export function toggleStudyTask(id: string) {
+  studyPlannerTasks = studyPlannerTasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t));
+}
+export function addStudyTask(title: string, subject: string | null) {
+  studyPlannerTasks = [{ id: `sp-${Date.now()}`, title, subject, suggested: false, done: false }, ...studyPlannerTasks];
+}
+
+export const studyStreak = { currentStreakDays: 4, bestStreakDays: 11 };
+
+/* ── Class groups ─────────────────────────────────────────────────────── */
+
+export interface ClassGroup {
+  id: string;
+  name: string;
+  membersCount: number;
+  moderator: string;
+  lastActivity: string;
+  unreadCount: number;
+  materialsCount: number;
+  /** Real conversation id in messagesData.ts this group maps to, if any. */
+  conversationId: string | null;
+}
+
+export const classGroups: ClassGroup[] = [
+  { id: "cg-1", name: "Grade 8 Section A", membersCount: 34, moderator: "Kazi Fahim", lastActivity: "Fri", unreadCount: 0, materialsCount: 5, conversationId: "c-003" },
+  { id: "cg-2", name: "Science Study Group", membersCount: 8, moderator: "Meera Thapa", lastActivity: "2d ago", unreadCount: 2, materialsCount: 3, conversationId: null },
+  { id: "cg-3", name: "Exam Preparation Group", membersCount: 12, moderator: "Demo Teacher", lastActivity: "Yesterday", unreadCount: 0, materialsCount: 6, conversationId: null },
+  { id: "cg-4", name: "Science Fair Project Group", membersCount: 4, moderator: "Meera Thapa", lastActivity: "Today", unreadCount: 1, materialsCount: 1, conversationId: null },
+];
+
+/* ── Ask Teacher ──────────────────────────────────────────────────────── */
+
+export type AskTeacherQuestionType = "Homework" | "Result" | "Exam" | "Attendance" | "Material" | "Other";
+
+export interface AskTeacherQuestion {
+  id: string;
+  subject: string;
+  teacher: string;
+  type: AskTeacherQuestionType;
+  question: string;
+  askedAt: string;
+  status: "Pending" | "Answered";
+  answer?: string;
+}
+
+export let askTeacherQuestions: AskTeacherQuestion[] = [
+  { id: "aq-1", subject: "Mathematics", teacher: "Demo Teacher", type: "Homework", question: "Is the algebra worksheet due before or after class tomorrow?", askedAt: "2026-07-15 06:40 PM", status: "Answered", answer: "Before class starts, please." },
+  { id: "aq-2", subject: "Science", teacher: "Meera Thapa", type: "Exam", question: "Will the unit test cover chapter 6 as well?", askedAt: "2026-07-16 08:10 AM", status: "Pending" },
+];
+
+let askSeq = 3;
+export function submitAskTeacherQuestion(input: { subject: string; teacher: string; type: AskTeacherQuestionType; question: string }): AskTeacherQuestion {
+  const q: AskTeacherQuestion = {
+    id: `aq-${askSeq++}`, subject: input.subject, teacher: input.teacher, type: input.type,
+    question: input.question, askedAt: new Date().toLocaleString(undefined, { month: "2-digit", day: "2-digit", year: "numeric", hour: "numeric", minute: "2-digit" }),
+    status: "Pending",
+  };
+  askTeacherQuestions = [q, ...askTeacherQuestions];
+  return q;
+}
+
+/* ── Events ───────────────────────────────────────────────────────────── */
+
+export type EventCategory = "Sports" | "Competition" | "Seminar" | "Cultural" | "Exam";
+export interface SchoolEvent {
+  id: string;
+  title: string;
+  category: EventCategory;
+  date: string;
+  location: string;
+  registrationStatus: "Not Registered" | "Registered" | "Closed";
+}
+
+export let events: SchoolEvent[] = [
+  { id: "ev-1", title: "Annual Sports Day", category: "Sports", date: "2026-07-25", location: "School Ground", registrationStatus: "Not Registered" },
+  { id: "ev-2", title: "Inter-school Science Fair", category: "Competition", date: "2026-08-02", location: "Main Hall", registrationStatus: "Registered" },
+  { id: "ev-3", title: "Career Guidance Seminar", category: "Seminar", date: "2026-08-10", location: "Auditorium", registrationStatus: "Not Registered" },
+  { id: "ev-4", title: "Cultural Day Celebration", category: "Cultural", date: "2026-08-15", location: "School Ground", registrationStatus: "Closed" },
+];
+
+export function registerForEvent(id: string) {
+  events = events.map((e) => (e.id === id && e.registrationStatus === "Not Registered" ? { ...e, registrationStatus: "Registered" as const } : e));
+}
+
+/* ── Clubs & activities ───────────────────────────────────────────────── */
+
+export interface Club {
+  id: string;
+  name: string;
+  teacherInCharge: string;
+  schedule: string;
+  membersCount: number;
+  joined: boolean;
+}
+
+export let clubs: Club[] = [
+  { id: "cl-1", name: "Chess Club", teacherInCharge: "Rajesh Koirala", schedule: "Tue/Thu, 3:30 PM", membersCount: 18, joined: true },
+  { id: "cl-2", name: "Science Club", teacherInCharge: "Meera Thapa", schedule: "Mon/Wed, 3:30 PM", membersCount: 24, joined: true },
+  { id: "cl-3", name: "Football Team", teacherInCharge: "Front Desk", schedule: "Mon/Fri, 4:00 PM", membersCount: 22, joined: false },
+  { id: "cl-4", name: "Debate Club", teacherInCharge: "Sita Rai", schedule: "Wed, 3:30 PM", membersCount: 15, joined: false },
+];
+
+export function toggleClubMembership(id: string) {
+  clubs = clubs.map((c) => (c.id === id ? { ...c, joined: !c.joined } : c));
+}
+
+/* ── Library ──────────────────────────────────────────────────────────── */
+
+export interface LibraryBook {
+  id: string;
+  title: string;
+  author: string;
+  borrowedDate: string;
+  dueDate: string;
+  status: "Borrowed" | "Overdue" | "Returned";
+  fine: number;
+}
+
+export const libraryBooks: LibraryBook[] = [
+  { id: "lib-1", title: "A Brief History of Time", author: "Stephen Hawking", borrowedDate: "2026-07-01", dueDate: "2026-07-21", status: "Borrowed", fine: 0 },
+  { id: "lib-2", title: "The Hobbit", author: "J.R.R. Tolkien", borrowedDate: "2026-06-10", dueDate: "2026-06-30", status: "Overdue", fine: 20 },
+  { id: "lib-3", title: "Wonder", author: "R.J. Palacio", borrowedDate: "2026-05-15", dueDate: "2026-06-04", status: "Returned", fine: 0 },
+];
+
+export const recommendedBooks = ["Percy Jackson: The Lightning Thief", "Charlotte's Web", "Diary of a Wimpy Kid"];
+
+/* ── Leave requests ───────────────────────────────────────────────────── */
+
+export type LeaveType = "Sick Leave" | "Family Function" | "Personal" | "Other";
+export interface LeaveRequest {
+  id: string;
+  type: LeaveType;
+  from: string;
+  to: string;
+  reason: string;
+  status: "Pending" | "Approved" | "Rejected";
+}
+
+export let leaveRequests: LeaveRequest[] = [
+  { id: "lv-1", type: "Family Function", from: "2026-07-14", to: "2026-07-14", reason: "Family function", status: "Approved" },
+  { id: "lv-2", type: "Sick Leave", from: "2026-07-08", to: "2026-07-08", reason: "Fever", status: "Approved" },
+];
+
+let leaveSeq = 3;
+export function submitLeaveRequest(input: { type: LeaveType; from: string; to: string; reason: string }): LeaveRequest {
+  const req: LeaveRequest = { id: `lv-${leaveSeq++}`, status: "Pending", ...input };
+  leaveRequests = [req, ...leaveRequests];
+  return req;
+}
+
+/* ── Transport ────────────────────────────────────────────────────────── */
+
+export const transportInfo = {
+  route: "Route 4 — Lakeside",
+  pickupPoint: "Lakeside Chowk",
+  dropPoint: "Lakeside Chowk",
+  driverName: "Hari Bahadur",
+  driverPhoneMasked: "+977 98•• ••• 214",
+  pickupTime: "7:15 AM",
+  dropTime: "3:45 PM",
+  notices: ["Bus will be 10 minutes late on July 18 due to road maintenance."],
+};
+
+/* ── Hostel ───────────────────────────────────────────────────────────── */
+
+export const hostelInfo = {
+  enrolled: false,
+  room: "—",
+  warden: "—",
+  roommates: [] as string[],
+  mealSchedule: [] as { meal: string; time: string }[],
+  notices: [] as string[],
+};

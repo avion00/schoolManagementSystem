@@ -90,17 +90,30 @@ import { StudentProfile } from "@/pages/student/StudentProfile";
 import { StudentAttendance } from "@/pages/student/StudentAttendance";
 import { StudentTimetable } from "@/pages/student/StudentTimetable";
 import { StudentSubjects } from "@/pages/student/StudentSubjects";
+import { StudentSubjectDetails } from "@/pages/student/StudentSubjectDetails";
 import { StudentClassmates } from "@/pages/student/StudentClassmates";
+import { StudentTeachers } from "@/pages/student/StudentTeachers";
 import { StudentAssignments } from "@/pages/student/StudentAssignments";
 import { StudentAssignmentDetails } from "@/pages/student/StudentAssignmentDetails";
 import { StudentMaterials } from "@/pages/student/StudentMaterials";
+import { StudentStudyPlanner } from "@/pages/student/StudentStudyPlanner";
 import { StudentExams } from "@/pages/student/StudentExams";
 import { StudentResults } from "@/pages/student/StudentResults";
 import { StudentProgress } from "@/pages/student/StudentProgress";
 import { StudentMessages } from "@/pages/student/StudentMessages";
+import { StudentGroups } from "@/pages/student/StudentGroups";
 import { StudentNotices } from "@/pages/student/StudentNotices";
+import { StudentAskTeacher } from "@/pages/student/StudentAskTeacher";
 import { StudentFees } from "@/pages/student/StudentFees";
 import { StudentHelp } from "@/pages/student/StudentHelp";
+import { StudentEvents } from "@/pages/student/StudentEvents";
+import { StudentActivities } from "@/pages/student/StudentActivities";
+import { StudentAchievements } from "@/pages/student/StudentAchievements";
+import { StudentCertificates } from "@/pages/student/StudentCertificates";
+import { StudentLibrary } from "@/pages/student/StudentLibrary";
+import { StudentLeaveRequest } from "@/pages/student/StudentLeaveRequest";
+import { StudentTransport } from "@/pages/student/StudentTransport";
+import { StudentHostel } from "@/pages/student/StudentHostel";
 import { StudentAccount } from "@/pages/student/StudentAccount";
 import { StudentSettings } from "@/pages/student/StudentSettings";
 import { TeacherDashboard } from "@/pages/teacher/TeacherDashboard";
@@ -166,17 +179,30 @@ export default function App() {
             <Route path="/student/attendance"                element={<StudentAttendance />} />
             <Route path="/student/timetable"                element={<StudentTimetable />} />
             <Route path="/student/subjects"                  element={<StudentSubjects />} />
+            <Route path="/student/subjects/:id"              element={<StudentSubjectDetails />} />
             <Route path="/student/classmates"                element={<StudentClassmates />} />
+            <Route path="/student/teachers"                  element={<StudentTeachers />} />
             <Route path="/student/assignments"               element={<StudentAssignments />} />
             <Route path="/student/assignments/:id"           element={<StudentAssignmentDetails />} />
             <Route path="/student/materials"                 element={<StudentMaterials />} />
+            <Route path="/student/study-planner"             element={<StudentStudyPlanner />} />
             <Route path="/student/exams"                     element={<StudentExams />} />
             <Route path="/student/results"                   element={<StudentResults />} />
             <Route path="/student/progress"                  element={<StudentProgress />} />
             <Route path="/student/messages/:conversationId?" element={<StudentMessages />} />
+            <Route path="/student/groups"                    element={<StudentGroups />} />
             <Route path="/student/notices"                   element={<StudentNotices />} />
+            <Route path="/student/ask-teacher"                element={<StudentAskTeacher />} />
             <Route path="/student/fees"                      element={<StudentFees />} />
             <Route path="/student/help"                       element={<StudentHelp />} />
+            <Route path="/student/events"                     element={<StudentEvents />} />
+            <Route path="/student/activities"                 element={<StudentActivities />} />
+            <Route path="/student/achievements"               element={<StudentAchievements />} />
+            <Route path="/student/certificates"               element={<StudentCertificates />} />
+            <Route path="/student/library"                    element={<StudentLibrary />} />
+            <Route path="/student/leave-request"              element={<StudentLeaveRequest />} />
+            <Route path="/student/transport"                  element={<StudentTransport />} />
+            <Route path="/student/hostel"                     element={<StudentHostel />} />
             <Route path="/student/account"                    element={<StudentAccount />} />
             <Route path="/student/settings"                   element={<StudentSettings />} />
 
