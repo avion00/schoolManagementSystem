@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { ReceiptPreview } from "@/components/billing/ReceiptPreview";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { PremiumCard } from "@/components/ui/PremiumCard";
 import { PAYMENTS } from "@/data/billingData";
 
 export function BillingReceiptDetailsPage() {
@@ -13,12 +13,10 @@ export function BillingReceiptDetailsPage() {
 
   if (!payment) {
     return (
-      <Card className="rounded-2xl border-border/60 shadow-sm">
-        <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
-          <p className="text-[13px] font-medium text-foreground">Receipt not found</p>
-          <Button variant="outline" size="sm" onClick={() => navigate("/billing/payments")}>Back to Payments</Button>
-        </CardContent>
-      </Card>
+      <PremiumCard className="flex flex-col items-center gap-3 py-16 text-center">
+        <p className="text-[13px] font-medium text-foreground">Receipt not found</p>
+        <Button variant="outline" size="sm" onClick={() => navigate("/billing/payments")}>Back to Payments</Button>
+      </PremiumCard>
     );
   }
 

@@ -118,7 +118,7 @@ export function SupportTicketForm() {
   }
 
   return (
-    <Card id="support-ticket-form" className="scroll-mt-6 rounded-2xl border-border/60 shadow-sm">
+    <Card id="support-ticket-form" className="scroll-mt-6 rounded-2xl border-border/60 shadow-elevated">
       <CardHeader>
         <CardTitle className="text-base font-semibold">Submit a Support Request</CardTitle>
         <CardDescription>

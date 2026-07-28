@@ -6,7 +6,7 @@ import {
   calendarEvents,
   type CalendarEvent,
 } from "@/data/dashboardData";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PremiumCard } from "@/components/ui/PremiumCard";
 import { cn } from "@/lib/utils";
 
 const DAYS_HEADER = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -24,11 +24,9 @@ export function EventCalendarCard() {
   const upcoming = calendarEvents.filter((e) => e.date >= CALENDAR_TODAY).slice(0, 4);
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-1">
-        <CardTitle className="text-base">{CALENDAR_MONTH}</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <PremiumCard className="h-full p-5">
+      <p className="font-display mb-2 text-base font-semibold tracking-tight text-foreground">{CALENDAR_MONTH}</p>
+      <div>
         {/* Column headers */}
         <div className="grid grid-cols-7 text-center">
           {DAYS_HEADER.map((d) => (
@@ -68,7 +66,7 @@ export function EventCalendarCard() {
 
         {/* Upcoming event list */}
         {upcoming.length > 0 && (
-          <div className="mt-3 space-y-1.5 border-t pt-3">
+          <div className="mt-3 space-y-1.5 border-t border-neutral-200/80 pt-3 dark:border-neutral-800">
             {upcoming.map((e) => (
               <div key={`${e.date}-${e.title}`} className="flex items-center gap-2.5 text-xs">
                 <span className={cn("h-2 w-2 shrink-0 rounded-full", e.color)} />
@@ -78,7 +76,7 @@ export function EventCalendarCard() {
             ))}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </PremiumCard>
   );
 }

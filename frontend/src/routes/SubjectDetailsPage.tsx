@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { SlidingTabs, type SlidingTabOption } from "@/components/motion";
 import { SubjectProfileHero }       from "@/components/subjects/details/SubjectProfileHero";
 import { SubjectOverviewCards }     from "@/components/subjects/details/SubjectOverviewCards";
 import { SubjectClassMappingCard }  from "@/components/subjects/details/SubjectClassMappingCard";
@@ -13,10 +12,11 @@ import { SubjectPerformanceCard }   from "@/components/subjects/details/SubjectP
 import { SubjectDocumentsCard }     from "@/components/subjects/details/SubjectDocumentsCard";
 import { SubjectActivityTimeline }  from "@/components/subjects/details/SubjectActivityTimeline";
 import { Button }                   from "@/components/ui/button";
+import { PremiumTabs, type PremiumTabOption } from "@/components/ui/PremiumTabs";
 import { SUBJECTS }                 from "@/data/subjectsData";
 import { SUBJECT_DETAIL_MOCK }      from "@/data/subjectDetailData";
 
-const TABS: SlidingTabOption[] = [
+const TABS: PremiumTabOption[] = [
   { value: "overview",  label: "Overview"  },
   { value: "classes",   label: "Classes"   },
   { value: "teachers",  label: "Teachers"  },
@@ -50,7 +50,7 @@ export function SubjectDetailsPage() {
     <div className="space-y-6 pb-12">
       <SubjectProfileHero sub={sub} />
       <SubjectOverviewCards sub={sub} mock={mock} />
-      <SlidingTabs value={tab} onValueChange={setTab} options={TABS} />
+      <PremiumTabs value={tab} onValueChange={setTab} options={TABS} />
 
       {/* Overview */}
       {tab === "overview" && (

@@ -1,8 +1,10 @@
 import { useState, useMemo } from "react";
 import { AlertTriangle }     from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PremiumBadge } from "@/components/ui/PremiumBadge";
+import { PremiumCard } from "@/components/ui/PremiumCard";
+import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import {
-  ROUTINES, CONFLICT_IDS, CLASS_OPTIONS, SECTION_OPTIONS,
+  ROUTINES, CONFLICT_IDS,
   MORNING_PERIODS, DAY_PERIODS,
   type RoutineEntry, type Day,
 } from "@/data/classRoutineData";
@@ -80,27 +82,26 @@ export function ClassRoutineGrid() {
   const sectionOptions = [...new Set(ROUTINES.filter((r) => r.className === selClass).map((r) => r.section))].sort();
 
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <CardTitle className="text-[14px] font-semibold">Weekly Timetable</CardTitle>
-          <div className="flex items-center gap-2">
-            <select value={selClass}
-              onChange={(e) => { setSelClass(e.target.value); setSelSection("A"); }}
-              className="h-8 rounded-md border border-input bg-background px-2 text-[12px] text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring">
-              {classOptions.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <select value={selSection} onChange={(e) => setSelSection(e.target.value)}
-              className="h-8 rounded-md border border-input bg-background px-2 text-[12px] text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring">
-              {sectionOptions.map((s) => <option key={s} value={s}>Section {s}</option>)}
-            </select>
-            <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${shift === "Morning" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"}`}>
-              {shift} Shift
-            </span>
-          </div>
+    <PremiumCard>
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 pb-3">
+        <p className="font-display text-sm font-semibold text-foreground">Weekly Timetable</p>
+        <div className="flex items-center gap-2">
+          <PremiumSelect
+            value={selClass}
+            onChange={(v) => { setSelClass(v); setSelSection("A"); }}
+            className="w-36"
+            options={classOptions.map((c) => ({ value: c, label: c }))}
+          />
+          <PremiumSelect
+            value={selSection}
+            onChange={setSelSection}
+            className="w-32"
+            options={sectionOptions.map((s) => ({ value: s, label: `Section ${s}` }))}
+          />
+          <PremiumBadge label={`${shift} Shift`} tone={shift === "Morning" ? "warning" : "info"} />
         </div>
-      </CardHeader>
-      <CardContent className="p-0 pb-4">
+      </div>
+      <div className="pb-4">
         <div className="overflow-x-auto px-4">
           <table className="w-full min-w-[700px] border-collapse">
             <thead>
@@ -192,7 +193,7 @@ export function ClassRoutineGrid() {
             <AlertTriangle className="h-3 w-3" />Conflict
           </span>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </PremiumCard>
   );
 }

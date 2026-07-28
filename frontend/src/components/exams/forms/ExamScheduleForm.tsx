@@ -4,7 +4,7 @@ import { AlertTriangle, BookOpen, CalendarDays, Clock, FileText, RefreshCw, Save
 import { toast }   from "sonner";
 import { Button }  from "@/components/ui/button";
 import { Input }   from "@/components/ui/input";
-import { FormSection } from "@/components/students/forms/FormSection";
+import { FormSection } from "@/components/ui/form-section";
 import {
   EXAM_SCHEDULES, EXAM_TERM_OPTIONS, EXAM_TYPE_OPTIONS, EXAM_STATUS_OPTIONS,
   CLASS_OPTIONS, SECTION_OPTIONS, SUBJECT_OPTIONS, INVIGILATOR_OPTIONS, ROOM_OPTIONS,

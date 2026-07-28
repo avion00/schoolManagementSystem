@@ -1,4 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { GraduationCap } from "lucide-react";
+
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { ChildAcademic } from "@/data/parentDetailsData";
 
 function pctColor(p: number) {
@@ -25,23 +27,15 @@ const HOMEWORK_CFG = {
 export function ParentChildrenAcademicCard({ academicData }: { academicData: ChildAcademic[] }) {
   if (academicData.length === 0) {
     return (
-      <Card className="border-border/60 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-[14px] font-semibold">Academic Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="py-8 text-center text-sm text-muted-foreground">No academic data available.</p>
-        </CardContent>
-      </Card>
+      <DetailCard icon={GraduationCap} title="Academic Overview">
+        <p className="py-8 text-center text-sm text-muted-foreground">No academic data available.</p>
+      </DetailCard>
     );
   }
 
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-[14px] font-semibold">Children Academic Overview</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-5">
+    <DetailCard icon={GraduationCap} title="Children Academic Overview">
+      <div className="space-y-5">
         {academicData.map((child) => {
           const hw = HOMEWORK_CFG[child.homeworkStatus];
           return (
@@ -101,7 +95,7 @@ export function ParentChildrenAcademicCard({ academicData }: { academicData: Chi
             </div>
           );
         })}
-      </CardContent>
-    </Card>
+      </div>
+    </DetailCard>
   );
 }

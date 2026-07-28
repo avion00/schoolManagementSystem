@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { CalendarDays, Clock, FileText, Printer, RefreshCw, Save, X, AlertTriangle } from "lucide-react";
 import { toast }   from "sonner";
 import { Button }  from "@/components/ui/button";
-import { FormSection } from "@/components/students/forms/FormSection";
+import { FormSection } from "@/components/ui/form-section";
 import {
   ROUTINES, SCHOOL_DAYS, SHIFT_OPTIONS, STATUS_OPTIONS,
   ACADEMIC_YEAR_OPTIONS, CLASS_OPTIONS, SECTION_OPTIONS,

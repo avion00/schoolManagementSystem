@@ -1,4 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { User } from "lucide-react";
+
+import { DetailCard } from "@/components/ui/DetailCard";
 import { Separator } from "@/components/ui/separator";
 import type { Teacher } from "@/data/teachersData";
 import type { TeacherPersonalExtra } from "@/data/teacherDetailsData";
@@ -31,11 +33,8 @@ export function TeacherPersonalInfoCard({
   extra: TeacherPersonalExtra;
 }) {
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-[14px] font-semibold">Personal Information</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-0 divide-y divide-border/40">
+    <DetailCard icon={User} title="Personal Information">
+      <div className="space-y-0 divide-y divide-border/40">
         <Row label="Gender"         value={teacher.gender} />
         <Row label="Date of Birth"  value={`${fmtDate(teacher.dateOfBirth)} (${age(teacher.dateOfBirth)} yrs)`} />
         <Row label="Blood Group"    value={extra.bloodGroup} />
@@ -49,7 +48,7 @@ export function TeacherPersonalInfoCard({
         <Row label="Emergency Contact" value={extra.emergencyContact} />
         <Row label="Relation"          value={extra.emergencyRelation} />
         <Row label="Permanent Address" value={extra.permanentAddress} />
-      </CardContent>
-    </Card>
+      </div>
+    </DetailCard>
   );
 }

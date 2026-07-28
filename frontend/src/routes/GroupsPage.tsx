@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 import { NewChatModal } from "@/components/messages/NewChatModal";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { PremiumCard } from "@/components/ui/PremiumCard";
 import { useConversations } from "@/hooks/useConversations";
 import { chatUserById, type Conversation } from "@/data/messagesData";
 import { canCreateGroup } from "@/data/messagePermissions";
@@ -39,30 +39,28 @@ export function GroupsPage() {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {groups.map((g) => (
-          <Card key={g.id} className="rounded-2xl border-border/60 shadow-sm">
-            <CardContent className="flex flex-col gap-3 p-4">
-              <div className="flex items-start justify-between gap-2">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">
-                  <Users className="h-5 w-5" />
+          <PremiumCard key={g.id} hoverable className="flex flex-col gap-3 p-4">
+            <div className="flex items-start justify-between gap-2">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">
+                <Users className="h-5 w-5" />
+              </span>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{TYPE_LABEL[g.type]}</span>
+            </div>
+            <div>
+              <p className="text-[14px] font-semibold text-foreground">{g.title}</p>
+              <p className="mt-0.5 text-[12px] text-muted-foreground">{g.participantIds.length} members</p>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {g.adminIds.slice(0, 3).map((id) => (
+                <span key={id} className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10.5px] font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+                  <Crown className="h-2.5 w-2.5" /> {chatUserById(id)?.name ?? id}
                 </span>
-                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{TYPE_LABEL[g.type]}</span>
-              </div>
-              <div>
-                <p className="text-[14px] font-semibold text-foreground">{g.title}</p>
-                <p className="mt-0.5 text-[12px] text-muted-foreground">{g.participantIds.length} members</p>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {g.adminIds.slice(0, 3).map((id) => (
-                  <span key={id} className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10.5px] font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
-                    <Crown className="h-2.5 w-2.5" /> {chatUserById(id)?.name ?? id}
-                  </span>
-                ))}
-              </div>
-              <Button variant="outline" size="sm" className="h-8 w-full text-[12px]" onClick={() => navigate(`/messages/chats/${g.id}`)}>
-                Open chat
-              </Button>
-            </CardContent>
-          </Card>
+              ))}
+            </div>
+            <Button variant="outline" size="sm" className="h-8 w-full text-[12px]" onClick={() => navigate(`/messages/chats/${g.id}`)}>
+              Open chat
+            </Button>
+          </PremiumCard>
         ))}
       </div>
 

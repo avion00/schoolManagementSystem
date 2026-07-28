@@ -1,5 +1,6 @@
 import { FileText } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { ParentDocument } from "@/data/parentDetailsData";
 
 const STATUS_CFG = {
@@ -17,11 +18,8 @@ const TYPE_COLOR: Record<string, string> = {
 
 export function ParentDocumentsCard({ documents }: { documents: ParentDocument[] }) {
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-[14px] font-semibold">Documents</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2">
+    <DetailCard icon={FileText} title="Documents">
+      <div className="space-y-2">
         {documents.length === 0 && (
           <p className="py-8 text-center text-sm text-muted-foreground">No documents uploaded.</p>
         )}
@@ -47,7 +45,7 @@ export function ParentDocumentsCard({ documents }: { documents: ParentDocument[]
             <span>{documents.filter((d) => d.status === "Verified").length} of {documents.length} verified</span>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </DetailCard>
   );
 }

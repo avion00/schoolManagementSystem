@@ -4,9 +4,11 @@ import {
   Printer, Users, AlertTriangle, RefreshCw,
 } from "lucide-react";
 import { Button }                     from "@/components/ui/button";
-import { Card, CardContent }          from "@/components/ui/card";
+import { DetailCard }                 from "@/components/ui/DetailCard";
+import { PremiumCard }                from "@/components/ui/PremiumCard";
 import { ClassRoutineStatusBadge }    from "@/components/classRoutine/ClassRoutineStatusBadge";
 import { ROUTINES, CONFLICT_IDS }     from "@/data/classRoutineData";
+import type { LucideIcon } from "lucide-react";
 
 const DAY_GRAD: Record<string, string> = {
   Sunday:    "from-violet-600 via-violet-500 to-indigo-500",
@@ -19,23 +21,21 @@ const DAY_GRAD: Record<string, string> = {
 };
 
 function InfoCard({ icon: Icon, label, value, sub }: {
-  icon: React.ElementType; label: string; value: string; sub?: string;
+  icon: LucideIcon; label: string; value: string; sub?: string;
 }) {
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-            <Icon className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div>
-            <p className="text-[11px] text-muted-foreground">{label}</p>
-            <p className="text-[14px] font-semibold text-foreground">{value}</p>
-            {sub && <p className="text-[10px] text-muted-foreground">{sub}</p>}
-          </div>
+    <PremiumCard className="p-4">
+      <div className="flex items-start gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+          <Icon className="h-4 w-4 text-muted-foreground" />
         </div>
-      </CardContent>
-    </Card>
+        <div>
+          <p className="text-[11px] text-muted-foreground">{label}</p>
+          <p className="text-[14px] font-semibold text-foreground">{value}</p>
+          {sub && <p className="text-[10px] text-muted-foreground">{sub}</p>}
+        </div>
+      </div>
+    </PremiumCard>
   );
 }
 
@@ -151,33 +151,28 @@ export function ClassRoutineDetailsPage() {
       </div>
 
       {/* same class + day schedule */}
-      <Card className="border-border/60 shadow-sm">
-        <CardContent className="p-4">
-          <p className="mb-3 text-[13px] font-semibold text-foreground">
-            Full {entry.day} Schedule — {entry.className} Section {entry.section}
+      <DetailCard icon={CalendarDays} title={`Full ${entry.day} Schedule — ${entry.className} Section ${entry.section}`}>
+        {sameClassDay.length === 0 ? (
+          <p className="text-[12px] text-muted-foreground">No other periods found for this day.</p>
+        ) : (
+          <div className="space-y-1.5">
+            {sameClassDay.map((r) => (
+              <div key={r.id} className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-[12px] transition-colors hover:bg-muted/30 ${r.id === entry.id ? "border-primary/40 bg-primary/5" : "border-neutral-200/80 dark:border-neutral-800"}`}>
+                <span className="w-6 text-center font-bold text-muted-foreground">P{r.periodNo}</span>
+                <span className="w-28 shrink-0 text-muted-foreground">{r.startTime}–{r.endTime}</span>
+                <span className="font-medium text-foreground">{r.subject}</span>
+                <span className="text-muted-foreground">{r.teacher}</span>
+                <span className="ml-auto text-muted-foreground">{r.room}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {entry.notes && (
+          <p className="mt-3 text-[11px] text-muted-foreground border-t border-neutral-200/80 pt-2 dark:border-neutral-800">
+            Notes: {entry.notes}
           </p>
-          {sameClassDay.length === 0 ? (
-            <p className="text-[12px] text-muted-foreground">No other periods found for this day.</p>
-          ) : (
-            <div className="space-y-1.5">
-              {sameClassDay.map((r) => (
-                <div key={r.id} className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-[12px] transition-colors hover:bg-muted/30 ${r.id === entry.id ? "border-primary/40 bg-primary/5" : "border-border/60"}`}>
-                  <span className="w-6 text-center font-bold text-muted-foreground">P{r.periodNo}</span>
-                  <span className="w-28 shrink-0 text-muted-foreground">{r.startTime}–{r.endTime}</span>
-                  <span className="font-medium text-foreground">{r.subject}</span>
-                  <span className="text-muted-foreground">{r.teacher}</span>
-                  <span className="ml-auto text-muted-foreground">{r.room}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          {entry.notes && (
-            <p className="mt-3 text-[11px] text-muted-foreground border-t border-border/50 pt-2">
-              Notes: {entry.notes}
-            </p>
-          )}
-        </CardContent>
-      </Card>
+        )}
+      </DetailCard>
     </div>
   );
 }

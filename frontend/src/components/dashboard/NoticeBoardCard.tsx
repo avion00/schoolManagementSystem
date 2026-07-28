@@ -1,18 +1,16 @@
 import { notices } from "@/data/dashboardData";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PremiumCard } from "@/components/ui/PremiumCard";
 import { cn } from "@/lib/utils";
 
 export function NoticeBoardCard() {
   return (
-    <Card className="flex h-full flex-col">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">Notice Board</CardTitle>
-      </CardHeader>
-      <CardContent className="flex-1 space-y-2 overflow-y-auto">
+    <PremiumCard className="flex h-full flex-col p-5">
+      <p className="font-display mb-3 text-base font-semibold tracking-tight text-foreground">Notice Board</p>
+      <div className="flex-1 space-y-2 overflow-y-auto">
         {notices.map((notice) => (
           <div
             key={notice.id}
-            className="space-y-1 rounded-lg border border-border/50 p-3 transition-colors hover:bg-muted/40"
+            className="space-y-1 rounded-lg border border-neutral-200/80 p-3 transition-colors hover:bg-muted/40 dark:border-neutral-800"
           >
             <div className="flex flex-wrap items-center gap-1.5">
               <span
@@ -36,7 +34,7 @@ export function NoticeBoardCard() {
             </p>
           </div>
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </PremiumCard>
   );
 }

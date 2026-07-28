@@ -18,7 +18,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { DocumentChecklist } from "@/components/students/forms/DocumentChecklist";
-import { FormSection } from "@/components/students/forms/FormSection";
+import { FormSection } from "@/components/ui/form-section";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CLASS_OPTIONS, SECTION_OPTIONS, STUDENTS } from "@/data/studentsData";

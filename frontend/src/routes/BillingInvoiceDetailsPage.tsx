@@ -1,11 +1,12 @@
-import { ChevronLeft, Receipt } from "lucide-react";
+import { ChevronLeft, Clock, Receipt } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { InvoicePreview } from "@/components/billing/InvoicePreview";
 import { BillingActivityTimeline } from "@/components/billing/BillingActivityTimeline";
 import { PaymentMethodBadge } from "@/components/billing/PaymentMethodBadge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailCard } from "@/components/ui/DetailCard";
+import { PremiumCard } from "@/components/ui/PremiumCard";
 import { INVOICES, PAYMENTS, type BillingActivity } from "@/data/billingData";
 
 export function BillingInvoiceDetailsPage() {
@@ -15,12 +16,10 @@ export function BillingInvoiceDetailsPage() {
 
   if (!invoice) {
     return (
-      <Card className="rounded-2xl border-border/60 shadow-sm">
-        <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
-          <p className="text-[13px] font-medium text-foreground">Invoice not found</p>
-          <Button variant="outline" size="sm" onClick={() => navigate("/billing/invoices")}>Back to Invoices</Button>
-        </CardContent>
-      </Card>
+      <PremiumCard className="flex flex-col items-center gap-3 py-16 text-center">
+        <p className="text-[13px] font-medium text-foreground">Invoice not found</p>
+        <Button variant="outline" size="sm" onClick={() => navigate("/billing/invoices")}>Back to Invoices</Button>
+      </PremiumCard>
     );
   }
 
@@ -42,13 +41,12 @@ export function BillingInvoiceDetailsPage() {
 
       <InvoicePreview invoice={invoice} />
 
-      <Card className="rounded-2xl border-border/60 shadow-sm print:hidden">
-        <CardHeader className="pb-2"><CardTitle className="text-[13px] font-semibold">Payment History</CardTitle></CardHeader>
-        <CardContent className="pt-0">
+      <div className="print:hidden">
+        <DetailCard icon={Receipt} title="Payment History">
           {paymentHistory.length === 0 ? (
             <p className="text-[12px] text-muted-foreground">No payments recorded yet for this invoice.</p>
           ) : (
-            <div className="divide-y divide-border/50">
+            <div className="divide-y divide-neutral-200/80 dark:divide-neutral-800">
               {paymentHistory.map((p) => (
                 <div key={p.id} className="flex items-center justify-between gap-3 py-2.5">
                   <div className="min-w-0">
@@ -66,13 +64,14 @@ export function BillingInvoiceDetailsPage() {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </DetailCard>
+      </div>
 
-      <Card className="rounded-2xl border-border/60 shadow-sm print:hidden">
-        <CardHeader className="pb-2"><CardTitle className="text-[13px] font-semibold">Activity Timeline</CardTitle></CardHeader>
-        <CardContent className="pt-0"><BillingActivityTimeline activities={activities} /></CardContent>
-      </Card>
+      <div className="print:hidden">
+        <DetailCard icon={Clock} title="Activity Timeline">
+          <BillingActivityTimeline activities={activities} />
+        </DetailCard>
+      </div>
     </div>
   );
 }

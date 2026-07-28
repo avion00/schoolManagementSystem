@@ -4,7 +4,7 @@ import {
   Tooltip as RTooltip, XAxis, YAxis,
 } from "recharts";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PremiumCard } from "@/components/ui/PremiumCard";
 import {
   CATEGORY_OPTIONS, PRIORITY_OPTIONS, ROLE_OPTIONS, STATUS_OPTIONS, type SupportTicket,
 } from "@/data/helpDeskData";
@@ -35,29 +35,25 @@ function HorizontalBarCard({
 }) {
   const height = Math.max(140, data.length * 28);
   return (
-    <Card className="rounded-2xl border-border/60 shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-[13px] font-semibold">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div style={{ height }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16, top: 0, bottom: 0 }} barCategoryGap="22%">
-              <CartesianGrid horizontal={false} stroke="hsl(var(--border))" strokeDasharray="3 3" />
-              <XAxis type="number" hide />
-              <YAxis
-                type="category" dataKey="name" tickLine={false} axisLine={false}
-                width={110} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))"
-              />
-              <RTooltip cursor={{ fill: "hsl(var(--muted))" }} content={<ChartTip />} />
-              <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={14}>
-                {data.map((d) => <Cell key={d.name} fill={d.fill} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <PremiumCard className="p-4">
+      <p className="mb-2 text-[13px] font-semibold text-foreground">{title}</p>
+      <div style={{ height }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16, top: 0, bottom: 0 }} barCategoryGap="22%">
+            <CartesianGrid horizontal={false} stroke="hsl(var(--border))" strokeDasharray="3 3" />
+            <XAxis type="number" hide />
+            <YAxis
+              type="category" dataKey="name" tickLine={false} axisLine={false}
+              width={110} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))"
+            />
+            <RTooltip cursor={{ fill: "hsl(var(--muted))" }} content={<ChartTip />} />
+            <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={14}>
+              {data.map((d) => <Cell key={d.name} fill={d.fill} />)}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </PremiumCard>
   );
 }
 
@@ -65,34 +61,30 @@ function TrendCard({ title, data, dataKey, formatValue }: {
   title: string; data: { day: string; value: number }[]; dataKey: string; formatValue: (v: number) => string;
 }) {
   return (
-    <Card className="rounded-2xl border-border/60 shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-[13px] font-semibold">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="h-44">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ left: -20, right: 8, top: 4, bottom: 0 }}>
-              <CartesianGrid vertical={false} stroke="hsl(var(--border))" strokeDasharray="3 3" />
-              <XAxis dataKey="day" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-              <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" width={40} />
-              <RTooltip
-                cursor={{ stroke: "hsl(var(--muted-foreground))", strokeDasharray: "3 3" }}
-                content={({ active, label, payload }) =>
-                  active && payload?.length ? (
-                    <div className="rounded-lg border bg-popover px-3 py-2 text-xs shadow-md">
-                      <p className="font-semibold">{label}</p>
-                      <p className="text-muted-foreground">{formatValue(payload[0].value as number)}</p>
-                    </div>
-                  ) : null
-                }
-              />
-              <Line type="monotone" dataKey={dataKey} stroke={SERIES_BLUE} strokeWidth={2} dot={{ r: 3, fill: SERIES_BLUE }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <PremiumCard className="p-4">
+      <p className="mb-2 text-[13px] font-semibold text-foreground">{title}</p>
+      <div className="h-44">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data} margin={{ left: -20, right: 8, top: 4, bottom: 0 }}>
+            <CartesianGrid vertical={false} stroke="hsl(var(--border))" strokeDasharray="3 3" />
+            <XAxis dataKey="day" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+            <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" width={40} />
+            <RTooltip
+              cursor={{ stroke: "hsl(var(--muted-foreground))", strokeDasharray: "3 3" }}
+              content={({ active, label, payload }) =>
+                active && payload?.length ? (
+                  <div className="rounded-lg border bg-popover px-3 py-2 text-xs shadow-md">
+                    <p className="font-semibold">{label}</p>
+                    <p className="text-muted-foreground">{formatValue(payload[0].value as number)}</p>
+                  </div>
+                ) : null
+              }
+            />
+            <Line type="monotone" dataKey={dataKey} stroke={SERIES_BLUE} strokeWidth={2} dot={{ r: 3, fill: SERIES_BLUE }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </PremiumCard>
   );
 }
 

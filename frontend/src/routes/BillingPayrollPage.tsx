@@ -4,39 +4,68 @@ import { toast } from "sonner";
 
 import { BillingStatusBadge } from "@/components/billing/BillingStatusBadge";
 import { PayrollForm, type PayrollFormData } from "@/components/billing/forms/PayrollForm";
+import { PayrollSummaryCards } from "@/components/billing/PayrollSummaryCards";
 import { PayrollTable, type PayrollAction } from "@/components/billing/PayrollTable";
-import { Reveal } from "@/components/motion";
+import { PayrollToolbar, type PayrollFilters } from "@/components/billing/PayrollToolbar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { PAYROLL, type Payroll } from "@/data/billingData";
+
+const PAGE_SIZE = 10;
+type SortField = "employeeId" | "staffName" | "role" | "basicSalary" | "netSalary" | "status";
+type SortDir = "asc" | "desc";
+
+const EMPTY_FILTERS: PayrollFilters = { search: "", status: "all" };
 
 export function BillingPayrollPage() {
   const [payroll, setPayroll] = useState<Payroll[]>(PAYROLL);
+  const [filters, setFilters] = useState<PayrollFilters>(EMPTY_FILTERS);
+  const [sortField, setSortField] = useState<SortField>("staffName");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string | number>>(new Set());
   const [generateOpen, setGenerateOpen] = useState(false);
   const [payslip, setPayslip] = useState<Payroll | null>(null);
 
-  const summary = useMemo(() => {
-    const paid = payroll.filter((p) => p.status === "Paid");
-    const pending = payroll.filter((p) => p.status === "Pending");
-    return {
-      totalStaff: payroll.length,
-      payrollThisMonth: payroll.reduce((s, p) => s + p.netSalary, 0),
-      paidSalary: paid.reduce((s, p) => s + p.netSalary, 0),
-      pendingSalary: pending.reduce((s, p) => s + p.netSalary, 0),
-      deductions: payroll.reduce((s, p) => s + p.deduction, 0),
-      bonuses: payroll.reduce((s, p) => s + (p.bonus ?? 0), 0),
-    };
-  }, [payroll]);
+  function updateFilters(next: Partial<PayrollFilters>) {
+    setFilters((f) => ({ ...f, ...next }));
+    setPage(1);
+  }
+  function resetFilters() {
+    setFilters(EMPTY_FILTERS);
+    setPage(1);
+  }
+  function handleSort(field: string) {
+    const f = field as SortField;
+    if (sortField === f) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortField(f); setSortDir("asc"); }
+    setPage(1);
+  }
 
-  const cards = [
-    { label: "Total Staff",        value: String(summary.totalStaff) },
-    { label: "Payroll This Month", value: `$${summary.payrollThisMonth.toLocaleString()}` },
-    { label: "Paid Salary",        value: `$${summary.paidSalary.toLocaleString()}` },
-    { label: "Pending Salary",     value: `$${summary.pendingSalary.toLocaleString()}` },
-    { label: "Deductions",         value: `$${summary.deductions.toLocaleString()}` },
-    { label: "Bonuses",            value: `$${summary.bonuses.toLocaleString()}` },
-  ];
+  const hasActiveFilter = !!filters.search || filters.status !== "all";
+
+  const filtered = useMemo(() => {
+    const q = filters.search.trim().toLowerCase();
+    return payroll.filter((p) => {
+      if (filters.status !== "all" && p.status !== filters.status) return false;
+      if (q && !`${p.employeeId} ${p.staffName} ${p.role}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [payroll, filters]);
+
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const av: string | number = a[sortField] ?? "";
+      const bv: string | number = b[sortField] ?? "";
+      if (typeof av === "number" && typeof bv === "number") return sortDir === "asc" ? av - bv : bv - av;
+      return sortDir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+    });
+  }, [filtered, sortField, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated: Payroll[] = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   function handleAction(row: Payroll, action: PayrollAction) {
     if (action === "view" || action === "payslip" || action === "print-payslip") { setPayslip(row); return; }
@@ -55,24 +84,39 @@ export function BillingPayrollPage() {
 
   return (
     <div className="space-y-4">
-      <Reveal className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {cards.map((c) => (
-          <Card key={c.label} className="rounded-2xl border-border/60 shadow-sm">
-            <CardContent className="p-4">
-              <p className="text-[11px] text-muted-foreground">{c.label}</p>
-              <p className="mt-1 text-[15px] font-semibold tabular-nums text-purple-600 dark:text-purple-400">{c.value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </Reveal>
+      <PageHeader
+        title={
+          <>
+            {sorted.length} staff record{sorted.length !== 1 ? "s" : ""}{" "}
+            {hasActiveFilter && (
+              <span className="text-base font-normal text-muted-foreground">(filtered from {payroll.length} total)</span>
+            )}
+          </>
+        }
+        description="Manage staff salaries and payroll records."
+        actions={
+          <Button size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => setGenerateOpen(true)}>
+            <UserPlus className="h-4 w-4" /> Generate Payroll
+          </Button>
+        }
+      />
 
-      <div className="flex justify-end">
-        <Button size="sm" className="h-8 gap-1.5 text-[12px]" onClick={() => setGenerateOpen(true)}>
-          <UserPlus className="h-3.5 w-3.5" /> Generate Payroll
-        </Button>
-      </div>
+      <PayrollSummaryCards payroll={payroll} />
 
-      <PayrollTable payroll={payroll} onAction={handleAction} />
+      <PayrollToolbar filters={filters} onFiltersChange={updateFilters} hasActiveFilter={hasActiveFilter} onReset={resetFilters} />
+
+      <PayrollTable
+        payroll={paginated}
+        onAction={handleAction}
+        sortField={sortField}
+        sortDir={sortDir}
+        onSort={handleSort}
+        selected={selected}
+        onSelectionChange={setSelected}
+        pagination={{ page: safePage, pageSize: PAGE_SIZE, total: sorted.length, onPage: (p) => { setPage(p); setSelected(new Set()); }, itemLabel: "staff records" }}
+        hasActiveFilter={hasActiveFilter}
+        onResetFilters={resetFilters}
+      />
 
       <Dialog open={generateOpen} onOpenChange={setGenerateOpen}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">

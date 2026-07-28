@@ -43,7 +43,7 @@ export function PermissionMatrix({ roles, permissions }: { roles: Role[]; permis
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-sm">
+    <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-elevated">
       <table className="w-full min-w-[720px] border-collapse text-[12px]">
         <thead className="sticky top-0 z-10 bg-muted/60">
           <tr>

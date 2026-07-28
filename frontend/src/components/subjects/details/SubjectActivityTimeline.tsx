@@ -1,7 +1,7 @@
 import {
   BookOpen, ClipboardList, FileText, Layers, PenLine, Users, RefreshCw, Award,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { SubjectActivity, SubjectActivityType } from "@/data/subjectDetailData";
 
 const TYPE_CFG: Record<SubjectActivityType, { icon: React.ElementType; bg: string; text: string }> = {
@@ -22,40 +22,35 @@ function timeLabel(ts: string) {
 
 export function SubjectActivityTimeline({ activities }: { activities: SubjectActivity[] }) {
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-[14px] font-semibold">Activity Timeline</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-0">
-          {activities.map((act, i) => {
-            const cfg = TYPE_CFG[act.type];
-            const Icon = cfg.icon;
-            const isLast = i === activities.length - 1;
-            return (
-              <div key={act.id} className="flex gap-3">
-                {/* icon + stem */}
-                <div className="flex flex-col items-center">
-                  <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${cfg.bg}`}>
-                    <Icon className={`h-3.5 w-3.5 ${cfg.text}`} />
-                  </div>
-                  {!isLast && <div className="w-px flex-1 bg-border/50 my-1" />}
+    <DetailCard icon={ClipboardList} title="Activity Timeline">
+      <div className="space-y-0">
+        {activities.map((act, i) => {
+          const cfg = TYPE_CFG[act.type];
+          const Icon = cfg.icon;
+          const isLast = i === activities.length - 1;
+          return (
+            <div key={act.id} className="flex gap-3">
+              {/* icon + stem */}
+              <div className="flex flex-col items-center">
+                <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${cfg.bg}`}>
+                  <Icon className={`h-3.5 w-3.5 ${cfg.text}`} />
                 </div>
-                {/* content */}
-                <div className={`pb-4 ${isLast ? "" : ""}`}>
-                  <p className="text-[12.5px] text-foreground leading-snug">{act.message}</p>
-                  <p className="mt-0.5 text-[10.5px] text-muted-foreground">
-                    {act.user} · {timeLabel(act.timestamp)}
-                  </p>
-                </div>
+                {!isLast && <div className="w-px flex-1 bg-border/50 my-1" />}
               </div>
-            );
-          })}
-        </div>
-        {activities.length === 0 && (
-          <p className="py-8 text-center text-[13px] text-muted-foreground">No activity yet.</p>
-        )}
-      </CardContent>
-    </Card>
+              {/* content */}
+              <div className={`pb-4 ${isLast ? "" : ""}`}>
+                <p className="text-[12.5px] text-foreground leading-snug">{act.message}</p>
+                <p className="mt-0.5 text-[10.5px] text-muted-foreground">
+                  {act.user} · {timeLabel(act.timestamp)}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {activities.length === 0 && (
+        <p className="py-8 text-center text-[13px] text-muted-foreground">No activity yet.</p>
+      )}
+    </DetailCard>
   );
 }

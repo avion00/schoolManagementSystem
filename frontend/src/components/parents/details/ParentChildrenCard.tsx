@@ -1,10 +1,10 @@
-import { BookOpen, ClipboardList, Eye, Wallet } from "lucide-react";
+import { BookOpen, ClipboardList, Eye, Users, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { ParentAvatar } from "@/components/parents/ParentAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { LinkedChild } from "@/data/parentsData";
 import type { ChildAcademic } from "@/data/parentDetailsData";
 
@@ -116,43 +116,36 @@ export function ParentChildrenCard({
 }) {
   if (children.length === 0) {
     return (
-      <Card className="border-border/60 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-[14px] font-semibold">Linked Children</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
-              <Eye className="h-5 w-5" />
-            </div>
-            <p className="text-sm font-medium">No linked children yet.</p>
-            <p className="mt-1 text-[12px]">Add children from the Edit Parent form.</p>
+      <DetailCard icon={Users} title="Linked Children">
+        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
+            <Eye className="h-5 w-5" />
           </div>
-        </CardContent>
-      </Card>
+          <p className="text-sm font-medium">No linked children yet.</p>
+          <p className="mt-1 text-[12px]">Add children from the Edit Parent form.</p>
+        </div>
+      </DetailCard>
     );
   }
 
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-[14px] font-semibold">Linked Children</CardTitle>
-          <Badge variant="outline" className="text-[11px]">{children.length} {children.length === 1 ? "child" : "children"}</Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className={`grid gap-4 ${children.length === 1 ? "" : "md:grid-cols-2"}`}>
-          {children.map((child, i) => (
-            <ChildCard
-              key={child.id}
-              child={child}
-              academic={academicData.find((a) => a.studentId === child.studentId)}
-              index={i}
-            />
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+    <DetailCard
+      icon={Users}
+      title="Linked Children"
+      action={
+        <Badge variant="outline" className="text-[11px]">{children.length} {children.length === 1 ? "child" : "children"}</Badge>
+      }
+    >
+      <div className={`grid gap-4 ${children.length === 1 ? "" : "md:grid-cols-2"}`}>
+        {children.map((child, i) => (
+          <ChildCard
+            key={child.id}
+            child={child}
+            academic={academicData.find((a) => a.studentId === child.studentId)}
+            index={i}
+          />
+        ))}
+      </div>
+    </DetailCard>
   );
 }

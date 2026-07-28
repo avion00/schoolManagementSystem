@@ -1,46 +1,45 @@
 import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, BookOpen, CalendarDays, CheckCircle2, Clock, Users } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { Download, Plus, Printer } from "lucide-react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { ExamScheduleSummaryCards } from "@/components/exams/ExamScheduleSummaryCards";
 import { ExamScheduleToolbar, type ScheduleFilters } from "@/components/exams/ExamScheduleToolbar";
 import { ExamScheduleTable } from "@/components/exams/ExamScheduleTable";
-import {
-  EXAM_SCHEDULES, EXAM_CONFLICT_COUNT,
-} from "@/data/examsData";
-import { cn } from "@/lib/utils";
+import { EXAM_SCHEDULES } from "@/data/examsData";
 
-// ── Schedule-level stats ──────────────────────────────────────────────────────
-const SCHED_STATS = {
-  scheduled: EXAM_SCHEDULES.filter((e) => e.status === "scheduled").length,
-  published:  EXAM_SCHEDULES.filter((e) => e.status === "published").length,
-  rooms:      new Set(EXAM_SCHEDULES.map((e) => e.room)).size,
-  invigilators: new Set(EXAM_SCHEDULES.map((e) => e.invigilator)).size,
-  conflicts:  EXAM_CONFLICT_COUNT,
-  completed:  EXAM_SCHEDULES.filter((e) => e.status === "completed").length,
-};
-
-interface MiniCardProps { label: string; value: number | string; icon: React.ReactNode; color: string; highlight?: boolean; }
-function MiniCard({ label, value, icon, color, highlight }: MiniCardProps) {
-  return (
-    <Card className={cn("flex items-center gap-3 p-3.5 shadow-sm", highlight && "ring-2 ring-rose-400/40")}>
-      <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white", color)}>{icon}</div>
-      <div>
-        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
-        <p className="text-lg font-bold text-foreground leading-none mt-0.5">{value}</p>
-      </div>
-    </Card>
-  );
-}
+const PAGE_SIZE = 15;
+type SortField = "examId" | "term" | "subject" | "className" | "date" | "room" | "invigilator" | "fullMarks" | "status";
+type SortDir = "asc" | "desc";
 
 const EMPTY: ScheduleFilters = { search: "", term: "", className: "", section: "", type: "", status: "", year: "" };
 
 export function ExamSchedulePage() {
   const navigate = useNavigate();
-  const [filters, setFilters] = useState<ScheduleFilters>(EMPTY);
 
-  const onChange = useCallback((key: keyof ScheduleFilters, value: string) =>
-    setFilters((f) => ({ ...f, [key]: value })), []);
-  const onClear = useCallback(() => setFilters(EMPTY), []);
+  const [filters, setFilters] = useState<ScheduleFilters>(EMPTY);
+  const [sortField, setSortField] = useState<SortField>("examId");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string | number>>(new Set());
+
+  const onChange = useCallback((key: keyof ScheduleFilters, value: string) => {
+    setFilters((f) => ({ ...f, [key]: value }));
+    setPage(1);
+  }, []);
+  const onClear = useCallback(() => { setFilters(EMPTY); setPage(1); }, []);
+  function handleSort(field: string) {
+    const f = field as SortField;
+    if (sortField === f) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortField(f); setSortDir("asc"); }
+    setPage(1);
+  }
+
+  const hasActiveFilter =
+    !!filters.search || !!filters.term || !!filters.className || !!filters.section ||
+    !!filters.type || !!filters.status || !!filters.year;
 
   const filtered = useMemo(() => {
     const q = filters.search.toLowerCase();
@@ -62,42 +61,65 @@ export function ExamSchedulePage() {
     });
   }, [filters]);
 
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const av: string | number = a[sortField] ?? "";
+      const bv: string | number = b[sortField] ?? "";
+      if (typeof av === "number" && typeof bv === "number") return sortDir === "asc" ? av - bv : bv - av;
+      return sortDir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+    });
+  }, [filtered, sortField, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Exam Schedule</h1>
-          <p className="text-[13px] text-muted-foreground mt-0.5">
-            {EXAM_SCHEDULES.length} exams scheduled · Academic Year 2026/27
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={
+          <>
+            {sorted.length} exam{sorted.length !== 1 ? "s" : ""} scheduled{" "}
+            {hasActiveFilter && (
+              <span className="text-base font-normal text-muted-foreground">(filtered from {EXAM_SCHEDULES.length} total)</span>
+            )}
+          </>
+        }
+        description="Academic Year 2026/27 · Manage exam dates, rooms, and invigilators."
+        actions={
+          <>
+            <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => window.print()}>
+              <Printer className="h-3.5 w-3.5" /> Print
+            </Button>
+            <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => toast.info("Export schedule — coming soon")}>
+              <Download className="h-3.5 w-3.5" /> Export
+            </Button>
+            <Button size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => navigate("/exams/schedule/new")}>
+              <Plus className="h-4 w-4" /> Add Exam
+            </Button>
+          </>
+        }
+      />
 
-      {/* Mini stats */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-        <MiniCard label="Scheduled"    value={SCHED_STATS.scheduled}    icon={<Clock className="h-4 w-4" />}        color="bg-blue-500"    />
-        <MiniCard label="Published"    value={SCHED_STATS.published}    icon={<BookOpen className="h-4 w-4" />}     color="bg-violet-500"  />
-        <MiniCard label="Completed"    value={SCHED_STATS.completed}    icon={<CheckCircle2 className="h-4 w-4" />} color="bg-emerald-500" />
-        <MiniCard label="Exam Rooms"   value={SCHED_STATS.rooms}        icon={<CalendarDays className="h-4 w-4" />} color="bg-teal-500"    />
-        <MiniCard label="Invigilators" value={SCHED_STATS.invigilators} icon={<Users className="h-4 w-4" />}        color="bg-indigo-500"  />
-        <MiniCard label="Conflicts"    value={SCHED_STATS.conflicts}    icon={<AlertTriangle className="h-4 w-4" />}
-          color={SCHED_STATS.conflicts > 0 ? "bg-rose-500" : "bg-slate-400"}
-          highlight={SCHED_STATS.conflicts > 0} />
-      </div>
+      {/* Summary */}
+      <ExamScheduleSummaryCards schedules={EXAM_SCHEDULES} />
 
-      {/* Toolbar + table */}
-      <Card className="p-4 space-y-4">
-        <ExamScheduleToolbar
-          filters={filters}
-          onChange={onChange}
-          onClear={onClear}
-          onAdd={() => navigate("/exams/schedule/new")}
-          onPrint={() => window.print()}
-          resultCount={filtered.length}
-        />
-        <ExamScheduleTable schedules={filtered} />
-      </Card>
+      {/* Filters */}
+      <ExamScheduleToolbar filters={filters} onChange={onChange} onClear={onClear} hasActiveFilter={hasActiveFilter} />
+
+      {/* Table */}
+      <ExamScheduleTable
+        rows={paginated}
+        sortField={sortField}
+        sortDir={sortDir}
+        onSort={handleSort}
+        selected={selected}
+        onSelectionChange={setSelected}
+        pagination={{ page: safePage, pageSize: PAGE_SIZE, total: sorted.length, onPage: (p) => { setPage(p); setSelected(new Set()); }, itemLabel: "exams" }}
+        hasActiveFilter={hasActiveFilter}
+        onResetFilters={onClear}
+      />
     </div>
   );
 }

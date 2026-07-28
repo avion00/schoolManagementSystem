@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { CreditCard } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { PremiumCard } from "@/components/ui/PremiumCard";
+import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { AdmitCardPreview } from "@/components/exams/AdmitCardPreview";
 import {
   EXAM_RESULTS, EXAM_SCHEDULES, EXAM_TERM_OPTIONS, CLASS_OPTIONS, SECTION_OPTIONS,
@@ -13,15 +14,18 @@ const DOB_MAP: Record<number, string> = {
   109: "2014-08-25", 110: "2015-04-10",
 };
 
-function Sel({ label, value, options, onChange, disabled }: {
-  label: string; value: string; options: string[]; onChange: (v: string) => void; disabled?: boolean;
+function Sel({ label, value, options, onChange, disabled, className }: {
+  label: string; value: string; options: string[]; onChange: (v: string) => void; disabled?: boolean; className?: string;
 }) {
   return (
-    <select value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}
-      className="h-9 rounded-md border border-input bg-background px-2.5 text-[12px] text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-40">
-      <option value="">{label}</option>
-      {options.map((o) => <option key={o} value={o}>{o}</option>)}
-    </select>
+    <PremiumSelect
+      value={value}
+      onChange={onChange}
+      placeholder={label}
+      disabled={disabled}
+      className={className}
+      options={options.map((o) => ({ value: o, label: o }))}
+    />
   );
 }
 
@@ -67,7 +71,7 @@ export function AdmitCardsPage() {
       </div>
 
       {/* Selector panel */}
-      <Card className="p-5">
+      <PremiumCard className="p-5">
         <div className="flex items-center gap-2 mb-4">
           <CreditCard className="h-4 w-4 text-muted-foreground" />
           <h2 className="text-[13px] font-semibold text-foreground">Select Parameters</h2>
@@ -75,28 +79,26 @@ export function AdmitCardsPage() {
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-[11px] font-medium text-foreground">Exam Term</label>
-            <Sel label="Select term" value={term} options={EXAM_TERM_OPTIONS as unknown as string[]} onChange={onTermChange} />
+            <Sel label="Select term" value={term} options={EXAM_TERM_OPTIONS as unknown as string[]} onChange={onTermChange} className="w-44" />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-[11px] font-medium text-foreground">Class</label>
-            <Sel label="Select class" value={cls} options={CLASS_OPTIONS} onChange={onClsChange} />
+            <Sel label="Select class" value={cls} options={CLASS_OPTIONS} onChange={onClsChange} className="w-40" />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-[11px] font-medium text-foreground">Section</label>
-            <Sel label="Select section" value={section} options={SECTION_OPTIONS} onChange={onSectionChange} />
+            <Sel label="Select section" value={section} options={SECTION_OPTIONS} onChange={onSectionChange} className="w-32" />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-[11px] font-medium text-foreground">Student</label>
-            <select value={studentId} onChange={(e) => setStudentId(e.target.value)}
+            <PremiumSelect
+              value={studentId}
+              onChange={setStudentId}
               disabled={availableStudents.length === 0}
-              className="h-9 min-w-[200px] rounded-md border border-input bg-background px-2.5 text-[12px] text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-40">
-              <option value="">All / First student</option>
-              {availableStudents.map((r) => (
-                <option key={r.studentId} value={String(r.studentId)}>
-                  {r.roll}. {r.studentName}
-                </option>
-              ))}
-            </select>
+              placeholder="All / First student"
+              className="w-56"
+              options={availableStudents.map((r) => ({ value: String(r.studentId), label: `${r.roll}. ${r.studentName}` }))}
+            />
           </div>
         </div>
 
@@ -105,11 +107,11 @@ export function AdmitCardsPage() {
           <span className="rounded-full bg-muted px-3 py-1">{examSchedules.length} subjects scheduled</span>
           <span className="rounded-full bg-muted px-3 py-1">{availableStudents.length} students</span>
         </div>
-      </Card>
+      </PremiumCard>
 
       {/* Student quick-switch */}
       {availableStudents.length > 1 && (
-        <Card className="p-4">
+        <PremiumCard className="p-4">
           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">
             Click to switch student
           </p>
@@ -120,13 +122,13 @@ export function AdmitCardsPage() {
                 className={`rounded-lg border px-3 py-1.5 text-[12px] transition-colors ${
                   selected?.studentId === r.studentId
                     ? "border-primary bg-primary/10 text-primary font-semibold"
-                    : "border-border/60 hover:bg-muted/30 text-foreground"
+                    : "border-neutral-200/80 hover:bg-muted/30 text-foreground dark:border-neutral-800"
                 }`}>
                 {r.roll}. {r.studentName}
               </button>
             ))}
           </div>
-        </Card>
+        </PremiumCard>
       )}
 
       {/* Admit card */}

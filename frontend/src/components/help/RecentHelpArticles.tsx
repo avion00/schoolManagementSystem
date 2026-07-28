@@ -13,7 +13,7 @@ export function RecentHelpArticles({ query = "" }: { query?: string }) {
     : RECENT_HELP_ARTICLES;
 
   return (
-    <Card className="rounded-2xl border-border/60 shadow-sm">
+    <Card className="rounded-2xl border-border/60 shadow-elevated">
       <CardHeader>
         <CardTitle className="text-base font-semibold">Recent Help Articles</CardTitle>
       </CardHeader>

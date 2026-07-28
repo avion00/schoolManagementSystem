@@ -1,5 +1,6 @@
 import { BookOpen } from "lucide-react";
 
+import { AttentionCard } from "@/components/dashboard/AttentionCard";
 import { EventCalendarCard } from "@/components/dashboard/EventCalendarCard";
 import { FeeCollectionCard } from "@/components/dashboard/FeeCollectionCard";
 import { NoticeBoardCard } from "@/components/dashboard/NoticeBoardCard";
@@ -8,8 +9,8 @@ import { RecentActivitiesCard } from "@/components/dashboard/RecentActivitiesCar
 import { StatCard } from "@/components/dashboard/StatCard";
 import { SummaryCard } from "@/components/dashboard/SummaryCard";
 import { Reveal } from "@/components/motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { stats, summaryCards, upcomingExams } from "@/data/dashboardData";
+import { PremiumCard } from "@/components/ui/PremiumCard";
+import { attentionItems, stats, summaryCards, upcomingExams } from "@/data/dashboardData";
 import { useAuth } from "@/lib/auth";
 import { AccountantDashboardPage } from "@/routes/AccountantDashboardPage";
 
@@ -25,6 +26,18 @@ export function DashboardPage() {
   // Principal / superuser / platform admin → full admin dashboard below
   return (
     <div className="space-y-4">
+      {/* Row 0 – Needs attention now */}
+      <Reveal delay={0}>
+        <h2 className="mb-2.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/70">
+          Needs Attention Now
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {attentionItems.map((item) => (
+            <AttentionCard key={item.id} item={item} />
+          ))}
+        </div>
+      </Reveal>
+
       {/* Row 1 – KPI stat cards */}
       <Reveal delay={60} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
@@ -56,15 +69,13 @@ export function DashboardPage() {
         <QuickActionsCard />
 
         {/* Upcoming exams — inline card, no separate component needed */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Upcoming Exams</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+        <PremiumCard className="p-5">
+          <p className="font-display mb-3 text-base font-semibold tracking-tight text-foreground">Upcoming Exams</p>
+          <div className="space-y-2">
             {upcomingExams.map((exam) => (
               <div
                 key={exam.id}
-                className="flex items-center gap-3 rounded-lg border border-border/50 p-2.5"
+                className="flex items-center gap-3 rounded-lg border border-neutral-200/80 p-2.5 dark:border-neutral-800"
               >
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/10">
                   <BookOpen className="h-4 w-4 text-amber-600 dark:text-amber-400" />
@@ -79,8 +90,8 @@ export function DashboardPage() {
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </PremiumCard>
       </Reveal>
     </div>
   );

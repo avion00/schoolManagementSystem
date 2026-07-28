@@ -4,27 +4,10 @@ import { toast } from "sonner";
 
 import { StudentStatusBadge } from "@/components/students/StudentStatusBadge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { PremiumCard } from "@/components/ui/PremiumCard";
 import type { StudentDetailMock } from "@/data/studentDetailsData";
 import type { Student } from "@/data/studentsData";
 import { cn } from "@/lib/utils";
-
-const PALETTE = [
-  "from-blue-500 to-blue-600",
-  "from-emerald-500 to-emerald-600",
-  "from-violet-500 to-violet-600",
-  "from-amber-500 to-amber-600",
-  "from-rose-500 to-rose-600",
-  "from-sky-500 to-sky-600",
-  "from-pink-500 to-pink-600",
-  "from-teal-500 to-teal-600",
-];
-
-function avatarGradient(name: string) {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
-  return PALETTE[Math.abs(h) % PALETTE.length];
-}
 
 function initials(name: string) {
   const p = name.trim().split(/\s+/);
@@ -40,20 +23,16 @@ export function StudentProfileHero({ student, mock }: Props) {
   const navigate = useNavigate();
 
   return (
-    <Card className="rounded-2xl overflow-hidden shadow-sm">
-      {/* colour strip */}
-      <div className={cn("h-2 w-full bg-gradient-to-r", avatarGradient(student.name))} />
+    <PremiumCard className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-card to-accent/20">
+      {/* Decorative circles */}
+      <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-primary/5" />
+      <div className="pointer-events-none absolute -bottom-12 right-24 h-40 w-40 rounded-full bg-primary/5" />
 
-      <div className="flex flex-col gap-6 p-5 sm:flex-row sm:items-start sm:gap-8 md:p-7">
+      <div className="relative flex flex-col gap-6 p-5 sm:flex-row sm:items-start sm:gap-8 md:p-7">
         {/* ── Avatar + core identity ─────────────────────────────────────── */}
         <div className="flex items-start gap-5">
           {/* Large avatar */}
-          <div
-            className={cn(
-              "flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br text-2xl font-bold text-white shadow-md",
-              avatarGradient(student.name),
-            )}
-          >
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-secondary text-2xl font-bold text-secondary-foreground">
             {initials(student.name)}
           </div>
 
@@ -121,7 +100,7 @@ export function StudentProfileHero({ student, mock }: Props) {
           </Button>
         </div>
       </div>
-    </Card>
+    </PremiumCard>
   );
 }
 

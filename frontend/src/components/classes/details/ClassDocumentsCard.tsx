@@ -1,6 +1,6 @@
 import { Download, Eye, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { ClassDocument } from "@/data/classDetailData";
 
 const STATUS_CFG = {
@@ -16,14 +16,13 @@ const TYPE_COLOR: Record<string, string> = {
 
 export function ClassDocumentsCard({ documents }: { documents: ClassDocument[] }) {
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-[14px] font-semibold">Documents</CardTitle>
-          <span className="text-[11px] text-muted-foreground">{documents.filter(d=>d.status==="Available").length} of {documents.length} available</span>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-2">
+    <DetailCard
+      icon={FileText}
+      title="Documents"
+      action={
+        <span className="text-[11px] text-muted-foreground">{documents.filter(d=>d.status==="Available").length} of {documents.length} available</span>
+      }
+    >
         {documents.map((doc) => (
           <div key={doc.id} className="flex items-center gap-3 rounded-xl border border-border/50 bg-muted/30 px-4 py-3 hover:bg-muted/50 transition-colors">
             <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold ${TYPE_COLOR[doc.type] ?? "bg-muted text-muted-foreground"}`}>
@@ -50,7 +49,6 @@ export function ClassDocumentsCard({ documents }: { documents: ClassDocument[] }
             <p className="text-sm">No documents uploaded yet.</p>
           </div>
         )}
-      </CardContent>
-    </Card>
+    </DetailCard>
   );
 }

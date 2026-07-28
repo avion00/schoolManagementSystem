@@ -1,7 +1,7 @@
 import { Download, Eye, FileText } from "lucide-react";
 import { toast } from "sonner";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailCard } from "@/components/ui/DetailCard";
 import {
   Table,
   TableBody,
@@ -38,17 +38,15 @@ function fmt(d: string) {
 export function StudentDocumentsCard({ documents }: { documents: StudentDocument[] }) {
   return (
     <TooltipProvider delayDuration={300}>
-      <Card className="rounded-2xl shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <FileText className="h-4 w-4 text-primary" />
-            Documents
-            <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
-              {documents.length}
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <DetailCard
+        icon={FileText}
+        title="Documents"
+        action={
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
+            {documents.length}
+          </span>
+        }
+      >
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -105,8 +103,7 @@ export function StudentDocumentsCard({ documents }: { documents: StudentDocument
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+      </DetailCard>
     </TooltipProvider>
   );
 }

@@ -21,10 +21,12 @@ import {
   GraduationCap,
   Home,
   Landmark,
+  Laptop2,
   Layers,
   LayoutDashboard,
   Library,
   LineChart,
+  Lock,
   Medal,
   Megaphone,
   MessageCircleQuestion,
@@ -34,8 +36,10 @@ import {
   PenLine,
   Radio,
   Receipt,
+  ScrollText,
   Settings,
   ShieldAlert,
+  ShieldCheck,
   TrendingDown,
   TrendingUp,
   Trophy,
@@ -49,10 +53,14 @@ import {
 import type { NavGroup } from "@/components/Shell";
 
 /**
- * All role-based sidebar configs in one place. Super Admin / Admin currently
- * share one permission-gated nav (Shell hides any item the signed-in user
- * lacks the permission for), so `adminSidebar` is an alias of
- * `superAdminSidebar` rather than a second hand-maintained copy.
+ * All role-based sidebar configs in one place. Super Admin / Admin / Principal
+ * all share this one permission-gated nav (Shell hides any item the signed-in
+ * user lacks the permission for), so `adminSidebar` is an alias of
+ * `superAdminSidebar` rather than a second hand-maintained copy. Principal
+ * reaches this same nav via App.tsx's role branching (falls through to
+ * AppLayout) and sees the same items as Admin because `hasPermission`
+ * (lib/auth.tsx) treats Principal as a school-admin role for the
+ * "superuser"-gated items below — see `isSchoolAdminRole`.
  */
 
 export const superAdminSidebar: NavGroup[] = [
@@ -136,6 +144,17 @@ export const superAdminSidebar: NavGroup[] = [
           { to: "/messages/settings",   label: "Message Settings", icon: Settings,      perm: "message.settings" },
         ],
       },
+    ],
+  },
+  {
+    label: "Administration",
+    items: [
+      { to: "/settings/my-profile",        label: "Account",             icon: CircleUser, perm: "superuser" },
+      { to: "/settings/roles-permissions", label: "Roles & Permissions", icon: ShieldCheck, perm: "superuser" },
+      { to: "/settings/security",          label: "Security",            icon: Lock,       perm: "superuser" },
+      { to: "/settings/my-sessions",       label: "Sessions",            icon: Laptop2,    perm: "superuser" },
+      { to: "/settings/audit-logs",        label: "Audit Logs",          icon: ScrollText, perm: "superuser" },
+      { to: "/settings",                   label: "Settings",            icon: Settings,   perm: "superuser" },
     ],
   },
 ];

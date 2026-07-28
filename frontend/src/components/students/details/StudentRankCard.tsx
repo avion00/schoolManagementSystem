@@ -1,6 +1,6 @@
 import { TrendingUp } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { RankInfo } from "@/data/studentDetailsData";
 import { cn } from "@/lib/utils";
 
@@ -39,19 +39,16 @@ export function StudentRankCard({ rank }: { rank: RankInfo }) {
     "bg-rose-500/10 text-rose-700 dark:text-rose-400";
 
   return (
-    <Card className="rounded-2xl shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center justify-between text-sm font-semibold">
-          <span className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-primary" />
-            Rank & Performance
-          </span>
-          <span className={cn("rounded-full px-2.5 py-0.5 text-[11px] font-bold", perfColor)}>
-            {rank.overallPerformance}
-          </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-5">
+    <DetailCard
+      icon={TrendingUp}
+      title="Rank & Performance"
+      action={
+        <span className={cn("rounded-full px-2.5 py-0.5 text-[11px] font-bold", perfColor)}>
+          {rank.overallPerformance}
+        </span>
+      }
+    >
+      <div className="space-y-5">
         {/* Rank cards */}
         <div className="grid grid-cols-2 gap-3">
           <RankBadge rank={rank.classRank}   total={rank.classTotalStudents}   label="Class Rank" />
@@ -83,7 +80,7 @@ export function StudentRankCard({ rank }: { rank: RankInfo }) {
           <p className="text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">Needs Improvement</p>
           <TagList items={rank.improvements} color="bg-amber-500/10 text-amber-700 dark:text-amber-400" />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </DetailCard>
   );
 }

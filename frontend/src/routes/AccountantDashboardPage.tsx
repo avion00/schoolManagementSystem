@@ -3,13 +3,7 @@ import { AlertCircle, CheckCircle2, CreditCard, DollarSign, FileText, Receipt } 
 import { PopNumber, Reveal, TiltCard } from "@/components/motion";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { PremiumCard } from "@/components/ui/PremiumCard";
 import {
   Table,
   TableBody,
@@ -134,7 +128,7 @@ export function AccountantDashboardPage() {
       {/* Greeting */}
       <Reveal>
         <div className="pb-1">
-          <p className="text-base font-semibold tracking-tight text-foreground">
+          <p className="font-display text-base font-semibold tracking-tight text-foreground">
             Good morning, {firstName}
           </p>
           <p className="mt-0.5 text-sm text-muted-foreground">
@@ -149,25 +143,23 @@ export function AccountantDashboardPage() {
           const Icon = stat.icon;
           return (
             <TiltCard key={stat.id} className="h-full">
-              <Card className="h-full transition-shadow hover:shadow-md">
-                <CardContent className="flex flex-col gap-3 p-5">
-                  <span
-                    className={cn(
-                      "flex h-11 w-11 items-center justify-center rounded-xl",
-                      stat.iconCls,
-                    )}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <div>
-                    <p className="text-2xl font-bold tabular-nums text-foreground lg:text-3xl">
-                      <PopNumber value={stat.value} />
-                    </p>
-                    <p className="mt-0.5 text-sm font-medium text-foreground">{stat.label}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{stat.sub}</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <PremiumCard hoverable className="flex h-full flex-col gap-3 p-5">
+                <span
+                  className={cn(
+                    "flex h-11 w-11 items-center justify-center rounded-xl",
+                    stat.iconCls,
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="font-display text-2xl font-bold tabular-nums tracking-tight text-foreground lg:text-3xl">
+                    <PopNumber value={stat.value} />
+                  </p>
+                  <p className="mt-0.5 text-sm font-medium text-foreground">{stat.label}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{stat.sub}</p>
+                </div>
+              </PremiumCard>
             </TiltCard>
           );
         })}
@@ -175,12 +167,12 @@ export function AccountantDashboardPage() {
 
       {/* Row 2 — collection chart + fee health */}
       <Reveal delay={120} className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Monthly Collections vs Pending</CardTitle>
-            <CardDescription>Jan – Jul 2026 overview.</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <PremiumCard className="p-5 lg:col-span-2">
+          <div className="mb-4">
+            <p className="font-display text-base font-semibold tracking-tight text-foreground">Monthly Collections vs Pending</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">Jan – Jul 2026 overview.</p>
+          </div>
+          <div>
             <div className="h-56 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
@@ -239,21 +231,21 @@ export function AccountantDashboardPage() {
                 <span className="text-muted-foreground">Pending</span>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </PremiumCard>
 
         {/* Fee health */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Fee Health</CardTitle>
-            <CardDescription>Outstanding balance summary.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center gap-3 py-4 text-center">
+        <PremiumCard className="p-5">
+          <div className="mb-2">
+            <p className="font-display text-base font-semibold tracking-tight text-foreground">Fee Health</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">Outstanding balance summary.</p>
+          </div>
+          <div className="flex flex-col items-center gap-3 py-4 text-center">
             <span className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/10">
               <AlertCircle className="h-7 w-7 text-amber-600 dark:text-amber-400" />
             </span>
             <div>
-              <p className="text-3xl font-bold tabular-nums text-foreground">
+              <p className="font-display text-3xl font-bold tabular-nums tracking-tight text-foreground">
                 <PopNumber value="$17,600" />
               </p>
               <p className="mt-0.5 text-sm text-muted-foreground">Outstanding dues</p>
@@ -273,18 +265,18 @@ export function AccountantDashboardPage() {
             <Button variant="outline" size="sm" className="w-full">
               Review overdue invoices
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </PremiumCard>
       </Reveal>
 
       {/* Row 3 — recent payments + overdue students */}
       <Reveal delay={180} className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Recent Payments</CardTitle>
-            <CardDescription>Latest fee transactions.</CardDescription>
-          </CardHeader>
-          <CardContent className="px-0">
+        <PremiumCard className="overflow-hidden">
+          <div className="px-5 pb-2 pt-5">
+            <p className="font-display text-base font-semibold tracking-tight text-foreground">Recent Payments</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">Latest fee transactions.</p>
+          </div>
+          <div>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -309,19 +301,19 @@ export function AccountantDashboardPage() {
                 ))}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
+          </div>
+        </PremiumCard>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Overdue Students</CardTitle>
-            <CardDescription>Most urgent outstanding balances.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
+        <PremiumCard className="p-5">
+          <div className="mb-3">
+            <p className="font-display text-base font-semibold tracking-tight text-foreground">Overdue Students</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">Most urgent outstanding balances.</p>
+          </div>
+          <div className="space-y-2">
             {overdueStudents.map((s) => (
               <div
                 key={s.student}
-                className="flex items-center gap-3 rounded-lg border border-border/50 p-2.5"
+                className="flex items-center gap-3 rounded-lg border border-neutral-200/80 p-2.5 dark:border-neutral-800"
               >
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rose-500/10">
                   <FileText className="h-4 w-4 text-rose-600 dark:text-rose-400" />
@@ -346,8 +338,8 @@ export function AccountantDashboardPage() {
                 56 students are fully paid-up this month.
               </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </PremiumCard>
       </Reveal>
     </div>
   );

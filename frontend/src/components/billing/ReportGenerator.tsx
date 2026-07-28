@@ -2,16 +2,70 @@ import { useMemo, useState } from "react";
 import {
   Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis,
 } from "recharts";
-import { Download, Printer } from "lucide-react";
+import {
+  Download, Printer, DollarSign, Receipt, TrendingUp, TrendingDown, Users, Wallet,
+  ListChecks, Clock, GraduationCap, CheckCircle2, Building2, ShoppingCart, RotateCcw,
+  Banknote, BarChart3, type LucideIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 
+import { CATEGORICAL_COLORS, STATUS_COLORS } from "@/components/charts/palette";
+import { Reveal } from "@/components/motion";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { KPITrendCard, type KPITrend } from "@/components/ui/KPITrendCard";
+import { METRIC_TONES } from "@/components/ui/MetricCard";
+import { PremiumCard } from "@/components/ui/PremiumCard";
+import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import {
   CLASS_OPTIONS, EXPENSES, FEE_CATEGORY_OPTIONS, INVOICE_STATUS_OPTIONS,
   PAYMENTS, PAYROLL, REPORT_TYPES, STUDENT_FEES, VENDORS,
   type ReportTypeDef,
 } from "@/data/billingData";
+
+interface SummaryMeta {
+  icon: LucideIcon;
+  tone: string;
+  sparkColor: string;
+  sparkData: Record<string, number>[];
+  trend: KPITrend;
+}
+
+const moneyUp = (base: number): Record<string, number>[] => [0.88, 0.91, 0.94, 0.96, 0.98, 0.99, 1].map((f) => ({ value: Math.round(base * f) }));
+const moneyDown = (base: number): Record<string, number>[] => [1.12, 1.09, 1.06, 1.04, 1.02, 1.01, 1].map((f) => ({ value: Math.round(base * f) }));
+const countUp = (base: number): Record<string, number>[] => [0.8, 0.85, 0.88, 0.92, 0.95, 0.98, 1].map((f) => ({ value: Math.max(0, Math.round(base * f)) }));
+const countDown = (base: number): Record<string, number>[] => [1.2, 1.15, 1.1, 1.06, 1.03, 1.01, 1].map((f) => ({ value: Math.max(0, Math.round(base * f)) }));
+
+/** Icon/tone/mock-trend lookup for the report-summary tiles — keyed by the exact
+ * label strings `buildReport()` emits across its 9 report types. A generic
+ * fallback covers any label not explicitly listed. */
+const SUMMARY_META: Record<string, SummaryMeta> = {
+  "Total Collected": { icon: DollarSign, tone: METRIC_TONES.green, sparkColor: STATUS_COLORS.good, sparkData: moneyUp(180000), trend: { value: "+6.2%", up: true, compareLabel: "vs prior period" } },
+  "Payments": { icon: Receipt, tone: METRIC_TONES.blue, sparkColor: CATEGORICAL_COLORS[0], sparkData: countUp(120), trend: { value: "+4.5%", up: true, compareLabel: "vs prior period" } },
+  "Avg. Payment": { icon: TrendingUp, tone: METRIC_TONES.purple, sparkColor: CATEGORICAL_COLORS[4], sparkData: moneyUp(1500), trend: { value: "+1.8%", up: true, compareLabel: "vs prior period" } },
+  "Students with Dues": { icon: Users, tone: METRIC_TONES.amber, sparkColor: STATUS_COLORS.warning, sparkData: countDown(45), trend: { value: "-3.0%", up: false, compareLabel: "vs prior period" } },
+  "Total Outstanding": { icon: Wallet, tone: METRIC_TONES.red, sparkColor: STATUS_COLORS.critical, sparkData: moneyDown(85000), trend: { value: "-2.4%", up: false, compareLabel: "vs prior period" } },
+  "Total Expenses": { icon: TrendingDown, tone: METRIC_TONES.red, sparkColor: STATUS_COLORS.critical, sparkData: moneyUp(372000), trend: { value: "+5.6%", up: true, compareLabel: "vs prior period" } },
+  "Entries": { icon: ListChecks, tone: METRIC_TONES.blue, sparkColor: CATEGORICAL_COLORS[0], sparkData: countUp(35), trend: { value: "+3.1%", up: true, compareLabel: "vs prior period" } },
+  "Total Payroll": { icon: Wallet, tone: METRIC_TONES.purple, sparkColor: CATEGORICAL_COLORS[4], sparkData: moneyUp(604000), trend: { value: "+3.8%", up: true, compareLabel: "vs prior period" } },
+  "Staff": { icon: Users, tone: METRIC_TONES.blue, sparkColor: CATEGORICAL_COLORS[0], sparkData: countUp(15), trend: { value: "+1.0%", up: true, compareLabel: "vs prior period" } },
+  "Pending": { icon: Clock, tone: METRIC_TONES.amber, sparkColor: STATUS_COLORS.warning, sparkData: countDown(6), trend: { value: "-4.5%", up: false, compareLabel: "vs prior period" } },
+  "Income": { icon: TrendingUp, tone: METRIC_TONES.green, sparkColor: STATUS_COLORS.good, sparkData: moneyUp(210000), trend: { value: "+6.2%", up: true, compareLabel: "vs prior period" } },
+  "Expenses": { icon: TrendingDown, tone: METRIC_TONES.red, sparkColor: STATUS_COLORS.critical, sparkData: moneyUp(372000), trend: { value: "+5.6%", up: true, compareLabel: "vs prior period" } },
+  "Net Profit": { icon: Banknote, tone: METRIC_TONES.green, sparkColor: STATUS_COLORS.good, sparkData: moneyUp(60000), trend: { value: "+2.9%", up: true, compareLabel: "vs prior period" } },
+  "Students": { icon: GraduationCap, tone: METRIC_TONES.blue, sparkColor: CATEGORICAL_COLORS[0], sparkData: countUp(320), trend: { value: "+2.3%", up: true, compareLabel: "vs prior period" } },
+  "Total Fee": { icon: Wallet, tone: METRIC_TONES.purple, sparkColor: CATEGORICAL_COLORS[4], sparkData: moneyUp(950000), trend: { value: "+2.0%", up: true, compareLabel: "vs prior period" } },
+  "Total Paid": { icon: CheckCircle2, tone: METRIC_TONES.green, sparkColor: STATUS_COLORS.good, sparkData: moneyUp(720000), trend: { value: "+4.1%", up: true, compareLabel: "vs prior period" } },
+  "Vendors": { icon: Building2, tone: METRIC_TONES.cyan, sparkColor: CATEGORICAL_COLORS[5], sparkData: countUp(10), trend: { value: "+2.0%", up: true, compareLabel: "vs prior period" } },
+  "Total Purchases": { icon: ShoppingCart, tone: METRIC_TONES.purple, sparkColor: CATEGORICAL_COLORS[4], sparkData: moneyUp(1954000), trend: { value: "+6.4%", up: true, compareLabel: "vs prior period" } },
+  "Outstanding": { icon: Clock, tone: METRIC_TONES.amber, sparkColor: STATUS_COLORS.warning, sparkData: moneyDown(96000), trend: { value: "-3.6%", up: false, compareLabel: "vs prior period" } },
+  "Refunds": { icon: RotateCcw, tone: METRIC_TONES.red, sparkColor: STATUS_COLORS.critical, sparkData: countDown(5), trend: { value: "-1.0%", up: false, compareLabel: "vs prior period" } },
+  "Total Refunded": { icon: Banknote, tone: METRIC_TONES.red, sparkColor: STATUS_COLORS.critical, sparkData: moneyDown(8000), trend: { value: "-2.2%", up: false, compareLabel: "vs prior period" } },
+};
+
+const DEFAULT_SUMMARY_META: SummaryMeta = {
+  icon: BarChart3, tone: METRIC_TONES.neutral, sparkColor: CATEGORICAL_COLORS[0],
+  sparkData: countUp(10), trend: { value: "0.0%", up: true, compareLabel: "vs prior period" },
+};
 
 type ReportRow = Record<string, string | number>;
 interface ReportResult {
@@ -21,7 +75,7 @@ interface ReportResult {
   chart?: { name: string; value: number }[];
 }
 
-const selectClass = "h-9 rounded-lg border border-input bg-background px-2.5 text-[12px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring";
+const dateInputClass = "h-9 rounded-lg border border-input bg-background px-2.5 text-[12px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring";
 
 function inRange(dateStr: string, from: string, to: string) {
   if (from && dateStr < from) return false;
@@ -185,99 +239,106 @@ export function ReportGenerator() {
 
   return (
     <div className="space-y-4">
-      <Card className="rounded-2xl border-border/60 shadow-sm">
-        <CardContent className="space-y-3 p-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            <select value={reportType} onChange={(e) => setReportType(e.target.value)} className={selectClass}>
-              {REPORT_TYPES.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
-            </select>
-            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={selectClass} title="From date" />
-            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={selectClass} title="To date" />
-            <select value={className} onChange={(e) => setClassName(e.target.value)} className={selectClass}>
-              <option value="">All Classes</option>
-              {CLASS_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <select value={feeType} onChange={(e) => setFeeType(e.target.value)} className={selectClass}>
-              <option value="">All Fee Types</option>
-              {FEE_CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <select value={status} onChange={(e) => setStatus(e.target.value)} className={selectClass}>
-              <option value="">Any Status</option>
-              {INVOICE_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          <p className="text-[11.5px] text-muted-foreground">{activeType.description}</p>
-          <div className="flex justify-end">
-            <Button size="sm" className="h-8 text-[12px]" onClick={generate}>Generate Report</Button>
-          </div>
-        </CardContent>
-      </Card>
+      <PremiumCard className="space-y-3 p-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <PremiumSelect
+            value={reportType}
+            onChange={setReportType}
+            options={REPORT_TYPES.map((r) => ({ value: r.id, label: r.label }))}
+          />
+          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={dateInputClass} title="From date" />
+          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={dateInputClass} title="To date" />
+          <PremiumSelect
+            value={className}
+            onChange={setClassName}
+            options={[{ value: "", label: "All Classes" }, ...CLASS_OPTIONS.map((c) => ({ value: c, label: c }))]}
+          />
+          <PremiumSelect
+            value={feeType}
+            onChange={setFeeType}
+            options={[{ value: "", label: "All Fee Types" }, ...FEE_CATEGORY_OPTIONS.map((c) => ({ value: c, label: c }))]}
+          />
+          <PremiumSelect
+            value={status}
+            onChange={setStatus}
+            options={[{ value: "", label: "Any Status" }, ...INVOICE_STATUS_OPTIONS.map((s) => ({ value: s, label: s }))]}
+          />
+        </div>
+        <p className="text-[11.5px] text-muted-foreground">{activeType.description}</p>
+        <div className="flex justify-end">
+          <Button size="sm" className="h-8 text-[12px]" onClick={generate}>Generate Report</Button>
+        </div>
+      </PremiumCard>
 
       {result && (
         <div className="t-content-in space-y-4">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {result.summary.map((s) => (
-              <Card key={s.label} className="rounded-2xl border-border/60 shadow-sm">
-                <CardContent className="p-4">
-                  <p className="text-[11px] text-muted-foreground">{s.label}</p>
-                  <p className="mt-0.5 text-lg font-semibold text-foreground">{s.value}</p>
-                </CardContent>
-              </Card>
-            ))}
+            {result.summary.map((s, i) => {
+              const meta = SUMMARY_META[s.label] ?? DEFAULT_SUMMARY_META;
+              return (
+                <Reveal key={s.label} delay={i * 40}>
+                  <KPITrendCard
+                    label={s.label}
+                    value={s.value}
+                    icon={meta.icon}
+                    iconCls={meta.tone}
+                    trend={meta.trend}
+                    sparklineData={meta.sparkData}
+                    sparklineColor={meta.sparkColor}
+                  />
+                </Reveal>
+              );
+            })}
           </div>
 
           {chartData.length > 0 && (
-            <Card className="rounded-2xl border-border/60 shadow-sm">
-              <CardContent className="p-4">
-                <div className="h-56 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ left: -12, right: 4, top: 4 }}>
-                      <CartesianGrid vertical={false} stroke="hsl(var(--border))" strokeDasharray="3 3" />
-                      <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                      <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" width={42} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
-                      <RTooltip cursor={{ fill: "hsl(var(--muted))" }} />
-                      <Bar dataKey="value" fill="#2a78d6" radius={[4, 4, 0, 0]} maxBarSize={26} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
+            <PremiumCard className="p-4">
+              <div className="h-56 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ left: -12, right: 4, top: 4 }}>
+                    <CartesianGrid vertical={false} stroke="hsl(var(--border))" strokeDasharray="3 3" />
+                    <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                    <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" width={42} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
+                    <RTooltip cursor={{ fill: "hsl(var(--muted))" }} />
+                    <Bar dataKey="value" fill="#2a78d6" radius={[4, 4, 0, 0]} maxBarSize={26} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </PremiumCard>
           )}
 
-          <Card className="rounded-2xl border-border/60 shadow-sm">
-            <CardContent className="p-0">
-              <div className="flex items-center justify-between border-b border-border/50 p-3">
-                <p className="text-[12.5px] font-semibold text-foreground">{activeType.label}</p>
-                <div className="flex gap-2 print:hidden">
-                  <Button variant="outline" size="sm" className="h-7 gap-1.5 text-[11.5px]" onClick={() => toast.success("Report exported (CSV).")}>
-                    <Download className="h-3.5 w-3.5" /> Export
-                  </Button>
-                  <Button variant="outline" size="sm" className="h-7 gap-1.5 text-[11.5px]" onClick={() => window.print()}>
-                    <Printer className="h-3.5 w-3.5" /> Print
-                  </Button>
-                </div>
+          <PremiumCard>
+            <div className="flex items-center justify-between border-b border-border/50 p-3">
+              <p className="text-[12.5px] font-semibold text-foreground">{activeType.label}</p>
+              <div className="flex gap-2 print:hidden">
+                <Button variant="outline" size="sm" className="h-7 gap-1.5 text-[11.5px]" onClick={() => toast.success("Report exported (CSV).")}>
+                  <Download className="h-3.5 w-3.5" /> Export
+                </Button>
+                <Button variant="outline" size="sm" className="h-7 gap-1.5 text-[11.5px]" onClick={() => window.print()}>
+                  <Printer className="h-3.5 w-3.5" /> Print
+                </Button>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-[12px]">
-                  <thead className="bg-muted/40">
-                    <tr>
-                      {result.columns.map((c) => <th key={c.key} className="px-4 py-2 text-left font-medium text-muted-foreground">{c.label}</th>)}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[12px]">
+                <thead className="bg-muted/40">
+                  <tr>
+                    {result.columns.map((c) => <th key={c.key} className="px-4 py-2 text-left font-medium text-muted-foreground">{c.label}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.rows.map((row, i) => (
+                    <tr key={i} className="border-t border-border/40">
+                      {result.columns.map((c) => <td key={c.key} className="px-4 py-2 text-foreground">{row[c.key]}</td>)}
                     </tr>
-                  </thead>
-                  <tbody>
-                    {result.rows.map((row, i) => (
-                      <tr key={i} className="border-t border-border/40">
-                        {result.columns.map((c) => <td key={c.key} className="px-4 py-2 text-foreground">{row[c.key]}</td>)}
-                      </tr>
-                    ))}
-                    {result.rows.length === 0 && (
-                      <tr><td colSpan={result.columns.length} className="px-4 py-8 text-center text-muted-foreground">No data for the selected filters.</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                  {result.rows.length === 0 && (
+                    <tr><td colSpan={result.columns.length} className="px-4 py-8 text-center text-muted-foreground">No data for the selected filters.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </PremiumCard>
         </div>
       )}
     </div>

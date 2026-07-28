@@ -7,7 +7,7 @@ import {
   Users,
 } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { ActivityItem } from "@/data/studentDetailsData";
 import { cn } from "@/lib/utils";
 
@@ -35,47 +35,39 @@ function fmt(d: string) {
 
 export function StudentActivityTimeline({ activities }: { activities: ActivityItem[] }) {
   return (
-    <Card className="rounded-2xl shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-          <CheckCircle className="h-4 w-4 text-primary" />
-          Recent Activity
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="relative space-y-4">
-          {/* Connector rail */}
-          <div className="absolute left-4 top-8 h-[calc(100%-44px)] w-px bg-border/50" aria-hidden="true" />
+    <DetailCard icon={CheckCircle} title="Recent Activity">
+      <div className="relative space-y-4">
+        {/* Connector rail */}
+        <div className="absolute left-4 top-8 h-[calc(100%-44px)] w-px bg-border/50" aria-hidden="true" />
 
-          {activities.map((a) => {
-            const Icon = ICON_MAP[a.icon] ?? CheckCircle;
-            const colorCls = COLOR_MAP[a.color] ?? "bg-muted text-muted-foreground";
-            return (
-              <div key={a.id} className="relative flex gap-3.5">
-                {/* Icon circle */}
-                <div
-                  className={cn(
-                    "relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-background",
-                    colorCls,
-                  )}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                </div>
-
-                {/* Content */}
-                <div className="min-w-0 flex-1 pb-1">
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-2">
-                    <p className="text-sm font-semibold text-foreground">{a.title}</p>
-                    <span className="shrink-0 text-[11px] text-muted-foreground">{a.time}</span>
-                  </div>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{a.description}</p>
-                  <p className="mt-1 text-[11px] font-medium text-muted-foreground/60">{fmt(a.date)}</p>
-                </div>
+        {activities.map((a) => {
+          const Icon = ICON_MAP[a.icon] ?? CheckCircle;
+          const colorCls = COLOR_MAP[a.color] ?? "bg-muted text-muted-foreground";
+          return (
+            <div key={a.id} className="relative flex gap-3.5">
+              {/* Icon circle */}
+              <div
+                className={cn(
+                  "relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-background",
+                  colorCls,
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" />
               </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+
+              {/* Content */}
+              <div className="min-w-0 flex-1 pb-1">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-2">
+                  <p className="text-sm font-semibold text-foreground">{a.title}</p>
+                  <span className="shrink-0 text-[11px] text-muted-foreground">{a.time}</span>
+                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground">{a.description}</p>
+                <p className="mt-1 text-[11px] font-medium text-muted-foreground/60">{fmt(a.date)}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </DetailCard>
   );
 }

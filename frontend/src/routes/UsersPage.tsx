@@ -6,14 +6,23 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
-import { KeyRound, Loader2, Plus, Search, Settings2, ShieldMinus, X } from "lucide-react";
+import {
+  KeyRound,
+  Loader2,
+  Plus,
+  Search,
+  ShieldCheck,
+  ShieldMinus,
+  Users as UsersIcon,
+  UserCheck,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { SuccessCheck } from "@/components/motion";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -24,16 +33,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MetricCard } from "@/components/ui/MetricCard";
+import { PremiumDataTable, type PremiumDataTableColumn } from "@/components/ui/PremiumDataTable";
+import { PremiumSelect } from "@/components/ui/PremiumSelect";
+import { RowActionMenu } from "@/components/ui/RowActionMenu";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   type AdminUser,
   activateUser,
@@ -48,8 +52,6 @@ import {
 } from "@/lib/admin";
 
 const PAGE_SIZE = 25;
-const selectClass =
-  "flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 function initialsOf(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -71,8 +73,6 @@ export function UsersPage() {
   });
   const rolesQuery = useQuery({ queryKey: ["roles"], queryFn: listRoles });
 
-  const totalPages = data ? Math.max(1, Math.ceil(data.count / PAGE_SIZE)) : 1;
-
   // Role/status filters apply to the fetched page — the list endpoint only supports
   // server-side search, so these narrow what's currently on screen.
   const visibleUsers = (data?.results ?? []).filter((u) => {
@@ -81,6 +81,73 @@ export function UsersPage() {
     if (statusFilter === "inactive" && u.is_active) return false;
     return true;
   });
+
+  const activeOnPage = (data?.results ?? []).filter((u) => u.is_active).length;
+  const rolesAssignedOnPage = (data?.results ?? []).filter((u) => u.roles.length > 0).length;
+
+  const columns: PremiumDataTableColumn<AdminUser>[] = [
+    {
+      key: "user",
+      header: "User",
+      render: (u) => (
+        <div className="flex items-center gap-3">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback>{initialsOf(u.full_name || u.email)}</AvatarFallback>
+          </Avatar>
+          <div className="leading-tight">
+            <p className="text-sm font-medium">{u.full_name || "—"}</p>
+            <p className="text-xs text-muted-foreground">{u.email}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "roles",
+      header: "Role(s)",
+      render: (u) => (
+        <div className="flex flex-wrap gap-1">
+          {u.roles.length ? (
+            u.roles.map((r) => <Badge key={r}>{r}</Badge>)
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "department",
+      header: "Department",
+      render: () => <span className="text-muted-foreground">—</span>,
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (u) => (
+        <Badge variant={u.is_active ? "success" : "secondary"}>
+          {u.is_active ? "active" : "inactive"}
+        </Badge>
+      ),
+    },
+    {
+      key: "last_login",
+      header: "Last Login",
+      render: () => <span className="text-muted-foreground">—</span>,
+    },
+    {
+      key: "twofa",
+      header: "2FA",
+      render: () => <span className="text-muted-foreground">Not set up</span>,
+    },
+    {
+      key: "created_at",
+      header: "Created At",
+      render: (u) => (
+        <span className="text-muted-foreground">
+          {u.created_at ? new Date(u.created_at).toLocaleDateString() : "—"}
+        </span>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-4">
@@ -92,6 +159,12 @@ export function UsersPage() {
           <Plus className="h-4 w-4" />
           New user
         </Button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <MetricCard label="Total users" value={data?.count ?? 0} icon={UsersIcon} />
+        <MetricCard label="Active (this page)" value={activeOnPage} icon={UserCheck} />
+        <MetricCard label="With roles (this page)" value={rolesAssignedOnPage} icon={ShieldCheck} />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -120,105 +193,45 @@ export function UsersPage() {
             </button>
           )}
         </div>
-        <select
+        <PremiumSelect
           value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <option value="all">All roles</option>
-          {rolesQuery.data?.map((r) => <option key={r.id} value={r.name}>{r.name}</option>)}
-        </select>
-        <select
+          onChange={setRoleFilter}
+          className="w-44"
+          options={[
+            { value: "all", label: "All roles" },
+            ...(rolesQuery.data?.map((r) => ({ value: r.name, label: r.name })) ?? []),
+          ]}
+        />
+        <PremiumSelect
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <option value="all">All statuses</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
+          onChange={setStatusFilter}
+          className="w-40"
+          options={[
+            { value: "all", label: "All statuses" },
+            { value: "active", label: "Active" },
+            { value: "inactive", label: "Inactive" },
+          ]}
+        />
       </div>
 
-      <Card className="overflow-x-auto rounded-2xl border-border/60 shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Role(s)</TableHead>
-              <TableHead>Department</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Last Login</TableHead>
-              <TableHead>2FA</TableHead>
-              <TableHead>Created At</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading &&
-              [0, 1, 2, 3].map((i) => (
-                <TableRow key={i}>
-                  <TableCell colSpan={8}><Skeleton className="h-8 w-full" /></TableCell>
-                </TableRow>
-              ))}
-            {!isLoading && visibleUsers.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
-                  No users match the current filters.
-                </TableCell>
-              </TableRow>
-            )}
-            {visibleUsers.map((u) => (
-              <TableRow key={u.id}>
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>{initialsOf(u.full_name || u.email)}</AvatarFallback>
-                    </Avatar>
-                    <div className="leading-tight">
-                      <p className="text-sm font-medium">{u.full_name || "—"}</p>
-                      <p className="text-xs text-muted-foreground">{u.email}</p>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {u.roles.length ? (
-                      u.roles.map((r) => <Badge key={r}>{r}</Badge>)
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="text-muted-foreground">—</TableCell>
-                <TableCell>
-                  <Badge variant={u.is_active ? "success" : "secondary"}>
-                    {u.is_active ? "active" : "inactive"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-muted-foreground">—</TableCell>
-                <TableCell className="text-muted-foreground">Not set up</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {u.created_at ? new Date(u.created_at).toLocaleDateString() : "—"}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button variant="outline" size="sm" onClick={() => setManaging(u)}>
-                    <Settings2 className="h-4 w-4" />
-                    Manage
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
-
-      {data && data.count > PAGE_SIZE && (
-        <div className="mt-4 flex items-center justify-end gap-2">
-          <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
-          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-          <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
-        </div>
-      )}
+      <PremiumDataTable
+        columns={columns}
+        rows={visibleUsers}
+        rowKey={(u) => u.id}
+        loading={isLoading}
+        emptyTitle="No users found"
+        emptyDescription="No users match the current filters."
+        rowActions={(u) => (
+          <RowActionMenu entityLabel="user" onEdit={() => setManaging(u)} />
+        )}
+        pagination={{
+          page,
+          pageSize: PAGE_SIZE,
+          total: data?.count ?? 0,
+          onPage: setPage,
+          itemLabel: "users",
+        }}
+      />
 
       <CreateUserDialog open={creating} onOpenChange={setCreating} />
       {managing && <ManageUserDialog user={managing} onClose={() => setManaging(null)} />}
@@ -361,10 +374,13 @@ function ManageUserDialog({ user, onClose }: { user: AdminUser; onClose: () => v
           <div className="space-y-2">
             <Label>Assign a role</Label>
             <div className="flex gap-2">
-              <select className={selectClass} value={roleId} onChange={(e) => setRoleId(e.target.value)}>
-                <option value="">Select role…</option>
-                {roles.data?.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-              </select>
+              <PremiumSelect
+                value={roleId}
+                onChange={setRoleId}
+                className="flex-1"
+                placeholder="Select role…"
+                options={roles.data?.map((r) => ({ value: r.id, label: r.name })) ?? []}
+              />
               <Button disabled={!roleId || assign.isPending} onClick={() => assign.mutate()}>Assign</Button>
             </div>
           </div>

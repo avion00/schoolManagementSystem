@@ -38,7 +38,7 @@ export function MessageModerationTable({
   onExportEvidence: (id: string) => void;
 }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-sm">
+    <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-elevated">
       <Table>
         <TableHeader>
           <TableRow>

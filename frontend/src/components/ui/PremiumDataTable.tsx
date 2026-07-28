@@ -104,11 +104,12 @@ export function PremiumDataTable<T>({
   const totalCols = visibleColumns.length + (selectable ? 1 : 0) + (rowActions ? 1 : 0);
 
   return (
-    <div className={cn("overflow-hidden rounded-2xl border border-neutral-200/80 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-950", className)}>
-      <div className="w-full overflow-x-auto">
+    <div className="relative">
+      <div className={cn("overflow-hidden rounded-2xl border border-neutral-200/80 bg-white shadow-elevated dark:border-neutral-800 dark:bg-neutral-950", className)}>
+        <div className="w-full overflow-x-auto">
         <Table className="w-full">
-          <TableHeader className={cn(stickyHeader && "sticky top-0 z-10")}>
-            <TableRow className="border-neutral-200/80 bg-neutral-50/70 hover:bg-neutral-50/70 dark:border-neutral-800 dark:bg-neutral-900/60">
+          <TableHeader className={cn(stickyHeader && "sticky top-0 z-10 bg-white dark:bg-neutral-950")}>
+            <TableRow className="border-neutral-200/50 hover:bg-transparent dark:border-neutral-800/60">
               {selectable && (
                 <TableHead className="w-10 pl-4">
                   <Checkbox
@@ -122,33 +123,40 @@ export function PremiumDataTable<T>({
                 const active = sortField === col.key;
                 const Icon = active ? (sortDir === "asc" ? ChevronUp : ChevronDown) : ChevronsUpDown;
                 return (
-                  <TableHead key={col.key} className={cn("select-none py-3", col.width, col.align === "right" && "text-right")}>
+                  <TableHead key={col.key} className={cn("select-none py-3.5", col.width, col.align === "right" && "text-right")}>
                     {col.sortable ? (
                       <button
                         type="button"
                         onClick={() => onSort?.(col.key)}
                         className={cn(
-                          "flex items-center gap-1 text-left text-[11px] font-semibold uppercase tracking-wide transition-colors",
-                          active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                          "group flex items-center gap-1 text-left text-[11px] font-medium uppercase tracking-wide transition-colors",
+                          active ? "text-foreground" : "text-neutral-500 hover:text-foreground dark:text-neutral-400",
                         )}
                       >
                         {col.header}
-                        <Icon className={cn("h-3 w-3 shrink-0", active ? "text-foreground" : "text-muted-foreground/40")} />
+                        <Icon
+                          className={cn(
+                            "h-3 w-3 shrink-0 transition-opacity",
+                            active
+                              ? "text-foreground opacity-100"
+                              : "text-neutral-400/70 opacity-0 group-hover:opacity-100 dark:text-neutral-600",
+                          )}
+                        />
                       </button>
                     ) : (
-                      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{col.header}</span>
+                      <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">{col.header}</span>
                     )}
                   </TableHead>
                 );
               })}
-              {rowActions && <TableHead className="w-16 pr-4 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Actions</TableHead>}
+              {rowActions && <TableHead className="w-16 pr-4 text-right text-[11px] font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Actions</TableHead>}
             </TableRow>
           </TableHeader>
 
           <TableBody>
             {loading ? (
               Array.from({ length: skeletonRows }).map((_, i) => (
-                <TableRow key={`skeleton-${i}`} className="border-neutral-200/70 dark:border-neutral-800/70">
+                <TableRow key={`skeleton-${i}`} className="border-neutral-200/50 dark:border-neutral-800/60">
                   {selectable && <TableCell className="pl-4"><PremiumSkeleton className="h-4 w-4 rounded" /></TableCell>}
                   {visibleColumns.map((col) => (
                     <TableCell key={col.key}><PremiumSkeleton className="h-4 w-full max-w-[140px]" /></TableCell>
@@ -157,7 +165,7 @@ export function PremiumDataTable<T>({
                 </TableRow>
               ))
             ) : rows.length === 0 ? (
-              <TableRow className="border-neutral-200/70 dark:border-neutral-800/70">
+              <TableRow className="border-neutral-200/50 dark:border-neutral-800/60">
                 <TableCell colSpan={Math.max(totalCols, 1)} className="p-0">
                   <PremiumEmptyState icon={emptyIcon} title={emptyTitle} description={emptyDescription} action={emptyAction} />
                 </TableCell>
@@ -170,7 +178,7 @@ export function PremiumDataTable<T>({
                   <TableRow
                     key={key}
                     className={cn(
-                      "t-row-in group border-neutral-200/70 transition-colors hover:bg-neutral-50/70 dark:border-neutral-800/70 dark:hover:bg-neutral-900/40",
+                      "t-row-in group border-neutral-200/50 transition-colors hover:bg-neutral-50/70 dark:border-neutral-800/60 dark:hover:bg-neutral-900/40",
                       selected && "bg-primary/[0.04] hover:bg-primary/[0.06]",
                     )}
                     style={{ "--row-index": i } as CSSProperties}
@@ -181,7 +189,7 @@ export function PremiumDataTable<T>({
                       </TableCell>
                     )}
                     {visibleColumns.map((col) => (
-                      <TableCell key={col.key} className={cn("py-3", col.align === "right" && "text-right")}>
+                      <TableCell key={col.key} className={cn("py-3.5", col.align === "right" && "text-right")}>
                         {col.render(row)}
                       </TableCell>
                     ))}
@@ -196,18 +204,22 @@ export function PremiumDataTable<T>({
             )}
           </TableBody>
         </Table>
+        </div>
+
+        {pagination && pagination.total > pagination.pageSize && (
+          <div className="border-t border-neutral-200/50 dark:border-neutral-800/60">
+            <PremiumPagination {...pagination} />
+          </div>
+        )}
       </div>
 
       {bulkActions && selectedOnPage > 0 && (
-        <div className="flex items-center gap-3 border-t border-neutral-200/80 bg-primary/5 px-4 py-2.5 dark:border-neutral-800">
-          <span className="text-sm font-medium text-foreground">{selectedOnPage} selected</span>
-          {bulkActions(selectedOnPage, () => onSelectionChange?.(new Set()))}
-        </div>
-      )}
-
-      {pagination && pagination.total > pagination.pageSize && (
-        <div className="border-t border-neutral-200/80 dark:border-neutral-800">
-          <PremiumPagination {...pagination} />
+        <div className="sticky bottom-4 z-30 flex justify-center py-2">
+          <div className="t-bulkbar flex items-center gap-3 rounded-2xl border border-neutral-200/80 bg-white/95 px-4 py-2.5 shadow-elevated backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-900/95">
+            <span className="text-sm font-medium text-foreground">{selectedOnPage} selected</span>
+            <div className="h-4 w-px bg-neutral-200 dark:bg-neutral-700" />
+            {bulkActions(selectedOnPage, () => onSelectionChange?.(new Set()))}
+          </div>
         </div>
       )}
     </div>

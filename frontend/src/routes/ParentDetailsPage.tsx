@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
-import { SlidingTabs } from "@/components/motion";
 import type { SlidingTabOption } from "@/components/motion";
 import { ParentProfileHero } from "@/components/parents/details/ParentProfileHero";
 import { ParentSummaryCards } from "@/components/parents/details/ParentSummaryCards";
@@ -12,6 +11,7 @@ import { ParentFeesCard } from "@/components/parents/details/ParentFeesCard";
 import { ParentNoticeBoard } from "@/components/parents/details/ParentNoticeBoard";
 import { ParentDocumentsCard } from "@/components/parents/details/ParentDocumentsCard";
 import { ParentActivityTimeline } from "@/components/parents/details/ParentActivityTimeline";
+import { PremiumTabs } from "@/components/ui/PremiumTabs";
 import { PARENTS } from "@/data/parentsData";
 import { PARENT_DETAIL_MOCK } from "@/data/parentDetailsData";
 
@@ -52,7 +52,7 @@ export function ParentDetailsPage() {
       <ParentSummaryCards cards={mock.summaryCards} />
 
       {/* Tab navigation */}
-      <SlidingTabs value={tab} onValueChange={setTab} options={TABS} />
+      <PremiumTabs value={tab} onValueChange={setTab} options={TABS} />
 
       {/* Overview tab */}
       {tab === "overview" && (

@@ -27,7 +27,7 @@ function ContactRow({
 
 export function SupportContactCard() {
   return (
-    <Card className="rounded-2xl border-border/60 shadow-sm">
+    <Card className="rounded-2xl border-border/60 shadow-elevated">
       <CardHeader>
         <CardTitle className="text-base font-semibold">Contact Support</CardTitle>
       </CardHeader>

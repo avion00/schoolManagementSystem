@@ -36,7 +36,7 @@ export function AccountProfileCard() {
   }
 
   return (
-    <Card className="rounded-2xl border-border/60 shadow-sm">
+    <Card className="rounded-2xl border-border/60 shadow-elevated">
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-[13px] font-semibold">My Account / Profile</CardTitle>
         <div className="flex gap-1.5">

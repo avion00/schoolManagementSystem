@@ -12,7 +12,7 @@ interface StatCardProps {
 function StatCard({ label, value, sub, icon, color, highlight }: StatCardProps) {
   return (
     <Card className={cn(
-      "flex items-center gap-4 p-4 shadow-sm",
+      "flex items-center gap-4 p-4 shadow-elevated",
       highlight && "ring-2 ring-rose-500/40",
     )}>
       <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white", color)}>

@@ -1,13 +1,8 @@
-import { Download, Lock, UserPlus, X } from "lucide-react";
+import { Download, Lock, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { PremiumDropdownMenu } from "@/components/ui/PremiumDropdownMenu";
 import {
   ASSIGNEE_DIRECTORY,
   PRIORITY_OPTIONS,
@@ -16,6 +11,11 @@ import {
   type TicketStatus,
 } from "@/data/helpDeskData";
 
+/**
+ * Bulk-action controls rendered inside PremiumDataTable's built-in
+ * `bulkActions` bar (which already shows the "N selected" label and a
+ * clear/deselect affordance) — no longer a standalone hand-rolled bar.
+ */
 export function BulkTicketActions({
   selectedIds,
   onClear,
@@ -31,67 +31,49 @@ export function BulkTicketActions({
   onBulkStatus: (status: TicketStatus) => void;
   onBulkClose: () => void;
 }) {
-  if (selectedIds.length === 0) return null;
   const count = selectedIds.length;
 
   return (
-    <div className="t-content-in flex flex-wrap items-center gap-2 rounded-2xl border border-primary/30 bg-primary/[0.05] px-3.5 py-2.5">
-      <span className="text-[12.5px] font-medium text-foreground">
-        {count} ticket{count === 1 ? "" : "s"} selected
-      </span>
+    <>
+      <PremiumDropdownMenu
+        align="start"
+        width="w-52"
+        trigger={
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[12px]">
+            <UserPlus className="h-3.5 w-3.5" />
+            Assign Selected
+          </Button>
+        }
+        items={ASSIGNEE_DIRECTORY.map((a) => ({
+          label: `${a.name} — ${a.department}`,
+          onClick: () => onBulkAssign(a.name),
+        }))}
+      />
 
-      <div className="ml-auto flex flex-wrap items-center gap-1.5">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[12px]">
-              <UserPlus className="h-3.5 w-3.5" />
-              Assign Selected
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-52">
-            {ASSIGNEE_DIRECTORY.map((a) => (
-              <DropdownMenuItem key={a.id} onClick={() => onBulkAssign(a.name)}>
-                {a.name} <span className="ml-auto text-[11px] text-muted-foreground">{a.department}</span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <PremiumDropdownMenu
+        align="start"
+        trigger={<Button variant="outline" size="sm" className="h-8 text-[12px]">Change Priority</Button>}
+        items={PRIORITY_OPTIONS.map((p) => ({ label: p, onClick: () => onBulkPriority(p) }))}
+      />
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 text-[12px]">Change Priority</Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            {PRIORITY_OPTIONS.map((p) => (
-              <DropdownMenuItem key={p} onClick={() => onBulkPriority(p)}>{p}</DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <PremiumDropdownMenu
+        align="start"
+        trigger={<Button variant="outline" size="sm" className="h-8 text-[12px]">Change Status</Button>}
+        items={STATUS_OPTIONS.map((s) => ({ label: s, onClick: () => onBulkStatus(s) }))}
+      />
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 text-[12px]">Change Status</Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            {STATUS_OPTIONS.map((s) => (
-              <DropdownMenuItem key={s} onClick={() => onBulkStatus(s)}>{s}</DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[12px]" onClick={onBulkClose}>
-          <Lock className="h-3.5 w-3.5" />
-          Close Selected
-        </Button>
-        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[12px]"
-          onClick={() => { console.log("Export selected tickets:", selectedIds); toast.success(`Exported ${count} ticket${count === 1 ? "" : "s"}.`); }}>
-          <Download className="h-3.5 w-3.5" />
-          Export Selected
-        </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClear} aria-label="Clear selection">
-          <X className="h-3.5 w-3.5" />
-        </Button>
-      </div>
-    </div>
+      <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[12px]" onClick={onBulkClose}>
+        <Lock className="h-3.5 w-3.5" />
+        Close Selected
+      </Button>
+      <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[12px]"
+        onClick={() => { console.log("Export selected tickets:", selectedIds); toast.success(`Exported ${count} ticket${count === 1 ? "" : "s"}.`); }}>
+        <Download className="h-3.5 w-3.5" />
+        Export Selected
+      </Button>
+      <Button variant="ghost" size="sm" className="ml-auto text-muted-foreground" onClick={onClear}>
+        Deselect all
+      </Button>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 import { Wallet } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailCard } from "@/components/ui/DetailCard";
 import {
   Table,
   TableBody,
@@ -37,17 +37,8 @@ export function StudentFeesCard({ fees, payments }: Props) {
   const paidPct = Math.round((fees.paid / fees.totalFee) * 100);
 
   return (
-    <Card className="rounded-2xl shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center justify-between text-sm font-semibold">
-          <span className="flex items-center gap-2">
-            <Wallet className="h-4 w-4 text-primary" />
-            Fee Status
-          </span>
-          <StatusBadge status={fees.status} />
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-5">
+    <DetailCard icon={Wallet} title="Fee Status" action={<StatusBadge status={fees.status} />}>
+      <div className="space-y-5">
         {/* Fee overview */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
@@ -106,7 +97,7 @@ export function StudentFeesCard({ fees, payments }: Props) {
             </Table>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </DetailCard>
   );
 }

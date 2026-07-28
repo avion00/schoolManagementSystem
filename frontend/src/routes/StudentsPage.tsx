@@ -3,12 +3,15 @@ import { Download, Plus, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
-import { Reveal } from "@/components/motion";
+import { StudentAlertsCard } from "@/components/students/StudentAlertsCard";
 import { StudentCardGrid } from "@/components/students/StudentCardGrid";
+import { StudentsByClassCard } from "@/components/students/StudentsByClassCard";
+import { StudentsOverviewDonut } from "@/components/students/StudentsOverviewDonut";
 import { StudentsSummaryCards } from "@/components/students/StudentsSummaryCards";
 import { StudentsTable } from "@/components/students/StudentsTable";
 import { StudentsToolbar, type StudentsFilters } from "@/components/students/StudentsToolbar";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { PremiumTabs } from "@/components/ui/PremiumTabs";
 import { STUDENTS, type Student, type StudentStatus } from "@/data/studentsData";
 import { useAuth } from "@/lib/auth";
@@ -93,36 +96,53 @@ export function StudentsPage() {
   return (
     <div className="space-y-4">
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <Reveal className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-foreground">
+      <PageHeader
+        title={
+          <>
             {sorted.length} student{sorted.length !== 1 ? "s" : ""}{" "}
-            {hasActiveFilter && <span className="text-muted-foreground">(filtered from {STUDENTS.length} total)</span>}
-          </p>
-          <p className="text-xs text-muted-foreground">Manage enrolled students and their academic records.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <PremiumTabs
-            value={view}
-            onValueChange={(v) => setView(v as ViewMode)}
-            options={[{ value: "table", label: "Table" }, { value: "card", label: "Cards" }]}
-          />
-          <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => toast.info("Import students — coming soon")}>
-            <Upload className="h-3.5 w-3.5" /> Import
-          </Button>
-          <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => toast.info("Export students — coming soon")}>
-            <Download className="h-3.5 w-3.5" /> Export
-          </Button>
-          {canCreate && (
-            <Button size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => navigate("/students/new")}>
-              <Plus className="h-4 w-4" /> New student
+            {hasActiveFilter && (
+              <span className="text-base font-normal text-muted-foreground">(filtered from {STUDENTS.length} total)</span>
+            )}
+          </>
+        }
+        description="Manage enrolled students and their academic records."
+        actions={
+          <>
+            <PremiumTabs
+              value={view}
+              onValueChange={(v) => setView(v as ViewMode)}
+              options={[{ value: "table", label: "Table" }, { value: "card", label: "Cards" }]}
+            />
+            <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => toast.info("Import students — coming soon")}>
+              <Upload className="h-3.5 w-3.5" /> Import
             </Button>
-          )}
-        </div>
-      </Reveal>
+            <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => toast.info("Export students — coming soon")}>
+              <Download className="h-3.5 w-3.5" /> Export
+            </Button>
+            {canCreate && (
+              <Button size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => navigate("/students/new")}>
+                <Plus className="h-4 w-4" /> New student
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {/* ── Summary ─────────────────────────────────────────────────────── */}
       <StudentsSummaryCards students={STUDENTS} />
+
+      {/* ── Overview: class breakdown + alerts ─────────────────────────── */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-12">
+        <div className="lg:col-span-5">
+          <StudentsOverviewDonut students={STUDENTS} />
+        </div>
+        <div className="lg:col-span-4">
+          <StudentsByClassCard students={STUDENTS} />
+        </div>
+        <div className="lg:col-span-3">
+          <StudentAlertsCard students={STUDENTS} />
+        </div>
+      </div>
 
       {/* ── Filters ─────────────────────────────────────────────────────── */}
       <StudentsToolbar

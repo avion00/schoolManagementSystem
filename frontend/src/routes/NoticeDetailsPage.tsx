@@ -2,10 +2,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Pencil, Printer, Download, Copy,
   Pin, Users, CalendarDays, Clock, Paperclip,
-  Eye, CheckCircle2, AlertCircle, FileText, Bell,
+  Eye, CheckCircle2, AlertCircle, FileText, Bell, StickyNote,
 } from "lucide-react";
-import { Card }   from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { DetailCard } from "@/components/ui/DetailCard";
 import { NoticeStatusBadge }       from "@/components/notices/NoticeStatusBadge";
 import { NoticePriorityBadge }     from "@/components/notices/NoticePriorityBadge";
 import { NoticeRecipientsTable }   from "@/components/notices/NoticeRecipientsTable";
@@ -127,14 +127,13 @@ export function NoticeDetailsPage() {
         {/* Left: 2/3 */}
         <div className="lg:col-span-2 space-y-5">
           {/* Notice body */}
-          <Card className="p-6">
-            <h2 className="text-[14px] font-semibold text-foreground mb-4">Notice Content</h2>
+          <DetailCard icon={FileText} title="Notice Content">
             <div className="text-[13px] text-foreground leading-relaxed whitespace-pre-line">
               {notice.body}
             </div>
 
             {notice.importantInstructions && (
-              <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50/60 dark:border-amber-800 dark:bg-amber-950/20 p-4">
+              <div className="rounded-xl border border-amber-200 bg-amber-50/60 dark:border-amber-800 dark:bg-amber-950/20 p-4">
                 <p className="text-[12px] font-semibold text-amber-700 dark:text-amber-300 mb-1">
                   Important Instructions
                 </p>
@@ -145,24 +144,16 @@ export function NoticeDetailsPage() {
             )}
 
             {notice.externalLink && (
-              <div className="mt-4">
-                <a href={notice.externalLink} target="_blank" rel="noreferrer"
-                  className="text-[12px] text-primary hover:underline">
-                  {notice.externalLink}
-                </a>
-              </div>
+              <a href={notice.externalLink} target="_blank" rel="noreferrer"
+                className="text-[12px] text-primary hover:underline">
+                {notice.externalLink}
+              </a>
             )}
-          </Card>
+          </DetailCard>
 
           {/* Attachments */}
           {notice.attachments.length > 0 && (
-            <Card className="p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <Paperclip className="h-4 w-4 text-muted-foreground" />
-                <h2 className="text-[14px] font-semibold text-foreground">
-                  Attachments ({notice.attachments.length})
-                </h2>
-              </div>
+            <DetailCard icon={Paperclip} title={`Attachments (${notice.attachments.length})`}>
               <div className="space-y-2">
                 {notice.attachments.map((a) => (
                   <div key={a.id}
@@ -180,16 +171,12 @@ export function NoticeDetailsPage() {
                   </div>
                 ))}
               </div>
-            </Card>
+            </DetailCard>
           )}
 
           {/* Target classes */}
           {notice.targetClasses.length > 0 && (
-            <Card className="p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <h2 className="text-[14px] font-semibold text-foreground">Target Classes</h2>
-              </div>
+            <DetailCard icon={Users} title="Target Classes">
               <div className="flex flex-wrap gap-2">
                 {notice.targetClasses.map((c) => (
                   <span key={c} className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-[12px] font-medium text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-300">
@@ -198,33 +185,24 @@ export function NoticeDetailsPage() {
                   </span>
                 ))}
               </div>
-            </Card>
+            </DetailCard>
           )}
 
           {/* Recipients */}
-          <Card className="p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Eye className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-[14px] font-semibold text-foreground">Recipients & Read Status</h2>
-            </div>
+          <DetailCard icon={Eye} title="Recipients & Read Status">
             <NoticeRecipientsTable recipients={notice.recipients} />
-          </Card>
+          </DetailCard>
 
           {/* Activity timeline */}
-          <Card className="p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-[14px] font-semibold text-foreground">Activity Timeline</h2>
-            </div>
+          <DetailCard icon={Clock} title="Activity Timeline">
             <NoticeActivityTimeline activities={notice.activities} />
-          </Card>
+          </DetailCard>
         </div>
 
         {/* Right: 1/3 */}
         <div className="space-y-5">
           {/* Actions */}
-          <Card className="p-5">
-            <h2 className="text-[13px] font-semibold text-foreground mb-3">Actions</h2>
+          <DetailCard icon={Pencil} title="Actions">
             <div className="space-y-2">
               <Button className="w-full justify-start gap-2 text-[12px]" size="sm"
                 onClick={() => navigate(`/notices/${notice.id}/edit`)}>
@@ -250,12 +228,11 @@ export function NoticeDetailsPage() {
                 <ArrowLeft className="h-3.5 w-3.5" />Back to Board
               </Button>
             </div>
-          </Card>
+          </DetailCard>
 
           {/* Read stats */}
           {notice.stats.totalRecipients > 0 && (
-            <Card className="p-5">
-              <h2 className="text-[13px] font-semibold text-foreground mb-3">Read Statistics</h2>
+            <DetailCard icon={Eye} title="Read Statistics">
               <div className="grid grid-cols-2 gap-2">
                 <StatChip label="Recipients"   value={notice.stats.totalRecipients} color="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-300" />
                 <StatChip label="Read"         value={notice.stats.read}            color="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300" />
@@ -265,7 +242,7 @@ export function NoticeDetailsPage() {
 
               {/* Read progress bar */}
               {notice.stats.totalRecipients > 0 && (
-                <div className="mt-3">
+                <div>
                   <div className="flex justify-between text-[11px] text-muted-foreground mb-1">
                     <span>Read rate</span>
                     <span className="font-semibold text-foreground">
@@ -280,23 +257,20 @@ export function NoticeDetailsPage() {
                   </div>
                 </div>
               )}
-            </Card>
+            </DetailCard>
           )}
 
           {/* Internal notes (if any) */}
           {notice.internalNotes && (
-            <Card className="p-5 border-amber-200 bg-amber-50/30 dark:border-amber-800 dark:bg-amber-950/10">
-              <h2 className="text-[13px] font-semibold text-amber-700 dark:text-amber-300 mb-2">Internal Notes</h2>
-              <p className="text-[12px] text-amber-700 dark:text-amber-400 leading-relaxed">{notice.internalNotes}</p>
-            </Card>
+            <DetailCard icon={StickyNote} title="Internal Notes">
+              <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-800 dark:bg-amber-950/20">
+                <p className="text-[12px] text-amber-700 dark:text-amber-400 leading-relaxed">{notice.internalNotes}</p>
+              </div>
+            </DetailCard>
           )}
 
           {/* Notification channels */}
-          <Card className="p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Bell className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-[13px] font-semibold text-foreground">Notifications Sent</h2>
-            </div>
+          <DetailCard icon={Bell} title="Notifications Sent">
             <div className="space-y-2 text-[12px]">
               {([
                 ["In-app notification", notice.sendNotification],
@@ -313,14 +287,11 @@ export function NoticeDetailsPage() {
                 </div>
               ))}
             </div>
-          </Card>
+          </DetailCard>
 
           {/* Related notices */}
           {related.length > 0 && (
-            <Card className="p-5">
-              <h2 className="text-[13px] font-semibold text-foreground mb-3">
-                Related {notice.category} Notices
-              </h2>
+            <DetailCard icon={FileText} title={`Related ${notice.category} Notices`}>
               <div className="space-y-2">
                 {related.map((r) => (
                   <button key={r.id} onClick={() => navigate(`/notices/${r.id}`)}
@@ -330,7 +301,7 @@ export function NoticeDetailsPage() {
                   </button>
                 ))}
               </div>
-            </Card>
+            </DetailCard>
           )}
         </div>
       </div>

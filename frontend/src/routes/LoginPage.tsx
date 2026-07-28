@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { isAxiosError } from "axios";
 import {
   CalendarCheck2,
   Eye,
@@ -43,6 +44,26 @@ const DEMO_ACCOUNTS = [
   { label: "Principal", email: "principal@demo.school", password: "Passw0rd!2024" },
 ];
 
+/** Distinguishes "can't reach the server" / "server error" from actual bad-credential responses. */
+function describeLoginError(err: unknown): string {
+  if (!isAxiosError(err)) return "Something went wrong. Please try again.";
+
+  if (!err.response) {
+    return "Can't reach the server. Check that the backend is running and try again.";
+  }
+
+  const { status, data } = err.response;
+  const detail = (data as { detail?: string } | undefined)?.detail;
+
+  if (status === 401 || status === 400) {
+    return detail ?? "Invalid email or password.";
+  }
+  if (status >= 500) {
+    return "Server error. Please try again in a moment.";
+  }
+  return detail ?? "Sign in failed. Please try again.";
+}
+
 export function LoginPage() {
   const { user, login } = useAuth();
   const { resolvedTheme } = useTheme();
@@ -68,8 +89,8 @@ export function LoginPage() {
     try {
       await login(values.email, values.password);
       navigate("/dashboard", { replace: true });
-    } catch {
-      setServerError("Invalid email or password.");
+    } catch (err) {
+      setServerError(describeLoginError(err));
       setShakeCount((c) => c + 1);
     }
   };

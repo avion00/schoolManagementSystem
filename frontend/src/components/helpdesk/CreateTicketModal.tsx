@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import {
   ASSIGNEE_DIRECTORY, CATEGORY_OPTIONS, MODULE_OPTIONS, PRIORITY_OPTIONS, ROLE_OPTIONS,
   type NewTicketFormData, type TicketCategory, type TicketPriority, type TicketRequesterRole,
@@ -90,10 +91,12 @@ export function CreateTicketForm({
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field id="requesterRole" label="Requester Type" required error={errors.requesterRole} attempt={attempt}>
-          <select id="requesterRole" value={form.requesterRole} onChange={(e) => set("requesterRole", e.target.value as TicketRequesterRole)} className={inputClass(!!errors.requesterRole)}>
-            <option value="">Select requester type</option>
-            {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-          </select>
+          <PremiumSelect
+            value={form.requesterRole}
+            onChange={(v) => set("requesterRole", v as TicketRequesterRole)}
+            placeholder="Select requester type"
+            options={ROLE_OPTIONS.map((r) => ({ value: r, label: r }))}
+          />
         </Field>
         <Field id="requesterName" label="Requester Name" required error={errors.requesterName} attempt={attempt}>
           <input id="requesterName" value={form.requesterName} onChange={(e) => set("requesterName", e.target.value)}
@@ -108,15 +111,19 @@ export function CreateTicketForm({
         </div>
 
         <Field id="category" label="Category" required error={errors.category} attempt={attempt}>
-          <select id="category" value={form.category} onChange={(e) => set("category", e.target.value as TicketCategory)} className={inputClass(!!errors.category)}>
-            <option value="">Select category</option>
-            {CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <PremiumSelect
+            value={form.category}
+            onChange={(v) => set("category", v as TicketCategory)}
+            placeholder="Select category"
+            options={CATEGORY_OPTIONS.map((c) => ({ value: c, label: c }))}
+          />
         </Field>
         <Field id="module" label="Module" attempt={attempt}>
-          <select id="module" value={form.module} onChange={(e) => set("module", e.target.value)} className={inputClass()}>
-            {MODULE_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
-          </select>
+          <PremiumSelect
+            value={form.module}
+            onChange={(v) => set("module", v)}
+            options={MODULE_OPTIONS.map((m) => ({ value: m, label: m }))}
+          />
         </Field>
 
         <div className="sm:col-span-2">
@@ -135,15 +142,19 @@ export function CreateTicketForm({
         </div>
 
         <Field id="priority" label="Priority" required error={errors.priority} attempt={attempt}>
-          <select id="priority" value={form.priority} onChange={(e) => set("priority", e.target.value as TicketPriority)} className={inputClass(!!errors.priority)}>
-            {PRIORITY_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
-          </select>
+          <PremiumSelect
+            value={form.priority}
+            onChange={(v) => set("priority", v as TicketPriority)}
+            options={PRIORITY_OPTIONS.map((p) => ({ value: p, label: p }))}
+          />
         </Field>
         <Field id="assignTo" label="Assign To (optional)" attempt={attempt}>
-          <select id="assignTo" value={form.assignTo} onChange={(e) => set("assignTo", e.target.value)} className={inputClass()}>
-            <option value="">Unassigned</option>
-            {ASSIGNEE_DIRECTORY.map((a) => <option key={a.id} value={a.name}>{a.name} — {a.department}</option>)}
-          </select>
+          <PremiumSelect
+            value={form.assignTo}
+            onChange={(v) => set("assignTo", v)}
+            placeholder="Unassigned"
+            options={[{ value: "", label: "Unassigned" }, ...ASSIGNEE_DIRECTORY.map((a) => ({ value: a.name, label: `${a.name} — ${a.department}` }))]}
+          />
         </Field>
 
         <Field id="dueDate" label="Due Date (optional)" attempt={attempt}>

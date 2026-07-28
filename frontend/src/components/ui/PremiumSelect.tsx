@@ -21,12 +21,14 @@ export function PremiumSelect({
   options,
   placeholder = "Select…",
   className,
+  disabled = false,
 }: {
   value: string;
   onChange: (value: string) => void;
   options: PremiumSelectOption[];
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 }) {
   const [state, setState] = useState<MenuState>("closed");
   const [highlighted, setHighlighted] = useState(0);
@@ -76,6 +78,7 @@ export function PremiumSelect({
   }, [state, highlighted, options, onChange]);
 
   function toggle() {
+    if (disabled) return;
     if (state === "open") {
       setState("closing");
       return;
@@ -91,6 +94,7 @@ export function PremiumSelect({
         ref={triggerRef}
         type="button"
         onClick={toggle}
+        disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={state === "open"}
         className={cn(
@@ -98,6 +102,7 @@ export function PremiumSelect({
           "border border-neutral-200 bg-white text-foreground shadow-sm transition-colors",
           "hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-ring",
           "dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-900",
+          disabled && "cursor-not-allowed opacity-40 hover:bg-white dark:hover:bg-neutral-950",
         )}
       >
         <span className="truncate">{selected?.label ?? placeholder}</span>

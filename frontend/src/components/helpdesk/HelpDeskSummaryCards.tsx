@@ -3,10 +3,9 @@ import {
   AlertTriangle, CheckCircle2, Clock, Hourglass, Inbox, Loader, Timer, TrendingUp,
 } from "lucide-react";
 
-import { PopNumber, Reveal } from "@/components/motion";
-import { Card, CardContent } from "@/components/ui/card";
+import { Reveal } from "@/components/motion";
+import { MetricCard } from "@/components/ui/MetricCard";
 import type { SupportTicket } from "@/data/helpDeskData";
-import { cn } from "@/lib/utils";
 
 function formatDuration(ms: number): string {
   const totalMinutes = Math.max(0, Math.round(ms / 60_000));
@@ -65,24 +64,15 @@ export function HelpDeskSummaryCards({ tickets }: { tickets: SupportTicket[] }) 
 
   return (
     <Reveal className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      {stats.map((stat) => {
-        const Icon = stat.icon;
-        return (
-          <Card key={stat.label} className="rounded-2xl border-border/60 shadow-sm">
-            <CardContent className="flex items-start gap-3 p-4">
-              <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", TONE_STYLES[stat.tone])}>
-                <Icon className="h-[18px] w-[18px]" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-[11px] font-medium text-muted-foreground">{stat.label}</p>
-                <p className="mt-0.5 text-xl font-semibold tabular-nums text-foreground">
-                  <PopNumber value={stat.value} />
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+      {stats.map((stat) => (
+        <MetricCard
+          key={stat.label}
+          label={stat.label}
+          value={stat.value}
+          icon={stat.icon}
+          iconCls={TONE_STYLES[stat.tone]}
+        />
+      ))}
     </Reveal>
   );
 }

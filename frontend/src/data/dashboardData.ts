@@ -7,6 +7,7 @@ import {
   Bell,
   BookOpen,
   CalendarCheck,
+  CalendarClock,
   CreditCard,
   DollarSign,
   FileText,
@@ -14,11 +15,14 @@ import {
   GraduationCap,
   MessageSquare,
   Receipt,
+  ShieldAlert,
   UserPlus,
   UserRound,
   Users,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
+import type { AttentionItem } from "@/components/dashboard/AttentionCard";
 
 // ── Type definitions ──────────────────────────────────────────────────────────
 
@@ -96,6 +100,47 @@ export interface ExamItem {
   date: string;
   time: string;
 }
+
+// ── "Needs attention now" urgent tiles ────────────────────────────────────────
+
+export const attentionItems: AttentionItem[] = [
+  {
+    id: "pending-fees",
+    label: "Pending Fee Approvals",
+    value: "4",
+    linkLabel: "Review payments",
+    to: "/billing/payments",
+    icon: Wallet,
+    tone: "amber",
+  },
+  {
+    id: "low-attendance",
+    label: "Low Attendance Alerts",
+    value: "7",
+    linkLabel: "View report",
+    to: "/attendance/reports",
+    icon: ShieldAlert,
+    tone: "rose",
+  },
+  {
+    id: "leave-requests",
+    label: "Pending Leave Requests",
+    value: "3",
+    linkLabel: "Open requests",
+    to: "/messages/requests",
+    icon: CalendarClock,
+    tone: "blue",
+  },
+  {
+    id: "overdue-tasks",
+    label: "Overdue Admin Tasks",
+    value: "2",
+    linkLabel: "Open help desk",
+    to: "/help",
+    icon: Bell,
+    tone: "violet",
+  },
+];
 
 // ── Top KPI cards ─────────────────────────────────────────────────────────────
 

@@ -5,8 +5,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { FormSection } from "@/components/students/forms/FormSection";
+import { FormSection } from "@/components/ui/form-section";
 import { Button } from "@/components/ui/button";
+import { PremiumSelect } from "@/components/ui/PremiumSelect";
+import { Switch } from "@/components/ui/switch";
 import { FEE_CATEGORY_OPTIONS, PAYMENT_METHOD_OPTIONS } from "@/data/billingData";
 import { cn } from "@/lib/utils";
 
@@ -15,10 +17,7 @@ const inputClass = "h-9 w-full rounded-lg border border-input bg-background px-3
 function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
   return (
     <div className="flex items-center gap-3">
-      <button type="button" onClick={() => onChange(!value)}
-        className={cn("relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors", value ? "bg-primary" : "bg-muted")}>
-        <span className={cn("pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform", value ? "translate-x-4" : "translate-x-0")} />
-      </button>
+      <Switch checked={value} onCheckedChange={onChange} aria-label={label} />
       <span className="text-[12.5px] text-foreground">{label}</span>
     </div>
   );
@@ -37,15 +36,33 @@ export function BillingSettingsPage() {
     Object.fromEntries(PAYMENT_METHOD_OPTIONS.map((m) => [m, true])),
   );
   const [notify, setNotify] = useState({ invoiceIssued: true, paymentReceived: true, overdueReminder: true, payrollProcessed: false });
+  const [academicYear, setAcademicYear] = useState("2025-2026");
+  const [billingCycle, setBillingCycle] = useState("monthly");
+  const [lateFeeType, setLateFeeType] = useState("flat");
+  const [currency, setCurrency] = useState("USD");
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <FormSection icon={Calendar} title="Academic Year Billing Setup" subtitle="Configure the billing cycle for the current academic year" defaultOpen>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div><label className="text-[12px] font-medium text-foreground">Academic Year</label>
-            <select className={cn(inputClass, "mt-1.5")} defaultValue="2025-2026"><option value="2025-2026">2025–2026</option></select></div>
+            <PremiumSelect
+              className="mt-1.5"
+              value={academicYear}
+              onChange={setAcademicYear}
+              options={[{ value: "2025-2026", label: "2025–2026" }]}
+            /></div>
           <div><label className="text-[12px] font-medium text-foreground">Billing Cycle</label>
-            <select className={cn(inputClass, "mt-1.5")} defaultValue="monthly"><option value="monthly">Monthly</option><option value="term">Per Term</option><option value="annual">Annual</option></select></div>
+            <PremiumSelect
+              className="mt-1.5"
+              value={billingCycle}
+              onChange={setBillingCycle}
+              options={[
+                { value: "monthly", label: "Monthly" },
+                { value: "term", label: "Per Term" },
+                { value: "annual", label: "Annual" },
+              ]}
+            /></div>
         </div>
         <div className="mt-4"><SaveButton section="Academic year billing" /></div>
       </FormSection>
@@ -87,7 +104,15 @@ export function BillingSettingsPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div><label className="text-[12px] font-medium text-foreground">Grace Period (days)</label><input type="number" defaultValue={7} className={cn(inputClass, "mt-1.5")} /></div>
           <div><label className="text-[12px] font-medium text-foreground">Late Fee Type</label>
-            <select className={cn(inputClass, "mt-1.5")} defaultValue="flat"><option value="flat">Flat Amount</option><option value="percent">Percentage</option></select></div>
+            <PremiumSelect
+              className="mt-1.5"
+              value={lateFeeType}
+              onChange={setLateFeeType}
+              options={[
+                { value: "flat", label: "Flat Amount" },
+                { value: "percent", label: "Percentage" },
+              ]}
+            /></div>
           <div><label className="text-[12px] font-medium text-foreground">Late Fee Value</label><input type="number" defaultValue={200} className={cn(inputClass, "mt-1.5")} /></div>
         </div>
         <div className="mt-4"><SaveButton section="Late fee rules" /></div>
@@ -109,11 +134,15 @@ export function BillingSettingsPage() {
       </FormSection>
 
       <FormSection icon={Settings2} title="Currency Settings" subtitle="Default currency used across billing and reports">
-        <select className={inputClass} defaultValue="USD">
-          <option value="USD">USD — US Dollar</option>
-          <option value="NPR">NPR — Nepalese Rupee</option>
-          <option value="INR">INR — Indian Rupee</option>
-        </select>
+        <PremiumSelect
+          value={currency}
+          onChange={setCurrency}
+          options={[
+            { value: "USD", label: "USD — US Dollar" },
+            { value: "NPR", label: "NPR — Nepalese Rupee" },
+            { value: "INR", label: "INR — Indian Rupee" },
+          ]}
+        />
         <div className="mt-4"><SaveButton section="Currency" /></div>
       </FormSection>
 

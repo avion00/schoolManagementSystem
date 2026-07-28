@@ -98,7 +98,7 @@ export function MonthlyAttendanceGrid({ students, attendance, year, month, class
       </div>
 
       {/* Grid */}
-      <div className="overflow-x-auto rounded-xl border border-border/60 shadow-sm">
+      <div className="overflow-x-auto rounded-2xl border border-neutral-200/80 shadow-elevated dark:border-neutral-800">
         <table className="min-w-full text-[11px] border-collapse">
           <thead>
             {/* Day number row */}

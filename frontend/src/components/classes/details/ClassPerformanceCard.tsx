@@ -1,4 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LineChart } from "lucide-react";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { PerformanceSummary } from "@/data/classDetailData";
 
 const SUBJECT_COLORS = [
@@ -16,11 +17,7 @@ function StatChip({ label, value, color }: { label: string; value: string | numb
 
 export function ClassPerformanceCard({ perf }: { perf: PerformanceSummary }) {
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-[14px] font-semibold">Academic Performance</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-5">
+    <DetailCard icon={LineChart} title="Academic Performance">
         {/* Top stats */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatChip label="Class Average"    value={`${perf.classAverage}%`} color="bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400" />
@@ -62,7 +59,6 @@ export function ClassPerformanceCard({ perf }: { perf: PerformanceSummary }) {
             ))}
           </div>
         </div>
-      </CardContent>
-    </Card>
+    </DetailCard>
   );
 }

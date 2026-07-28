@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { SlidingTabs, type SlidingTabOption } from "@/components/motion";
 import { ClassProfileHero }        from "@/components/classes/details/ClassProfileHero";
 import { ClassOverviewCards }      from "@/components/classes/details/ClassOverviewCards";
 import { ClassSectionsCard }       from "@/components/classes/details/ClassSectionsCard";
@@ -16,10 +15,11 @@ import { ClassExamsCard }          from "@/components/classes/details/ClassExams
 import { ClassDocumentsCard }      from "@/components/classes/details/ClassDocumentsCard";
 import { ClassActivityTimeline }   from "@/components/classes/details/ClassActivityTimeline";
 import { Button }                  from "@/components/ui/button";
+import { PremiumTabs, type PremiumTabOption } from "@/components/ui/PremiumTabs";
 import { CLASSES }                 from "@/data/classesData";
 import { CLASS_DETAIL_MOCK }       from "@/data/classDetailData";
 
-const TABS: SlidingTabOption[] = [
+const TABS: PremiumTabOption[] = [
   { value: "overview",   label: "Overview"   },
   { value: "students",   label: "Students"   },
   { value: "teachers",   label: "Teachers"   },
@@ -53,7 +53,7 @@ export function ClassDetailsPage() {
     <div className="space-y-6 pb-12">
       <ClassProfileHero cls={cls} />
       <ClassOverviewCards cls={cls} mock={mock} />
-      <SlidingTabs value={tab} onValueChange={setTab} options={TABS} />
+      <PremiumTabs value={tab} onValueChange={setTab} options={TABS} />
 
       {/* Overview */}
       {tab === "overview" && (

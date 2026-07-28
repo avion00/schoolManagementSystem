@@ -4,7 +4,7 @@ import { Megaphone, Plus } from "lucide-react";
 import { BroadcastComposer } from "@/components/messages/BroadcastComposer";
 import { BroadcastStats } from "@/components/messages/BroadcastStats";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { PremiumCard } from "@/components/ui/PremiumCard";
 import { messagesService, resolveCurrentChatUser } from "@/lib/messagesService";
 import { useAuth } from "@/lib/auth";
 import { canSendBroadcast } from "@/data/messagePermissions";
@@ -35,23 +35,21 @@ export function BroadcastsPage() {
 
       <div className="space-y-3">
         {broadcasts.map((b) => (
-          <Card key={b.id} className="rounded-2xl border-border/60 shadow-sm">
-            <CardContent className="space-y-3 p-4">
-              <div className="flex items-start gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Megaphone className="h-4.5 w-4.5" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[14px] font-semibold text-foreground">{b.title}</p>
-                  <p className="mt-0.5 text-[12.5px] text-muted-foreground">{b.body}</p>
-                  <p className="mt-1.5 text-[11px] text-muted-foreground">
-                    {b.sentBy} · {formatDateTime(b.sentAt)} · {b.audience} {b.allowReplies && "· Replies allowed"}
-                  </p>
-                </div>
+          <PremiumCard key={b.id} hoverable className="space-y-3 p-4">
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Megaphone className="h-4.5 w-4.5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[14px] font-semibold text-foreground">{b.title}</p>
+                <p className="mt-0.5 text-[12.5px] text-muted-foreground">{b.body}</p>
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  {b.sentBy} · {formatDateTime(b.sentAt)} · {b.audience} {b.allowReplies && "· Replies allowed"}
+                </p>
               </div>
-              <BroadcastStats broadcast={b} />
-            </CardContent>
-          </Card>
+            </div>
+            <BroadcastStats broadcast={b} />
+          </PremiumCard>
         ))}
       </div>
 

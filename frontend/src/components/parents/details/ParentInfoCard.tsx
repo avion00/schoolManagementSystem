@@ -1,4 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { User } from "lucide-react";
+
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { Parent } from "@/data/parentsData";
 import type { ParentDetailMock } from "@/data/parentDetailsData";
 
@@ -13,11 +15,8 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 
 export function ParentInfoCard({ parent, mock }: { parent: Parent; mock: ParentDetailMock }) {
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-[14px] font-semibold">Personal & Contact</CardTitle>
-      </CardHeader>
-      <CardContent className="divide-y divide-border/40">
+    <DetailCard icon={User} title="Personal & Contact">
+      <div className="divide-y divide-border/40">
         <Row label="Full Name"          value={parent.name} />
         <Row label="Gender"             value={parent.gender} />
         <Row label="Relation"           value={parent.relation} />
@@ -31,7 +30,7 @@ export function ParentInfoCard({ parent, mock }: { parent: Parent; mock: ParentD
         <Row label="Permanent Address"  value={mock.permanentAddress} />
         <Row label="Emergency Contact"  value={mock.emergencyContact} />
         <Row label="Emergency Relation" value={mock.emergencyRelation} />
-      </CardContent>
-    </Card>
+      </div>
+    </DetailCard>
   );
 }

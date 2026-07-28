@@ -1,6 +1,6 @@
 import { ClipboardList } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailCard } from "@/components/ui/DetailCard";
 import {
   Table,
   TableBody,
@@ -50,27 +50,23 @@ export function StudentScoresCard({ scores, meta }: Props) {
       : "bg-rose-500/10 text-rose-700 dark:text-rose-400";
 
   return (
-    <Card className="rounded-2xl shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-sm font-semibold">
-          <span className="flex items-center gap-2">
-            <ClipboardList className="h-4 w-4 text-primary" />
-            {meta.name}
-            <span className="text-xs font-normal text-muted-foreground">({meta.year})</span>
+    <DetailCard
+      icon={ClipboardList}
+      title={meta.name}
+      subtitle={String(meta.year)}
+      action={
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">GPA:</span>
+          <span className="text-sm font-bold text-foreground">{meta.gpa.toFixed(2)}</span>
+          <span className="text-xs text-muted-foreground">|</span>
+          <span className="text-xs text-muted-foreground">Score:</span>
+          <span className="text-sm font-bold text-foreground">{meta.percentage}%</span>
+          <span className={cn("rounded-full px-2.5 py-0.5 text-[11px] font-bold", resultColor)}>
+            {meta.result}
           </span>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">GPA:</span>
-            <span className="text-sm font-bold text-foreground">{meta.gpa.toFixed(2)}</span>
-            <span className="text-xs text-muted-foreground">|</span>
-            <span className="text-xs text-muted-foreground">Score:</span>
-            <span className="text-sm font-bold text-foreground">{meta.percentage}%</span>
-            <span className={cn("rounded-full px-2.5 py-0.5 text-[11px] font-bold", resultColor)}>
-              {meta.result}
-            </span>
-          </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+        </div>
+      }
+    >
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -116,8 +112,7 @@ export function StudentScoresCard({ scores, meta }: Props) {
           <Stat label="GPA"        value={meta.gpa.toFixed(2)} />
           <Stat label="Term"       value={meta.term} />
         </div>
-      </CardContent>
-    </Card>
+    </DetailCard>
   );
 }
 

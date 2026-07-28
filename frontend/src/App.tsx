@@ -156,7 +156,7 @@ export default function App() {
         <Route
           path="*"
           element={
-            <div className="grid h-screen place-items-center text-muted-foreground">
+            <div className="grid h-screen place-items-center overflow-hidden text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
           }

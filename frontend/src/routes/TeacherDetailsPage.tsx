@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { SlidingTabs } from "@/components/motion";
 import { TeacherActivityTimeline } from "@/components/teachers/details/TeacherActivityTimeline";
 import { TeacherAttendanceCard } from "@/components/teachers/details/TeacherAttendanceCard";
 import { TeacherContactCard } from "@/components/teachers/details/TeacherContactCard";
@@ -12,6 +11,7 @@ import { TeacherPerformanceCard } from "@/components/teachers/details/TeacherPer
 import { TeacherPersonalInfoCard } from "@/components/teachers/details/TeacherPersonalInfoCard";
 import { TeacherProfileHero } from "@/components/teachers/details/TeacherProfileHero";
 import { TeacherScheduleCard } from "@/components/teachers/details/TeacherScheduleCard";
+import { PremiumTabs } from "@/components/ui/PremiumTabs";
 import { TEACHERS } from "@/data/teachersData";
 import { TEACHER_DETAIL_MOCK } from "@/data/teacherDetailsData";
 
@@ -44,7 +44,7 @@ export function TeacherDetailsPage() {
     <div className="space-y-5">
       <TeacherProfileHero teacher={teacher} />
 
-      <SlidingTabs value={tab} onValueChange={setTab} options={TABS} />
+      <PremiumTabs value={tab} onValueChange={setTab} options={TABS} />
 
       {/* ── Overview ─────────────────────────────────────────────── */}
       {tab === "overview" && (

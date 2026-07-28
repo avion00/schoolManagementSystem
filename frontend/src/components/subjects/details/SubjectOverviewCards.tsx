@@ -1,5 +1,5 @@
-import { BookOpen, GraduationCap, Users, Clock, BarChart2, CheckCircle2, AlertTriangle, Layers } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { BookOpen, GraduationCap, Users, Clock, BarChart2, CheckCircle2, AlertTriangle, Layers, type LucideIcon } from "lucide-react";
+import { PremiumCard } from "@/components/ui/PremiumCard";
 import type { SubjectData }  from "@/data/subjectsData";
 import type { SubjectDetailMock } from "@/data/subjectDetailData";
 
@@ -8,42 +8,38 @@ interface Props { sub: SubjectData; mock: SubjectDetailMock }
 function StatCard({
   icon: Icon, label, value, sub, color,
 }: {
-  icon: React.ElementType; label: string; value: string | number;
+  icon: LucideIcon; label: string; value: string | number;
   sub?: string; color: string;
 }) {
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-3">
-          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${color}`}>
-            <Icon className="h-4 w-4" />
-          </div>
-          <div>
-            <p className="text-[11px] text-muted-foreground">{label}</p>
-            <p className="text-[15px] font-bold text-foreground leading-tight">{value}</p>
-            {sub && <p className="text-[10px] text-muted-foreground">{sub}</p>}
-          </div>
+    <PremiumCard className="p-4">
+      <div className="flex items-center gap-3">
+        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${color}`}>
+          <Icon className="h-4 w-4" />
         </div>
-      </CardContent>
-    </Card>
+        <div>
+          <p className="text-[11px] text-muted-foreground">{label}</p>
+          <p className="text-[15px] font-bold text-foreground leading-tight">{value}</p>
+          {sub && <p className="text-[10px] text-muted-foreground">{sub}</p>}
+        </div>
+      </div>
+    </PremiumCard>
   );
 }
 
 function ProgressCard({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
   const pct = Math.round((value / max) * 100);
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-[11px] text-muted-foreground">{label}</p>
-          <p className="text-[13px] font-bold text-foreground">{pct}%</p>
-        </div>
-        <div className="h-1.5 rounded-full bg-muted">
-          <div className={`h-1.5 rounded-full ${color}`} style={{ width: `${pct}%` }} />
-        </div>
-        <p className="mt-1 text-[10px] text-muted-foreground">{value} / {max}</p>
-      </CardContent>
-    </Card>
+    <PremiumCard className="p-4">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[11px] text-muted-foreground">{label}</p>
+        <p className="text-[13px] font-bold text-foreground">{pct}%</p>
+      </div>
+      <div className="h-1.5 rounded-full bg-muted">
+        <div className={`h-1.5 rounded-full ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+      <p className="mt-1 text-[10px] text-muted-foreground">{value} / {max}</p>
+    </PremiumCard>
   );
 }
 

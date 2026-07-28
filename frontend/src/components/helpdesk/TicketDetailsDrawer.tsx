@@ -1,6 +1,6 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
-  Building2, ExternalLink, Mail, Paperclip, Phone, UserRound, X,
+  Building2, ExternalLink, FileText, Mail, Paperclip, Phone, UserRound, X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ import { TicketMessageComposer } from "@/components/helpdesk/TicketMessageCompos
 import { TicketPriorityBadge } from "@/components/helpdesk/TicketPriorityBadge";
 import { TicketStatusBadge } from "@/components/helpdesk/TicketStatusBadge";
 import { Button } from "@/components/ui/button";
+import { DetailCard } from "@/components/ui/DetailCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type {
   SupportTicket, TicketPriority, TicketStatus,
@@ -89,11 +90,18 @@ export function TicketDetailsDrawer({
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {/* Requester info */}
-            <div className="rounded-xl border border-border/60 p-3.5">
-              <p className="text-[12.5px] font-semibold text-foreground">Requester Information</p>
-              <div className="mt-2 grid grid-cols-2 gap-2.5 text-[12px]">
+            <DetailCard
+              icon={UserRound}
+              title="Requester Information"
+              action={
+                <Button variant="outline" size="sm" className="h-7 text-[11.5px]" onClick={() => toast.info(`Opening profile — ${r.name}`)}>
+                  View Profile
+                </Button>
+              }
+            >
+              <div className="grid grid-cols-2 gap-2.5 text-[12px]">
                 <div className="col-span-2 flex items-center gap-2 text-foreground">
                   <UserRound className="h-3.5 w-3.5 text-muted-foreground" /> {r.name} <span className="text-muted-foreground">· {r.role}</span>
                 </div>
@@ -115,22 +123,18 @@ export function TicketDetailsDrawer({
                   </div>
                 )}
               </div>
-              <Button variant="outline" size="sm" className="mt-3 h-7 text-[11.5px]" onClick={() => toast.info(`Opening profile — ${r.name}`)}>
-                View Profile
-              </Button>
-            </div>
+            </DetailCard>
 
             {/* Issue details */}
-            <div className="mt-4 rounded-xl border border-border/60 p-3.5">
-              <p className="text-[12.5px] font-semibold text-foreground">Issue Details</p>
-              <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
+            <DetailCard icon={FileText} title="Issue Details">
+              <div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
                 <span className="rounded-md bg-muted px-2 py-0.5">{ticket.category}</span>
                 <span className="rounded-md bg-muted px-2 py-0.5">Module: {ticket.module}</span>
                 <span className="rounded-md bg-muted px-2 py-0.5">Source: {ticket.source}</span>
               </div>
-              <p className="mt-2.5 text-[12.5px] leading-relaxed text-foreground">{ticket.description}</p>
+              <p className="text-[12.5px] leading-relaxed text-foreground">{ticket.description}</p>
               {ticket.attachments.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-1.5">
                   {ticket.attachments.map((a) => (
                     <span key={a.id} className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-[11px] text-muted-foreground">
                       <Paperclip className="h-3 w-3" /> {a.name} · {a.size}
@@ -139,15 +143,15 @@ export function TicketDetailsDrawer({
                 </div>
               )}
               {ticket.relatedRecords.length > 0 && (
-                <div className="mt-3">
+                <div>
                   <p className="mb-1.5 text-[11px] font-medium text-muted-foreground">Related Records</p>
                   <RelatedRecordsCard records={ticket.relatedRecords} />
                 </div>
               )}
-            </div>
+            </DetailCard>
 
             {/* Tabs */}
-            <Tabs defaultValue={defaultTab} key={ticket.id} className="mt-4">
+            <Tabs defaultValue={defaultTab} key={ticket.id}>
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="details" className="text-[11.5px]">Conversation</TabsTrigger>
                 <TabsTrigger value="notes" className="text-[11.5px]">Notes</TabsTrigger>

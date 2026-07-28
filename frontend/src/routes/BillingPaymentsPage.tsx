@@ -1,35 +1,67 @@
 import { useMemo, useState } from "react";
-import { Banknote, Landmark, ShieldAlert, ShieldX, Smartphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
+import { PaymentsSummaryCards } from "@/components/billing/PaymentsSummaryCards";
 import { PaymentsTable, type PaymentAction } from "@/components/billing/PaymentsTable";
-import { Reveal } from "@/components/motion";
-import { Card, CardContent } from "@/components/ui/card";
+import { PaymentsToolbar, type PaymentsFilters } from "@/components/billing/PaymentsToolbar";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { PAYMENTS, type Payment } from "@/data/billingData";
-import { cn } from "@/lib/utils";
+
+const PAGE_SIZE = 10;
+type SortField = "paymentId" | "studentName" | "amount" | "paymentDate" | "status";
+type SortDir = "asc" | "desc";
+
+const EMPTY_FILTERS: PaymentsFilters = { search: "", method: "all", status: "all" };
 
 export function BillingPaymentsPage() {
   const navigate = useNavigate();
   const [payments, setPayments] = useState<Payment[]>(PAYMENTS);
+  const [filters, setFilters] = useState<PaymentsFilters>(EMPTY_FILTERS);
+  const [sortField, setSortField] = useState<SortField>("paymentDate");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string | number>>(new Set());
 
-  const summary = useMemo(() => {
-    const cash = payments.filter((p) => p.method === "Cash").reduce((s, p) => s + p.amount, 0);
-    const bank = payments.filter((p) => p.method === "Bank Transfer").reduce((s, p) => s + p.amount, 0);
-    const online = payments.filter((p) => ["Card", "Online Wallet", "Mobile Banking"].includes(p.method)).reduce((s, p) => s + p.amount, 0);
-    const pending = payments.filter((p) => p.status === "Pending").length;
-    const failed = payments.filter((p) => p.status === "Failed").length;
-    return { total: payments.length, cash, bank, online, pending, failed };
-  }, [payments]);
+  function updateFilters(next: Partial<PaymentsFilters>) {
+    setFilters((f) => ({ ...f, ...next }));
+    setPage(1);
+  }
+  function resetFilters() {
+    setFilters(EMPTY_FILTERS);
+    setPage(1);
+  }
+  function handleSort(field: string) {
+    const f = field as SortField;
+    if (sortField === f) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortField(f); setSortDir("asc"); }
+    setPage(1);
+  }
 
-  const cards = [
-    { label: "Total Payments",         value: String(summary.total),           icon: Banknote,   tone: "blue" },
-    { label: "Cash",                   value: `$${summary.cash.toLocaleString()}`, icon: Banknote, tone: "green" },
-    { label: "Bank Transfer",          value: `$${summary.bank.toLocaleString()}`, icon: Landmark, tone: "green" },
-    { label: "Online",                 value: `$${summary.online.toLocaleString()}`, icon: Smartphone, tone: "green" },
-    { label: "Pending Verification",   value: String(summary.pending),          icon: ShieldAlert, tone: "amber" },
-    { label: "Failed Payments",        value: String(summary.failed),           icon: ShieldX,     tone: "red" },
-  ] as const;
+  const hasActiveFilter = !!filters.search || filters.method !== "all" || filters.status !== "all";
+
+  const filtered = useMemo(() => {
+    const q = filters.search.trim().toLowerCase();
+    return payments.filter((p) => {
+      if (filters.method !== "all" && p.method !== filters.method) return false;
+      if (filters.status !== "all" && p.status !== filters.status) return false;
+      if (q && !`${p.paymentId} ${p.invoiceNo} ${p.studentName} ${p.parentName}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [payments, filters]);
+
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const av: string | number = a[sortField] ?? "";
+      const bv: string | number = b[sortField] ?? "";
+      if (typeof av === "number" && typeof bv === "number") return sortDir === "asc" ? av - bv : bv - av;
+      return sortDir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+    });
+  }, [filtered, sortField, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated: Payment[] = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   function handleAction(p: Payment, action: PaymentAction) {
     switch (action) {
@@ -50,29 +82,34 @@ export function BillingPaymentsPage() {
 
   return (
     <div className="space-y-4">
-      <Reveal className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {cards.map((c) => {
-          const Icon = c.icon;
-          return (
-            <Card key={c.label} className="rounded-2xl border-border/60 shadow-sm">
-              <CardContent className="p-4">
-                <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg",
-                  c.tone === "green" ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300" :
-                  c.tone === "amber" ? "bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300" :
-                  c.tone === "red"   ? "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300" :
-                                       "bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300",
-                )}>
-                  <Icon className="h-4 w-4" />
-                </span>
-                <p className="mt-2 text-[11px] text-muted-foreground">{c.label}</p>
-                <p className="text-[15px] font-semibold tabular-nums text-foreground">{c.value}</p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </Reveal>
+      <PageHeader
+        title={
+          <>
+            {sorted.length} payment{sorted.length !== 1 ? "s" : ""}{" "}
+            {hasActiveFilter && (
+              <span className="text-base font-normal text-muted-foreground">(filtered from {payments.length} total)</span>
+            )}
+          </>
+        }
+        description="Track received payments, receipts, and refunds."
+      />
 
-      <PaymentsTable payments={payments} onAction={handleAction} />
+      <PaymentsSummaryCards payments={payments} />
+
+      <PaymentsToolbar filters={filters} onFiltersChange={updateFilters} hasActiveFilter={hasActiveFilter} onReset={resetFilters} />
+
+      <PaymentsTable
+        payments={paginated}
+        onAction={handleAction}
+        sortField={sortField}
+        sortDir={sortDir}
+        onSort={handleSort}
+        selected={selected}
+        onSelectionChange={setSelected}
+        pagination={{ page: safePage, pageSize: PAGE_SIZE, total: sorted.length, onPage: (p) => { setPage(p); setSelected(new Set()); }, itemLabel: "payments" }}
+        hasActiveFilter={hasActiveFilter}
+        onResetFilters={resetFilters}
+      />
     </div>
   );
 }

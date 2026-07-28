@@ -1,5 +1,6 @@
-import { BookOpen, Calendar, DollarSign, GraduationCap, PartyPopper, Users } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Bell, BookOpen, Calendar, DollarSign, GraduationCap, PartyPopper, Users } from "lucide-react";
+
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { ParentNotice } from "@/data/parentDetailsData";
 
 const CATEGORY_CFG: Record<ParentNotice["category"], { cls: string; icon: typeof BookOpen }> = {
@@ -13,11 +14,8 @@ const CATEGORY_CFG: Record<ParentNotice["category"], { cls: string; icon: typeof
 
 export function ParentNoticeBoard({ notices }: { notices: ParentNotice[] }) {
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-[14px] font-semibold">Notice Board</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <DetailCard icon={Bell} title="Notice Board">
+      <div className="space-y-4">
         {notices.length === 0 && (
           <p className="py-8 text-center text-sm text-muted-foreground">No notices available.</p>
         )}
@@ -54,7 +52,7 @@ export function ParentNoticeBoard({ notices }: { notices: ParentNotice[] }) {
             </div>
           );
         })}
-      </CardContent>
-    </Card>
+      </div>
+    </DetailCard>
   );
 }

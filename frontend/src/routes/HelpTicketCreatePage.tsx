@@ -1,10 +1,10 @@
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, FilePlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { CreateTicketForm, type NewTicketFormData } from "@/components/helpdesk/CreateTicketModal";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { FormSection } from "@/components/ui/form-section";
 import { createTicketFromForm } from "@/data/helpDeskData";
 
 export function HelpTicketCreatePage() {
@@ -23,15 +23,13 @@ export function HelpTicketCreatePage() {
         <ChevronLeft className="h-3.5 w-3.5" /> Back to Help Desk
       </Button>
 
-      <Card className="rounded-2xl border-border/60 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base font-semibold">New Support Ticket</CardTitle>
-          <CardDescription>Manually log a support request on behalf of a student, parent, teacher, or staff member.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <CreateTicketForm submitLabel="Create Ticket" onCreate={handleCreate} />
-        </CardContent>
-      </Card>
+      <FormSection
+        icon={FilePlus}
+        title="New Support Ticket"
+        subtitle="Manually log a support request on behalf of a student, parent, teacher, or staff member."
+      >
+        <CreateTicketForm submitLabel="Create Ticket" onCreate={handleCreate} />
+      </FormSection>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { SuccessCheck } from "@/components/motion";
 import { Button } from "@/components/ui/button";
+import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import {
   ASSIGNEE_DIRECTORY,
   PRIORITY_OPTIONS,
@@ -107,12 +108,13 @@ export function TicketAssignmentPanel({
         <div className="grid grid-cols-2 gap-2.5">
           <div className="col-span-2">
             <label className="text-[11px] font-medium text-muted-foreground">Assign To</label>
-            <select value={assignTo} onChange={(e) => { setAssignTo(e.target.value); setAssignError(null); }} className={cn(inputClass(!!assignError), "mt-1")}>
-              <option value="">Select assignee</option>
-              {ASSIGNEE_DIRECTORY.map((a) => (
-                <option key={a.id} value={a.name}>{a.name} — {a.department}</option>
-              ))}
-            </select>
+            <PremiumSelect
+              value={assignTo}
+              onChange={(v) => { setAssignTo(v); setAssignError(null); }}
+              placeholder="Select assignee"
+              className="mt-1"
+              options={ASSIGNEE_DIRECTORY.map((a) => ({ value: a.name, label: `${a.name} — ${a.department}` }))}
+            />
             {assignError && <p className="mt-1 text-[11px] text-rose-500">{assignError}</p>}
           </div>
           <div>
@@ -121,9 +123,12 @@ export function TicketAssignmentPanel({
           </div>
           <div>
             <label className="text-[11px] font-medium text-muted-foreground">Priority</label>
-            <select value={assignPriority} onChange={(e) => setAssignPriority(e.target.value as TicketPriority)} className={cn(inputClass(), "mt-1")}>
-              {PRIORITY_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
+            <PremiumSelect
+              value={assignPriority}
+              onChange={(v) => setAssignPriority(v as TicketPriority)}
+              className="mt-1"
+              options={PRIORITY_OPTIONS.map((p) => ({ value: p, label: p }))}
+            />
           </div>
           <div className="col-span-2">
             <label className="text-[11px] font-medium text-muted-foreground">Internal Note (optional)</label>
@@ -148,9 +153,11 @@ export function TicketAssignmentPanel({
           </div>
         ) : (
           <>
-            <select value={nextStatus} onChange={(e) => { setNextStatus(e.target.value as TicketStatus); setResolutionError(null); }} className={inputClass()}>
-              {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
+            <PremiumSelect
+              value={nextStatus}
+              onChange={(v) => { setNextStatus(v as TicketStatus); setResolutionError(null); }}
+              options={STATUS_OPTIONS.map((s) => ({ value: s, label: s }))}
+            />
 
             {nextStatus === "Resolved" && (
               <div className={cn("space-y-2.5 rounded-lg bg-muted/40 p-2.5", resolutionError && "t-shake")}>
@@ -163,10 +170,13 @@ export function TicketAssignmentPanel({
                 </div>
                 <div>
                   <label className="text-[11px] font-medium text-muted-foreground">Resolution Category</label>
-                  <select value={resolutionCategory} onChange={(e) => setResolutionCategory(e.target.value)} className={cn(inputClass(), "mt-1")}>
-                    <option value="">Select category</option>
-                    {RESOLUTION_CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  <PremiumSelect
+                    value={resolutionCategory}
+                    onChange={setResolutionCategory}
+                    placeholder="Select category"
+                    className="mt-1"
+                    options={RESOLUTION_CATEGORY_OPTIONS.map((c) => ({ value: c, label: c }))}
+                  />
                 </div>
                 <label className="flex items-center gap-2 text-[12px] text-muted-foreground">
                   <input type="checkbox" checked={notifyRequester} onChange={(e) => setNotifyRequester(e.target.checked)} className="h-3.5 w-3.5 rounded border-input" />
@@ -186,10 +196,12 @@ export function TicketAssignmentPanel({
           <div className="grid grid-cols-2 gap-2.5">
             <div>
               <label className="text-[11px] font-medium text-muted-foreground">Escalate To</label>
-              <select value={escalateTo} onChange={(e) => setEscalateTo(e.target.value)} className={cn(inputClass(), "mt-1")}>
-                <option>Principal</option>
-                <option>Super Admin</option>
-              </select>
+              <PremiumSelect
+                value={escalateTo}
+                onChange={setEscalateTo}
+                className="mt-1"
+                options={[{ value: "Principal", label: "Principal" }, { value: "Super Admin", label: "Super Admin" }]}
+              />
             </div>
             <div>
               <label className="text-[11px] font-medium text-muted-foreground">Due Date</label>

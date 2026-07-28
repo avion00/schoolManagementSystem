@@ -1,4 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CalendarClock } from "lucide-react";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { TimetableRow } from "@/data/classDetailData";
 
 const DAYS = ["monday","tuesday","wednesday","thursday","friday"] as const;
@@ -6,11 +7,7 @@ const DAY_LABELS = { monday:"Mon", tuesday:"Tue", wednesday:"Wed", thursday:"Thu
 
 export function ClassTimetableCard({ timetable }: { timetable: TimetableRow[] }) {
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-[14px] font-semibold">Weekly Timetable</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <DetailCard icon={CalendarClock} title="Weekly Timetable">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-[12px]">
             <thead>
@@ -54,7 +51,6 @@ export function ClassTimetableCard({ timetable }: { timetable: TimetableRow[] })
             </tbody>
           </table>
         </div>
-      </CardContent>
-    </Card>
+    </DetailCard>
   );
 }

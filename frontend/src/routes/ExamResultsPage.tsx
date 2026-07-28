@@ -1,22 +1,25 @@
 import { useState, useMemo } from "react";
-import { BarChart2, TrendingUp } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { Award, BarChart2, ListChecks, Percent, TrendingUp, Users } from "lucide-react";
+import { CATEGORICAL_COLORS, STATUS_COLORS } from "@/components/charts/palette";
+import { Reveal } from "@/components/motion";
+import { KPITrendCard } from "@/components/ui/KPITrendCard";
+import { METRIC_TONES } from "@/components/ui/MetricCard";
+import { PremiumCard } from "@/components/ui/PremiumCard";
+import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { ExamResultsTable } from "@/components/exams/ExamResultsTable";
 import { GradeBadge }       from "@/components/exams/GradeBadge";
 import { EXAM_RESULTS, EXAM_TERM_OPTIONS, CLASS_OPTIONS, SECTION_OPTIONS } from "@/data/examsData";
 import { cn } from "@/lib/utils";
 
-function Sel({ label, value, options, onChange }: {
-  label: string; value: string; options: string[]; onChange: (v: string) => void;
-}) {
-  return (
-    <select value={value} onChange={(e) => onChange(e.target.value)}
-      className="h-9 rounded-md border border-input bg-background px-2.5 text-[12px] text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring">
-      <option value="">{label}</option>
-      {options.map((o) => <option key={o} value={o}>{o}</option>)}
-    </select>
-  );
-}
+type SortField = "rank" | "studentName" | "roll" | "totalMarks" | "percentage" | "gpa";
+type SortDir = "asc" | "desc";
+const PAGE_SIZE = 15;
+
+const SPARK = {
+  up: [{ value: 28 }, { value: 29 }, { value: 30 }, { value: 31 }, { value: 32 }, { value: 33 }, { value: 34 }],
+  upSlow: [{ value: 70 }, { value: 71 }, { value: 72 }, { value: 71 }, { value: 73 }, { value: 74 }, { value: 75 }],
+  flat: [{ value: 3 }, { value: 3 }, { value: 3 }, { value: 3 }, { value: 3 }, { value: 3 }, { value: 3 }],
+};
 
 // Grade distribution
 function gradeDistribution(results: typeof EXAM_RESULTS) {
@@ -29,6 +32,16 @@ export function ExamResultsPage() {
   const [term,    setTerm]    = useState<string>("First Term");
   const [cls,     setCls]     = useState<string>("Grade 6");
   const [section, setSection] = useState<string>("A");
+  const [sortField, setSortField] = useState<SortField>("rank");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [page, setPage] = useState(1);
+
+  function handleSort(field: string) {
+    const f = field as SortField;
+    if (sortField === f) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortField(f); setSortDir("asc"); }
+    setPage(1);
+  }
 
   const filtered = useMemo(() =>
     EXAM_RESULTS.filter((r) => {
@@ -38,6 +51,18 @@ export function ExamResultsPage() {
       return true;
     }),
   [term, cls, section]);
+
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const av = a[sortField], bv = b[sortField];
+      if (typeof av === "number" && typeof bv === "number") return sortDir === "asc" ? av - bv : bv - av;
+      return sortDir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+    });
+  }, [filtered, sortField, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const passCount   = filtered.filter((r) => r.result === "Pass").length;
   const failCount   = filtered.filter((r) => r.result === "Fail").length;
@@ -49,50 +74,88 @@ export function ExamResultsPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div>
+      <Reveal>
         <h1 className="text-2xl font-bold text-foreground">Exam Results</h1>
         <p className="text-[13px] text-muted-foreground mt-0.5">
           Published results for {filtered.length} students
         </p>
-      </div>
+      </Reveal>
 
       {/* Filters */}
-      <Card className="p-4">
+      <PremiumCard className="p-4">
         <div className="flex flex-wrap items-center gap-3">
-          <Sel label="All Terms"    value={term}    options={EXAM_TERM_OPTIONS as unknown as string[]} onChange={setTerm}    />
-          <Sel label="All Classes"  value={cls}     options={CLASS_OPTIONS}                             onChange={setCls}     />
-          <Sel label="All Sections" value={section} options={SECTION_OPTIONS}                           onChange={setSection} />
+          <PremiumSelect
+            value={term}
+            onChange={(v) => { setTerm(v); setPage(1); }}
+            className="w-40"
+            placeholder="All Terms"
+            options={EXAM_TERM_OPTIONS.map((t) => ({ value: t, label: t }))}
+          />
+          <PremiumSelect
+            value={cls}
+            onChange={(v) => { setCls(v); setPage(1); }}
+            className="w-36"
+            placeholder="All Classes"
+            options={CLASS_OPTIONS.map((c) => ({ value: c, label: c }))}
+          />
+          <PremiumSelect
+            value={section}
+            onChange={(v) => { setSection(v); setPage(1); }}
+            className="w-36"
+            placeholder="All Sections"
+            options={SECTION_OPTIONS.map((s) => ({ value: s, label: `Section ${s}` }))}
+          />
           <span className="ml-auto text-[11px] text-muted-foreground">{filtered.length} results</span>
         </div>
-      </Card>
+      </PremiumCard>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card className="p-4 text-center">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Total Students</p>
-          <p className="text-2xl font-bold text-foreground mt-1">{filtered.length}</p>
-        </Card>
-        <Card className="p-4 text-center">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Pass / Fail</p>
-          <p className="text-2xl font-bold mt-1">
-            <span className="text-emerald-600">{passCount}</span>
-            <span className="text-muted-foreground text-[14px] mx-1">/</span>
-            <span className="text-rose-600">{failCount}</span>
-          </p>
-        </Card>
-        <Card className="p-4 text-center">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Average %</p>
-          <p className="text-2xl font-bold text-foreground mt-1">{avgPct}%</p>
-        </Card>
-        <Card className="p-4 text-center">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Avg GPA</p>
-          <p className="text-2xl font-bold text-indigo-600 mt-1">{avgGpa}</p>
-        </Card>
+        <KPITrendCard
+          label="Total Students"
+          value={filtered.length}
+          icon={Users}
+          iconCls={METRIC_TONES.blue}
+          trend={{ value: "+4.2%", up: true, compareLabel: "vs last term" }}
+          sparklineData={SPARK.up}
+          sparklineColor={CATEGORICAL_COLORS[0]}
+        />
+        <KPITrendCard
+          label="Pass / Fail"
+          value={`${passCount} / ${failCount}`}
+          icon={ListChecks}
+          iconCls={METRIC_TONES.purple}
+          trend={{
+            value: passCount >= failCount ? "+3.0%" : "-3.0%",
+            up: passCount >= failCount,
+            compareLabel: "pass rate vs last term",
+          }}
+          sparklineData={SPARK.flat}
+          sparklineColor={CATEGORICAL_COLORS[4]}
+        />
+        <KPITrendCard
+          label="Average %"
+          value={`${avgPct}%`}
+          icon={Percent}
+          iconCls={METRIC_TONES.amber}
+          trend={{ value: "+1.6%", up: true, compareLabel: "vs last term" }}
+          sparklineData={SPARK.upSlow}
+          sparklineColor={STATUS_COLORS.warning}
+        />
+        <KPITrendCard
+          label="Avg GPA"
+          value={avgGpa}
+          icon={Award}
+          iconCls={METRIC_TONES.cyan}
+          trend={{ value: "+0.8%", up: true, compareLabel: "vs last term" }}
+          sparklineData={SPARK.upSlow}
+          sparklineColor={CATEGORICAL_COLORS[5]}
+        />
       </div>
 
       {/* Grade distribution */}
       {filtered.length > 0 && (
-        <Card className="p-5">
+        <PremiumCard className="p-5">
           <div className="flex items-center gap-2 mb-4">
             <BarChart2 className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-[13px] font-semibold text-foreground">Grade Distribution</h2>
@@ -114,17 +177,23 @@ export function ExamResultsPage() {
               );
             })}
           </div>
-        </Card>
+        </PremiumCard>
       )}
 
       {/* Results table */}
-      <Card className="p-5">
+      <PremiumCard className="p-5">
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
           <h2 className="text-[13px] font-semibold text-foreground">Student Results</h2>
         </div>
-        <ExamResultsTable results={filtered} />
-      </Card>
+        <ExamResultsTable
+          results={paginated}
+          sortField={sortField}
+          sortDir={sortDir}
+          onSort={handleSort}
+          pagination={{ page: safePage, pageSize: PAGE_SIZE, total: sorted.length, onPage: setPage, itemLabel: "results" }}
+        />
+      </PremiumCard>
     </div>
   );
 }

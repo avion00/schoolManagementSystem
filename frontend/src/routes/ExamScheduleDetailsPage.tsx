@@ -1,10 +1,12 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { AlertTriangle, ArrowLeft, BookOpen, CalendarDays, Clock, FileText, Pencil, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card }   from "@/components/ui/card";
+import { DetailCard } from "@/components/ui/DetailCard";
+import { PremiumCard }   from "@/components/ui/PremiumCard";
 import { ExamStatusBadge } from "@/components/exams/ExamStatusBadge";
 import { EXAM_SCHEDULES, EXAM_CONFLICT_IDS } from "@/data/examsData";
 import { cn } from "@/lib/utils";
+import type { LucideIcon } from "lucide-react";
 
 // Gradient per status
 const STATUS_GRAD: Record<string, string> = {
@@ -19,10 +21,10 @@ const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","
 function dayName(d: string) { return DAY_NAMES[new Date(d).getDay()]; }
 
 function InfoCard({ icon: Icon, label, value, sub, highlight }: {
-  icon: React.FC<{className?: string}>; label: string; value: string; sub?: string; highlight?: boolean;
+  icon: LucideIcon; label: string; value: string; sub?: string; highlight?: boolean;
 }) {
   return (
-    <Card className={cn(
+    <PremiumCard className={cn(
       "p-4 flex items-start gap-3",
       highlight && "border-rose-200 bg-rose-50/50 dark:border-rose-800 dark:bg-rose-950/20",
     )}>
@@ -34,7 +36,7 @@ function InfoCard({ icon: Icon, label, value, sub, highlight }: {
         <p className={cn("text-[13px] font-semibold text-foreground mt-0.5", highlight && "text-rose-700")}>{value}</p>
         {sub && <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>}
       </div>
-    </Card>
+    </PremiumCard>
   );
 }
 
@@ -155,25 +157,21 @@ export function ExamScheduleDetailsPage() {
 
       {/* Instructions */}
       {exam.instructions && (
-        <Card className="p-5">
-          <h3 className="text-[13px] font-semibold text-foreground mb-2">Student Instructions</h3>
+        <DetailCard icon={FileText} title="Student Instructions">
           <p className="text-[12px] text-muted-foreground leading-relaxed">{exam.instructions}</p>
-        </Card>
+        </DetailCard>
       )}
 
       {/* Other exams on same date */}
       {sameDay.length > 0 && (
-        <Card className="p-5">
-          <h3 className="text-[13px] font-semibold text-foreground mb-3">
-            Other Exams on {exam.date}
-          </h3>
+        <DetailCard icon={CalendarDays} title={`Other Exams on ${exam.date}`}>
           <div className="space-y-2">
             {sameDay.map((e) => (
               <div key={e.id}
                 onClick={() => navigate(`/exams/schedule/${e.id}`)}
                 className={cn(
                   "flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-muted/30 transition-colors",
-                  EXAM_CONFLICT_IDS.has(e.id) && "border-rose-200 bg-rose-50/30",
+                  EXAM_CONFLICT_IDS.has(e.id) ? "border-rose-200 bg-rose-50/30" : "border-neutral-200/80 dark:border-neutral-800",
                 )}>
                 <ExamStatusBadge status={e.status} />
                 <div className="flex-1 min-w-0">
@@ -184,7 +182,7 @@ export function ExamScheduleDetailsPage() {
               </div>
             ))}
           </div>
-        </Card>
+        </DetailCard>
       )}
     </div>
   );

@@ -14,7 +14,7 @@ export function NotificationEmptyState({
   onReset?: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-2xl border border-border/60 bg-card py-16 text-center shadow-sm">
+    <div className="flex flex-col items-center gap-2 rounded-2xl border border-border/60 bg-card py-16 text-center shadow-elevated">
       <span className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
         <Icon className="h-5 w-5 text-muted-foreground" />
       </span>

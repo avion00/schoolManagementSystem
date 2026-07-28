@@ -1,6 +1,6 @@
 import { Users } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { GuardianInfo } from "@/data/studentDetailsData";
 
 function Row({ label, value }: { label: string; value?: string | null }) {
@@ -23,14 +23,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export function GuardianInfoCard({ guardian }: { guardian: GuardianInfo }) {
   return (
-    <Card className="rounded-2xl shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-          <Users className="h-4 w-4 text-primary" />
-          Parent / Guardian Information
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <DetailCard icon={Users} title="Parent / Guardian Information">
+      <div className="space-y-6">
         <Section title="Father">
           <Row label="Name"       value={guardian.fatherName} />
           <Row label="Occupation" value={guardian.fatherOccupation} />
@@ -38,7 +32,7 @@ export function GuardianInfoCard({ guardian }: { guardian: GuardianInfo }) {
           <Row label="Email"      value={guardian.fatherEmail} />
         </Section>
 
-        <div className="h-px bg-border/60" />
+        <div className="h-px bg-neutral-200/80 dark:bg-neutral-800" />
 
         <Section title="Mother">
           <Row label="Name"       value={guardian.motherName} />
@@ -47,7 +41,7 @@ export function GuardianInfoCard({ guardian }: { guardian: GuardianInfo }) {
           <Row label="Email"      value={guardian.motherEmail} />
         </Section>
 
-        <div className="h-px bg-border/60" />
+        <div className="h-px bg-neutral-200/80 dark:bg-neutral-800" />
 
         <Section title="Emergency">
           <Row label="Guardian Name"     value={guardian.guardianName} />
@@ -55,7 +49,7 @@ export function GuardianInfoCard({ guardian }: { guardian: GuardianInfo }) {
           <Row label="Guardian Phone"    value={guardian.guardianPhone} />
           <Row label="Emergency Contact" value={guardian.emergencyContact} />
         </Section>
-      </CardContent>
-    </Card>
+      </div>
+    </DetailCard>
   );
 }

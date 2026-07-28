@@ -1,5 +1,10 @@
-import { BarChart2, TrendingUp, Users, GraduationCap } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { BarChart2, TrendingUp, Users, GraduationCap, Percent, AlertTriangle } from "lucide-react";
+import { Reveal } from "@/components/motion";
+import { PremiumCard } from "@/components/ui/PremiumCard";
+import { PremiumDataTable, type PremiumDataTableColumn } from "@/components/ui/PremiumDataTable";
+import { KPITrendCard } from "@/components/ui/KPITrendCard";
+import { METRIC_TONES } from "@/components/ui/MetricCard";
+import { CATEGORICAL_COLORS, STATUS_COLORS as PALETTE_STATUS_COLORS } from "@/components/charts/palette";
 import {
   ATTENDANCE_STATS, MONTHLY_TREND, CLASS_COMPARISON,
   G6A_JUNE_ATT, G6A_JULY_ATT, G7A_JULY_ATT,
@@ -32,6 +37,31 @@ function buildStudentStats() {
 }
 
 const STUDENT_STATS = buildStudentStats();
+type StudentStatRow = (typeof STUDENT_STATS)[number];
+
+const lowAttendanceColumns: PremiumDataTableColumn<StudentStatRow>[] = [
+  { key: "name", header: "Student", render: (s) => <span className="font-medium text-foreground">{s.name}</span> },
+  { key: "class", header: "Class", render: (s) => <span className="text-muted-foreground">{s.className} {s.section}</span> },
+  { key: "present", header: "Present", align: "center", render: (s) => <span className="font-semibold text-emerald-600">{s.present}</span> },
+  { key: "absent", header: "Absent", align: "center", render: (s) => <span className="font-semibold text-rose-600">{s.absent}</span> },
+  { key: "rate", header: "Rate", align: "center", render: (s) => <span className="font-bold text-rose-600">{s.rate}%</span> },
+];
+
+const allStudentsColumns: PremiumDataTableColumn<StudentStatRow>[] = [
+  { key: "name", header: "Name", render: (s) => <span className="font-medium text-foreground">{s.name}</span> },
+  { key: "class", header: "Class", render: (s) => <span className="text-muted-foreground">{s.className} {s.section}</span> },
+  { key: "totalWorking", header: "Total Days", align: "center", render: (s) => <span>{s.totalWorking}</span> },
+  { key: "present", header: "Present", align: "center", render: (s) => <span className="font-semibold text-emerald-600">{s.present}</span> },
+  { key: "absent", header: "Absent", align: "center", render: (s) => <span className="font-semibold text-rose-600">{s.absent}</span> },
+  { key: "late", header: "Late", align: "center", render: (s) => <span className="font-semibold text-amber-600">{s.late}</span> },
+  {
+    key: "rate", header: "Rate", align: "center", render: (s) => (
+      <span className={cn("font-bold", s.rate >= 90 ? "text-emerald-600" : s.rate >= 75 ? "text-amber-600" : "text-rose-600")}>
+        {s.rate}%
+      </span>
+    ),
+  },
+];
 
 // Status distribution across all records
 function buildStatusDist() {
@@ -71,35 +101,71 @@ const STATUS_TEXT: Record<string, string> = {
   leave:      "text-violet-600",
 };
 
+const REPORT_SPARK = {
+  rate:     [{ value: 84 }, { value: 85 }, { value: 87 }, { value: 86 }, { value: 88 }, { value: 89 }, { value: 90 }],
+  students: [{ value: 16 }, { value: 17 }, { value: 17 }, { value: 18 }, { value: 18 }, { value: 18 }, { value: 18 }],
+  teachers: [{ value: 7 }, { value: 7 }, { value: 8 }, { value: 8 }, { value: 8 }, { value: 8 }, { value: 8 }],
+  lowUp:    [{ value: 1 }, { value: 2 }, { value: 2 }, { value: 3 }, { value: 3 }, { value: 4 }, { value: 4 }],
+  lowDown:  [{ value: 4 }, { value: 3 }, { value: 3 }, { value: 2 }, { value: 1 }, { value: 1 }, { value: 0 }],
+};
+
 export function AttendanceReportsPage() {
   const lowAttStudents = STUDENT_STATS.filter((s) => s.rate < 80);
+  const hasLowAtt = lowAttStudents.length > 0;
+
+  const kpis = [
+    {
+      label: "Overall Rate", value: `${ATTENDANCE_STATS.monthlyRate}%`, icon: Percent, tone: METRIC_TONES.blue,
+      sparkColor: CATEGORICAL_COLORS[0], sparkData: REPORT_SPARK.rate,
+      trend: { value: "+1.4%", up: true, compareLabel: "July 2026" },
+    },
+    {
+      label: "Total Students", value: "18", icon: GraduationCap, tone: METRIC_TONES.green,
+      sparkColor: PALETTE_STATUS_COLORS.good, sparkData: REPORT_SPARK.students,
+      trend: { value: "0.0%", up: true, compareLabel: "2 classes" },
+    },
+    {
+      label: "Total Teachers", value: "8", icon: Users, tone: METRIC_TONES.purple,
+      sparkColor: CATEGORICAL_COLORS[4], sparkData: REPORT_SPARK.teachers,
+      trend: { value: "0.0%", up: true, compareLabel: "Teaching staff" },
+    },
+    {
+      label: "Low Attendance", value: lowAttStudents.length, icon: AlertTriangle,
+      tone: hasLowAtt ? METRIC_TONES.red : METRIC_TONES.green,
+      sparkColor: hasLowAtt ? PALETTE_STATUS_COLORS.critical : PALETTE_STATUS_COLORS.good,
+      sparkData: hasLowAtt ? REPORT_SPARK.lowUp : REPORT_SPARK.lowDown,
+      trend: { value: hasLowAtt ? "+1" : "-1", up: !hasLowAtt, compareLabel: "Below 80%" },
+    },
+  ];
 
   return (
     <div className="space-y-5">
-      <div>
+      <Reveal>
         <h1 className="text-2xl font-bold text-foreground">Attendance Reports & Analytics</h1>
         <p className="text-[13px] text-muted-foreground mt-0.5">Comprehensive attendance analysis across all classes</p>
-      </div>
+      </Reveal>
 
       {/* Top KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {([
-          ["Overall Rate",    `${ATTENDANCE_STATS.monthlyRate}%`,  "indigo",  "July 2026"],
-          ["Total Students",  "18",                                  "teal",    "2 classes"],
-          ["Total Teachers",  "8",                                   "violet",  "Teaching staff"],
-          ["Low Attendance",  lowAttStudents.length,                 lowAttStudents.length > 0 ? "rose" : "emerald", "Below 80%"],
-        ] as [string, string | number, string, string][]).map(([label, val, color, sub]) => (
-          <Card key={label} className="p-4">
-            <p className={cn("text-2xl font-bold", `text-${color}-600`)}>{val}</p>
-            <p className="text-[12px] font-medium text-foreground mt-0.5">{label}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>
-          </Card>
+        {kpis.map((k, i) => (
+          <Reveal key={k.label} delay={i * 40}>
+            <KPITrendCard
+              label={k.label}
+              value={k.value}
+              icon={k.icon}
+              iconCls={k.tone}
+              trend={k.trend}
+              sparklineData={k.sparkData}
+              sparklineColor={k.sparkColor}
+            />
+          </Reveal>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Monthly trend chart */}
-        <Card className="p-5">
+        <Reveal delay={40}>
+        <PremiumCard className="p-5">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-[14px] font-semibold text-foreground">Monthly Attendance Trend</h2>
@@ -121,10 +187,12 @@ export function AttendanceReportsPage() {
               );
             })}
           </div>
-        </Card>
+        </PremiumCard>
+        </Reveal>
 
         {/* Status distribution */}
-        <Card className="p-5">
+        <Reveal delay={80}>
+        <PremiumCard className="p-5">
           <div className="flex items-center gap-2 mb-4">
             <BarChart2 className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-[14px] font-semibold text-foreground">Status Distribution</h2>
@@ -149,10 +217,12 @@ export function AttendanceReportsPage() {
               </div>
             ))}
           </div>
-        </Card>
+        </PremiumCard>
+        </Reveal>
 
         {/* Class comparison */}
-        <Card className="p-5">
+        <Reveal delay={120}>
+        <PremiumCard className="p-5">
           <div className="flex items-center gap-2 mb-4">
             <Users className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-[14px] font-semibold text-foreground">Class Attendance Rate</h2>
@@ -175,10 +245,12 @@ export function AttendanceReportsPage() {
               </div>
             ))}
           </div>
-        </Card>
+        </PremiumCard>
+        </Reveal>
 
         {/* Top students */}
-        <Card className="p-5">
+        <Reveal delay={160}>
+        <PremiumCard className="p-5">
           <div className="flex items-center gap-2 mb-4">
             <GraduationCap className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-[14px] font-semibold text-foreground">Top 5 Students</h2>
@@ -199,78 +271,27 @@ export function AttendanceReportsPage() {
               </div>
             ))}
           </div>
-        </Card>
+        </PremiumCard>
+        </Reveal>
       </div>
 
       {/* Low attendance alert */}
       {lowAttStudents.length > 0 && (
-        <Card className="p-5 border-rose-200 bg-rose-50/40 dark:border-rose-800 dark:bg-rose-950/10">
-          <h2 className="text-[14px] font-semibold text-rose-700 mb-3">Low Attendance Alert (Below 80%)</h2>
-          <div className="overflow-x-auto rounded-xl border border-rose-200">
-            <table className="min-w-full text-[12px]">
-              <thead className="bg-rose-50 border-b border-rose-200">
-                <tr>
-                  <th className="px-4 py-2 text-left text-[11px] font-semibold text-rose-700 uppercase">Student</th>
-                  <th className="px-4 py-2 text-left text-[11px] font-semibold text-rose-700 uppercase">Class</th>
-                  <th className="px-4 py-2 text-center text-[11px] font-semibold text-rose-700 uppercase">Present</th>
-                  <th className="px-4 py-2 text-center text-[11px] font-semibold text-rose-700 uppercase">Absent</th>
-                  <th className="px-4 py-2 text-center text-[11px] font-semibold text-rose-700 uppercase">Rate</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-rose-100">
-                {lowAttStudents.map((s) => (
-                  <tr key={s.id} className="bg-white dark:bg-rose-950/5">
-                    <td className="px-4 py-2.5 font-medium text-foreground">{s.name}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{s.className} {s.section}</td>
-                    <td className="px-4 py-2.5 text-center font-semibold text-emerald-600">{s.present}</td>
-                    <td className="px-4 py-2.5 text-center font-semibold text-rose-600">{s.absent}</td>
-                    <td className="px-4 py-2.5 text-center font-bold text-rose-600">{s.rate}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <Reveal delay={200}>
+        <PremiumCard className="overflow-hidden border-rose-200 bg-rose-50/40 dark:border-rose-800 dark:bg-rose-950/10">
+          <h2 className="px-5 pt-5 text-[14px] font-semibold text-rose-700 mb-3">Low Attendance Alert (Below 80%)</h2>
+          <PremiumDataTable columns={lowAttendanceColumns} rows={lowAttStudents} rowKey={(s) => s.id} stickyHeader={false} />
+        </PremiumCard>
+        </Reveal>
       )}
 
       {/* Full student table */}
-      <Card className="p-5">
-        <h2 className="text-[14px] font-semibold text-foreground mb-4">All Students Attendance Summary</h2>
-        <div className="overflow-x-auto rounded-xl border border-border/60">
-          <table className="min-w-full text-[12px]">
-            <thead className="bg-muted/40 border-b border-border/60">
-              <tr>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase">#</th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase">Name</th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase">Class</th>
-                <th className="px-4 py-2.5 text-center text-[11px] font-semibold text-muted-foreground uppercase">Total Days</th>
-                <th className="px-4 py-2.5 text-center text-[11px] font-semibold text-muted-foreground uppercase">Present</th>
-                <th className="px-4 py-2.5 text-center text-[11px] font-semibold text-muted-foreground uppercase">Absent</th>
-                <th className="px-4 py-2.5 text-center text-[11px] font-semibold text-muted-foreground uppercase">Late</th>
-                <th className="px-4 py-2.5 text-center text-[11px] font-semibold text-muted-foreground uppercase">Rate</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/40">
-              {STUDENT_STATS.map((s, idx) => (
-                <tr key={s.id} className="hover:bg-muted/20">
-                  <td className="px-4 py-2.5 text-muted-foreground">{idx + 1}</td>
-                  <td className="px-4 py-2.5 font-medium text-foreground">{s.name}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground">{s.className} {s.section}</td>
-                  <td className="px-4 py-2.5 text-center">{s.totalWorking}</td>
-                  <td className="px-4 py-2.5 text-center font-semibold text-emerald-600">{s.present}</td>
-                  <td className="px-4 py-2.5 text-center font-semibold text-rose-600">{s.absent}</td>
-                  <td className="px-4 py-2.5 text-center font-semibold text-amber-600">{s.late}</td>
-                  <td className="px-4 py-2.5 text-center">
-                    <span className={cn("font-bold",
-                      s.rate >= 90 ? "text-emerald-600" : s.rate >= 75 ? "text-amber-600" : "text-rose-600"
-                    )}>{s.rate}%</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      <Reveal delay={240}>
+      <PremiumCard className="overflow-hidden">
+        <h2 className="px-5 pt-5 text-[14px] font-semibold text-foreground mb-4">All Students Attendance Summary</h2>
+        <PremiumDataTable columns={allStudentsColumns} rows={STUDENT_STATS} rowKey={(s) => s.id} stickyHeader={false} />
+      </PremiumCard>
+      </Reveal>
     </div>
   );
 }

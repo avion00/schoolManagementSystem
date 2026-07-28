@@ -3,7 +3,7 @@ import { useNavigate }               from "react-router-dom";
 import { ArrowLeft, Printer }        from "lucide-react";
 import { Button }                    from "@/components/ui/button";
 import { PrintableClassRoutine }     from "@/components/classRoutine/PrintableClassRoutine";
-import { CLASS_OPTIONS, SECTION_OPTIONS, ACADEMIC_YEAR_OPTIONS, ROUTINES } from "@/data/classRoutineData";
+import { ACADEMIC_YEAR_OPTIONS, ROUTINES } from "@/data/classRoutineData";
 
 function usePrintStyles() {
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ClipboardCheck } from "lucide-react";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { AttendanceSummary } from "@/data/classDetailData";
 
 const DAY_LABELS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
@@ -26,11 +27,7 @@ export function ClassAttendanceCard({ attendance }: { attendance: AttendanceSumm
   const chartData = attendance.last7Days.map((v, i) => ({ day: DAY_LABELS[i % 7], pct: v }));
 
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-[14px] font-semibold">Attendance Summary</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-5">
+    <DetailCard icon={ClipboardCheck} title="Attendance Summary">
         {/* Ring stats */}
         <div className="flex flex-wrap justify-around gap-4">
           <Ring pct={attendance.presentPct}  color="text-emerald-500" label="Present"  />
@@ -80,7 +77,6 @@ export function ClassAttendanceCard({ attendance }: { attendance: AttendanceSumm
             ))}
           </div>
         </div>
-      </CardContent>
-    </Card>
+    </DetailCard>
   );
 }

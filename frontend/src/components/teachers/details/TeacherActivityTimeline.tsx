@@ -1,13 +1,15 @@
 import {
   BookOpen,
   CalendarCheck,
+  CheckCircle,
   CreditCard,
   FileText,
   Trophy,
   UserPlus,
   RefreshCw,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { TeacherActivity } from "@/data/teacherDetailsData";
 
 const ICON_MAP: Record<TeacherActivity["type"], { Icon: typeof UserPlus; color: string; bg: string }> = {
@@ -29,31 +31,26 @@ function fmtTs(ts: string) {
 
 export function TeacherActivityTimeline({ activities }: { activities: TeacherActivity[] }) {
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-[14px] font-semibold">Activity Timeline</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="relative space-y-0">
-          {/* Vertical line */}
-          <div className="absolute left-4 top-2 h-[calc(100%-16px)] w-px bg-border/50" />
+    <DetailCard icon={CheckCircle} title="Activity Timeline">
+      <div className="relative space-y-0">
+        {/* Vertical line */}
+        <div className="absolute left-4 top-2 h-[calc(100%-16px)] w-px bg-border/50" />
 
-          {activities.map((act, i) => {
-            const { Icon, color, bg } = ICON_MAP[act.type] ?? ICON_MAP.update;
-            return (
-              <div key={act.id} className={`relative flex gap-3 ${i < activities.length - 1 ? "pb-5" : ""}`}>
-                <div className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${bg}`}>
-                  <Icon className={`h-3.5 w-3.5 ${color}`} />
-                </div>
-                <div className="min-w-0 flex-1 pt-1">
-                  <p className="text-[13px] text-foreground">{act.message}</p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">{fmtTs(act.timestamp)}</p>
-                </div>
+        {activities.map((act, i) => {
+          const { Icon, color, bg } = ICON_MAP[act.type] ?? ICON_MAP.update;
+          return (
+            <div key={act.id} className={`relative flex gap-3 ${i < activities.length - 1 ? "pb-5" : ""}`}>
+              <div className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${bg}`}>
+                <Icon className={`h-3.5 w-3.5 ${color}`} />
               </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+              <div className="min-w-0 flex-1 pt-1">
+                <p className="text-[13px] text-foreground">{act.message}</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">{fmtTs(act.timestamp)}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </DetailCard>
   );
 }

@@ -1,6 +1,6 @@
 import { MessageSquare } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { Remark } from "@/data/studentDetailsData";
 import { cn } from "@/lib/utils";
 
@@ -16,18 +16,16 @@ function fmt(d: string) {
 
 export function StudentRemarksCard({ remarks }: { remarks: Remark[] }) {
   return (
-    <Card className="rounded-2xl shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-          <MessageSquare className="h-4 w-4 text-primary" />
-          Teacher Remarks
-          <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
-            {remarks.length}
-          </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="relative space-y-5">
+    <DetailCard
+      icon={MessageSquare}
+      title="Teacher Remarks"
+      action={
+        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
+          {remarks.length}
+        </span>
+      }
+    >
+      <div className="relative space-y-5">
           {/* Connector rail */}
           <div className="absolute left-3.5 top-6 h-[calc(100%-32px)] w-px bg-border/50" aria-hidden="true" />
 
@@ -57,8 +55,7 @@ export function StudentRemarksCard({ remarks }: { remarks: Remark[] }) {
               </div>
             );
           })}
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </DetailCard>
   );
 }

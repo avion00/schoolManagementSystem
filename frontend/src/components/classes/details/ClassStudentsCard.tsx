@@ -1,7 +1,7 @@
 import { Eye, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { DetailStudent } from "@/data/classDetailData";
 
 const FEE_CFG = {
@@ -28,17 +28,16 @@ function Badge({ label, cls }: { label: string; cls: string }) {
 export function ClassStudentsCard({ students }: { students: DetailStudent[] }) {
   const navigate = useNavigate();
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-[14px] font-semibold">Students</CardTitle>
-          <Button variant="outline" size="sm" className="h-7 gap-1.5 text-[11px]"
-            onClick={() => navigate("/students")}>
-            <Users className="h-3 w-3" />View All Students
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
+    <DetailCard
+      icon={Users}
+      title="Students"
+      action={
+        <Button variant="outline" size="sm" className="h-7 gap-1.5 text-[11px]"
+          onClick={() => navigate("/students")}>
+          <Users className="h-3 w-3" />View All Students
+        </Button>
+      }
+    >
         <div className="overflow-x-auto">
           <table className="w-full text-[12.5px]">
             <thead>
@@ -74,7 +73,6 @@ export function ClassStudentsCard({ students }: { students: DetailStudent[] }) {
           </table>
         </div>
         <p className="mt-3 text-[11px] text-muted-foreground">Showing {students.length} students · <button className="text-primary underline">View all</button></p>
-      </CardContent>
-    </Card>
+    </DetailCard>
   );
 }

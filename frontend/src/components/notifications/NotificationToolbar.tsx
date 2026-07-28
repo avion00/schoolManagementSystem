@@ -52,7 +52,7 @@ export function NotificationToolbar({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-3.5 shadow-sm">
+    <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-3.5 shadow-elevated">
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[240px] flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />

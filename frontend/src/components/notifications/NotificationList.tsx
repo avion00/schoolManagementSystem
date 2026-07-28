@@ -56,7 +56,7 @@ export function NotificationList({
         </div>
       ))}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 shadow-elevated">
         <span className="text-[12px] text-muted-foreground">
           Showing {start + 1}–{Math.min(start + PAGE_SIZE, notifications.length)} of {notifications.length} notifications
         </span>

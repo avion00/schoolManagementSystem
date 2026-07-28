@@ -1,10 +1,10 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Lock } from "lucide-react";
+import { Boxes, KeyRound, Loader2, Lock, ShieldCheck, Sparkles } from "lucide-react";
 
 import { RoleCard } from "@/components/account/RoleCard";
 import { PermissionMatrix } from "@/components/account/PermissionMatrix";
-import { Card, CardContent } from "@/components/ui/card";
+import { MetricCard } from "@/components/ui/MetricCard";
 import { listPermissions, listRoles, listUsers } from "@/lib/admin";
 
 export function RolesPermissionsPage() {
@@ -24,10 +24,10 @@ export function RolesPermissionsPage() {
   }, [roles, users]);
 
   const stats = [
-    { label: "Total Roles", value: roles.length },
-    { label: "Total Permissions", value: permissions.length },
-    { label: "Custom Roles", value: roles.filter((r) => !r.is_system).length },
-    { label: "Modules Covered", value: new Set(permissions.map((p) => p.module)).size },
+    { label: "Total Roles", value: roles.length, icon: ShieldCheck },
+    { label: "Total Permissions", value: permissions.length, icon: KeyRound },
+    { label: "Custom Roles", value: roles.filter((r) => !r.is_system).length, icon: Sparkles },
+    { label: "Modules Covered", value: new Set(permissions.map((p) => p.module)).size, icon: Boxes },
   ];
 
   if (isLoading) {
@@ -38,12 +38,7 @@ export function RolesPermissionsPage() {
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((s) => (
-          <Card key={s.label} className="rounded-2xl border-border/60 shadow-sm">
-            <CardContent className="p-4">
-              <p className="text-[11px] text-muted-foreground">{s.label}</p>
-              <p className="mt-1 text-xl font-semibold tabular-nums text-purple-600 dark:text-purple-400">{s.value}</p>
-            </CardContent>
-          </Card>
+          <MetricCard key={s.label} label={s.label} value={s.value} icon={s.icon} />
         ))}
       </div>
 

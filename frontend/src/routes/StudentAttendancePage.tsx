@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { Search } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { Reveal } from "@/components/motion";
+import { PremiumCard } from "@/components/ui/PremiumCard";
+import { PremiumDataTable, type PremiumDataTableColumn } from "@/components/ui/PremiumDataTable";
 import { AttendanceStatusBadge } from "@/components/attendance/AttendanceStatusBadge";
 import {
   ALL_STUDENTS, G6A_JUNE_ATT, G6A_JULY_ATT, G7A_JULY_ATT,
@@ -32,6 +34,32 @@ function getStudentSummary(studentId: number) {
     : 0;
   return { present, absent, late, halfDay, leave, totalWorking, rate };
 }
+
+interface MonthlyBreakdownRow {
+  monthName: string;
+  present: number;
+  absent: number;
+  late: number;
+  "half-day": number;
+  leave: number;
+  workingDays: number;
+  rate: number;
+}
+
+const monthlyBreakdownColumns: PremiumDataTableColumn<MonthlyBreakdownRow>[] = [
+  { key: "monthName", header: "Month", render: (m) => <span className="font-medium text-foreground">{m.monthName}</span> },
+  { key: "workingDays", header: "Working", align: "center", render: (m) => <span className="text-muted-foreground">{m.workingDays}</span> },
+  { key: "present", header: "Present", align: "center", render: (m) => <span className="font-semibold text-emerald-600">{m.present}</span> },
+  { key: "absent", header: "Absent", align: "center", render: (m) => <span className="font-semibold text-rose-600">{m.absent}</span> },
+  { key: "late", header: "Late", align: "center", render: (m) => <span className="font-semibold text-amber-600">{m.late}</span> },
+  {
+    key: "rate", header: "Rate", align: "center", render: (m) => (
+      <span className={cn("font-bold", m.rate >= 90 ? "text-emerald-600" : m.rate >= 75 ? "text-amber-600" : "text-rose-600")}>
+        {m.rate}%
+      </span>
+    ),
+  },
+];
 
 export function StudentAttendancePage() {
   const [search, setSearch] = useState("");
@@ -82,14 +110,15 @@ export function StudentAttendancePage() {
 
   return (
     <div className="space-y-5">
-      <div>
+      <Reveal>
         <h1 className="text-2xl font-bold text-foreground">Student Attendance</h1>
         <p className="text-[13px] text-muted-foreground mt-0.5">View detailed attendance history for individual students</p>
-      </div>
+      </Reveal>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Student list */}
-        <Card className="p-4 space-y-3">
+        <Reveal delay={40} className="lg:col-span-1">
+        <PremiumCard className="p-4 space-y-3">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <input
@@ -124,14 +153,16 @@ export function StudentAttendancePage() {
               );
             })}
           </div>
-        </Card>
+        </PremiumCard>
+        </Reveal>
 
         {/* Detail panel */}
         <div className="lg:col-span-2 space-y-4">
           {selected && summary ? (
             <>
               {/* Student header */}
-              <Card className="p-5">
+              <Reveal delay={80}>
+              <PremiumCard className="p-5">
                 <div className="flex items-start gap-4">
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-500 text-white text-xl font-bold">
                     {selected.name.split(" ").map((x) => x[0]).join("").slice(0, 2)}
@@ -165,45 +196,25 @@ export function StudentAttendancePage() {
                     </div>
                   ))}
                 </div>
-              </Card>
+              </PremiumCard>
+              </Reveal>
 
               {/* Monthly breakdown */}
-              <Card className="p-5">
-                <h3 className="text-[13px] font-semibold text-foreground mb-3">Monthly Breakdown</h3>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-[12px]">
-                    <thead>
-                      <tr className="border-b border-border/40">
-                        <th className="pb-2 text-left text-[11px] font-semibold text-muted-foreground uppercase">Month</th>
-                        <th className="pb-2 text-center text-[11px] font-semibold text-muted-foreground uppercase">Working</th>
-                        <th className="pb-2 text-center text-[11px] font-semibold text-muted-foreground uppercase">Present</th>
-                        <th className="pb-2 text-center text-[11px] font-semibold text-muted-foreground uppercase">Absent</th>
-                        <th className="pb-2 text-center text-[11px] font-semibold text-muted-foreground uppercase">Late</th>
-                        <th className="pb-2 text-center text-[11px] font-semibold text-muted-foreground uppercase">Rate</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/30">
-                      {monthlyBreakdown.map((m) => (
-                        <tr key={m.monthName} className="hover:bg-muted/10">
-                          <td className="py-2 font-medium text-foreground">{m.monthName}</td>
-                          <td className="py-2 text-center text-muted-foreground">{m.workingDays}</td>
-                          <td className="py-2 text-center font-semibold text-emerald-600">{m.present}</td>
-                          <td className="py-2 text-center font-semibold text-rose-600">{m.absent}</td>
-                          <td className="py-2 text-center font-semibold text-amber-600">{m.late}</td>
-                          <td className="py-2 text-center">
-                            <span className={cn("font-bold text-[12px]",
-                              m.rate >= 90 ? "text-emerald-600" : m.rate >= 75 ? "text-amber-600" : "text-rose-600"
-                            )}>{m.rate}%</span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
+              <Reveal delay={120}>
+              <PremiumCard className="overflow-hidden">
+                <h3 className="px-5 pt-5 text-[13px] font-semibold text-foreground mb-1">Monthly Breakdown</h3>
+                <PremiumDataTable
+                  columns={monthlyBreakdownColumns}
+                  rows={monthlyBreakdown}
+                  rowKey={(m) => m.monthName}
+                  stickyHeader={false}
+                />
+              </PremiumCard>
+              </Reveal>
 
               {/* Daily records */}
-              <Card className="p-5">
+              <Reveal delay={160}>
+              <PremiumCard className="p-5">
                 <h3 className="text-[13px] font-semibold text-foreground mb-3">Daily Records</h3>
                 <div className="flex flex-wrap gap-1.5">
                   {detailedRecords.map((r) => (
@@ -213,10 +224,11 @@ export function StudentAttendancePage() {
                     </div>
                   ))}
                 </div>
-              </Card>
+              </PremiumCard>
+              </Reveal>
             </>
           ) : (
-            <div className="rounded-xl border border-dashed border-border/60 h-64 flex items-center justify-center">
+            <div className="rounded-2xl border border-dashed border-neutral-200/80 h-64 flex items-center justify-center dark:border-neutral-800">
               <div className="text-center">
                 <Search className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                 <p className="text-[14px] font-medium text-foreground">Select a student</p>

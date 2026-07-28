@@ -20,6 +20,8 @@ function StudentCard({ student, index }: { student: Student; index: number }) {
           <p className="truncate text-[11px] text-muted-foreground">{student.registrationNo}</p>
         </div>
         <RowActionMenu
+          entityLabel="student"
+          messageLabel="Message guardian"
           onView={() => navigate(`/students/${student.id}`)}
           onEdit={() => navigate(`/students/${student.id}/edit`)}
           onPrint={() => window.print()}

@@ -1,20 +1,3 @@
-const PALETTE = [
-  "bg-teal-500 text-white",
-  "bg-purple-500 text-white",
-  "bg-sky-500 text-white",
-  "bg-orange-500 text-white",
-  "bg-rose-500 text-white",
-  "bg-lime-600 text-white",
-  "bg-indigo-500 text-white",
-  "bg-pink-500 text-white",
-];
-
-function colorIndex(name: string) {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return h % PALETTE.length;
-}
-
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (!parts.length) return "?";
@@ -41,7 +24,7 @@ export function ParentAvatar({
 
   return (
     <span
-      className={`${cls} ${PALETTE[colorIndex(name)]} inline-flex shrink-0 items-center justify-center rounded-full font-semibold leading-none`}
+      className={`${cls} inline-flex shrink-0 items-center justify-center rounded-full bg-secondary font-semibold leading-none text-secondary-foreground`}
     >
       {initials(name)}
     </span>

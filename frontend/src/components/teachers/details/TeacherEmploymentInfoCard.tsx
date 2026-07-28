@@ -1,5 +1,7 @@
+import { Briefcase } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { Teacher } from "@/data/teachersData";
 import type { TeacherEmploymentExtra } from "@/data/teacherDetailsData";
 
@@ -29,11 +31,8 @@ export function TeacherEmploymentInfoCard({
   extra: TeacherEmploymentExtra;
 }) {
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-[14px] font-semibold">Employment Details</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-0 divide-y divide-border/40">
+    <DetailCard icon={Briefcase} title="Employment Details">
+      <div className="space-y-0 divide-y divide-border/40">
         <Row label="Employee ID"      value={<span className="font-mono">{teacher.employeeId}</span>} />
         <Row label="Staff Code"       value={<span className="font-mono">{teacher.staffCode}</span>} />
         <Row label="Designation"      value={teacher.designation} />
@@ -79,7 +78,7 @@ export function TeacherEmploymentInfoCard({
             </div>
           }
         />
-      </CardContent>
-    </Card>
+      </div>
+    </DetailCard>
   );
 }

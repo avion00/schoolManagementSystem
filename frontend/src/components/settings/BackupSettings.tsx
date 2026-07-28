@@ -50,9 +50,9 @@ export function BackupSettings() {
           { label: "Storage Used",   value: BACKUP_INFO.storageUsed, color: "text-primary"       },
           { label: "Backup Status",  value: BACKUP_INFO.status,      color: "text-emerald-600"   },
         ].map(({ label, value, color }) => (
-          <Card key={label} className="flex flex-col gap-2 rounded-2xl p-4 shadow-sm">
+          <Card key={label} className="flex flex-col gap-2 rounded-2xl p-4 shadow-elevated">
             <p className="text-[11px] text-muted-foreground">{label}</p>
-            <p className={cn("text-[16px] font-bold", color)}>{value}</p>
+            <p className={cn("font-display text-[16px] font-bold tracking-tight", color)}>{value}</p>
           </Card>
         ))}
       </div>

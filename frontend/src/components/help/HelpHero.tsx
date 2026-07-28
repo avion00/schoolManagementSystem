@@ -12,10 +12,10 @@ export function HelpHero({
   onQueryChange: (value: string) => void;
 }) {
   return (
-    <Card className="overflow-hidden rounded-2xl border-border/60 bg-gradient-to-br from-primary/[0.06] via-card to-card shadow-sm">
+    <Card className="overflow-hidden rounded-2xl border-border/60 bg-gradient-to-br from-primary/[0.06] via-card to-card shadow-elevated">
       <CardContent className="flex flex-col items-center gap-5 px-6 py-10 text-center sm:px-10">
         <div>
-          <h2 className="text-2xl font-semibold tracking-[-0.01em] text-foreground sm:text-[28px]">
+          <h2 className="font-display text-2xl font-semibold tracking-[-0.01em] text-foreground sm:text-[28px]">
             How can we help you?
           </h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">

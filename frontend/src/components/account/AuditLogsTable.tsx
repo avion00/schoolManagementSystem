@@ -1,3 +1,7 @@
+import { FileClock } from "lucide-react";
+
+import { PremiumDataTable, type PremiumDataTableColumn } from "@/components/ui/PremiumDataTable";
+import type { PremiumDataTablePagination } from "@/components/ui/PremiumDataTable";
 import type { AuditLogEntry } from "@/lib/audit";
 import { cn } from "@/lib/utils";
 
@@ -42,44 +46,90 @@ const STATUS_STYLE: Record<string, string> = {
   Failed: "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300",
 };
 
-export function AuditLogsTable({ logs }: { logs: AuditLogEntry[] }) {
-  if (logs.length === 0) {
-    return <p className="py-12 text-center text-[12.5px] text-muted-foreground">No audit activity matches the current filters.</p>;
-  }
+const columns: PremiumDataTableColumn<AuditLogEntry>[] = [
+  {
+    key: "id",
+    header: "Log ID",
+    render: (log) => <span className="font-mono text-[11px] text-muted-foreground">{log.id.slice(0, 8)}</span>,
+  },
+  {
+    key: "actor",
+    header: "User",
+    render: (log) => <span className="text-foreground">{log.actor_email ?? "System"}</span>,
+  },
+  {
+    key: "action",
+    header: "Action",
+    render: (log) => <span className="font-medium text-foreground">{log.action}</span>,
+  },
+  {
+    key: "module",
+    header: "Module",
+    render: (log) => <span className="text-muted-foreground">{moduleOf(log.action)}</span>,
+  },
+  {
+    key: "target",
+    header: "Target",
+    render: (log) => <span className="text-muted-foreground">{targetOf(log)}</span>,
+  },
+  {
+    key: "ip",
+    header: "IP Address",
+    render: (log) => <span className="font-mono text-[11px] text-muted-foreground">{log.ip_address ?? "—"}</span>,
+  },
+  {
+    key: "device",
+    header: "Device",
+    render: (log) => <span className="text-muted-foreground">{deviceOf(log.user_agent)}</span>,
+  },
+  {
+    key: "time",
+    header: "Time",
+    render: (log) => (
+      <span className="whitespace-nowrap text-muted-foreground">
+        {new Date(log.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+      </span>
+    ),
+  },
+  {
+    key: "severity",
+    header: "Severity",
+    render: (log) => (
+      <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", SEVERITY_STYLE[severityOf(log.action)])}>
+        {severityOf(log.action)}
+      </span>
+    ),
+  },
+  {
+    key: "status",
+    header: "Status",
+    render: (log) => (
+      <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", STATUS_STYLE[statusOf(log.action)])}>
+        {statusOf(log.action)}
+      </span>
+    ),
+  },
+];
 
+export function AuditLogsTable({
+  logs,
+  loading = false,
+  pagination,
+}: {
+  logs: AuditLogEntry[];
+  loading?: boolean;
+  pagination?: PremiumDataTablePagination;
+}) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-sm">
-      <table className="w-full min-w-[900px] text-[12px]">
-        <thead className="bg-muted/40">
-          <tr>
-            {["Log ID", "User", "Action", "Module", "Target", "IP Address", "Device", "Time", "Severity", "Status"].map((h) => (
-              <th key={h} className="px-4 py-2.5 text-left font-medium text-muted-foreground">{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {logs.map((log) => (
-            <tr key={log.id} className="border-t border-border/40 hover:bg-muted/20">
-              <td className="px-4 py-2.5 font-mono text-[11px] text-muted-foreground">{log.id.slice(0, 8)}</td>
-              <td className="px-4 py-2.5 text-foreground">{log.actor_email ?? "System"}</td>
-              <td className="px-4 py-2.5 font-medium text-foreground">{log.action}</td>
-              <td className="px-4 py-2.5 text-muted-foreground">{moduleOf(log.action)}</td>
-              <td className="px-4 py-2.5 text-muted-foreground">{targetOf(log)}</td>
-              <td className="px-4 py-2.5 font-mono text-[11px] text-muted-foreground">{log.ip_address ?? "—"}</td>
-              <td className="px-4 py-2.5 text-muted-foreground">{deviceOf(log.user_agent)}</td>
-              <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">
-                {new Date(log.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-              </td>
-              <td className="px-4 py-2.5">
-                <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", SEVERITY_STYLE[severityOf(log.action)])}>{severityOf(log.action)}</span>
-              </td>
-              <td className="px-4 py-2.5">
-                <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", STATUS_STYLE[statusOf(log.action)])}>{statusOf(log.action)}</span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <PremiumDataTable
+      columns={columns}
+      rows={logs}
+      rowKey={(log) => log.id}
+      loading={loading}
+      emptyIcon={FileClock}
+      emptyTitle="No audit activity"
+      emptyDescription="No audit activity matches the current filters."
+      pagination={pagination}
+    />
   );
 }

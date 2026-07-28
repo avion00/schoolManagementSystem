@@ -47,7 +47,7 @@ export function StudentsTable({
         </div>
       ),
     },
-    { key: "className", header: "Class", width: "w-[90px]", sortable: true, render: (s) => <span className="text-sm">{s.className}</span> },
+    { key: "className", header: "Class", width: "w-[120px]", sortable: true, render: (s) => <span className="text-sm">{s.className}</span> },
     { key: "section", header: "Section", width: "w-[80px]", hidden: hiddenColumns.has("section"), render: (s) => <span className="text-sm text-muted-foreground">{s.section ?? "—"}</span> },
     { key: "roll", header: "Roll", width: "w-[60px]", sortable: true, render: (s) => <span className="tabular-nums text-sm">{s.roll}</span> },
     { key: "guardian", header: "Guardian", hidden: hiddenColumns.has("guardian"), render: (s) => <span className="truncate text-sm text-muted-foreground">{s.parentName}</span> },
@@ -71,9 +71,8 @@ export function StudentsTable({
       emptyDescription={hasActiveFilter ? "Try adjusting your search or filters." : "No students are enrolled yet."}
       emptyAction={hasActiveFilter ? <Button variant="outline" size="sm" onClick={onResetFilters}>Clear filters</Button> : undefined}
       pagination={pagination}
-      bulkActions={(count, clear) => (
+      bulkActions={(_count, clear) => (
         <>
-          <span className="text-sm font-medium text-foreground">{count} selected</span>
           <Button variant="outline" size="sm" onClick={() => toast.info("Bulk export — coming soon")}>Export</Button>
           <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => toast.info("Bulk delete — coming soon")}>Delete</Button>
           <Button variant="ghost" size="sm" className="ml-auto text-muted-foreground" onClick={clear}>Deselect all</Button>
@@ -81,6 +80,8 @@ export function StudentsTable({
       )}
       rowActions={(student) => (
         <RowActionMenu
+          entityLabel="student"
+          messageLabel="Message guardian"
           onView={() => navigate(`/students/${student.id}`)}
           onEdit={() => navigate(`/students/${student.id}/edit`)}
           onPrint={() => window.print()}

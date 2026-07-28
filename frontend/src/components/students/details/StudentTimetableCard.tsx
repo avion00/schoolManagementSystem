@@ -1,6 +1,6 @@
 import { Clock } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { TimetableEntry } from "@/data/studentDetailsData";
 import { cn } from "@/lib/utils";
 
@@ -22,17 +22,15 @@ export function StudentTimetableCard({ timetable }: { timetable: TimetableEntry[
   const now = new Date();
 
   return (
-    <Card className="rounded-2xl shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-          <Clock className="h-4 w-4 text-primary" />
-          Today's Timetable
-          <span className="ml-auto text-[11px] font-normal text-muted-foreground">
-            {now.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
-          </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <DetailCard
+      icon={Clock}
+      title="Today's Timetable"
+      action={
+        <span className="text-[11px] font-normal text-muted-foreground">
+          {now.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+        </span>
+      }
+    >
         <div className="space-y-2">
           {timetable.map((entry) => {
             const isBreak = entry.teacher === "—";
@@ -71,7 +69,6 @@ export function StudentTimetableCard({ timetable }: { timetable: TimetableEntry[
             );
           })}
         </div>
-      </CardContent>
-    </Card>
+    </DetailCard>
   );
 }

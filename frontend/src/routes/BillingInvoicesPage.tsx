@@ -1,37 +1,74 @@
 import { useMemo, useState } from "react";
-import { Plus, RotateCcw, Search } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { InvoiceForm, type InvoiceFormData } from "@/components/billing/forms/InvoiceForm";
 import { PaymentForm, type PaymentFormData } from "@/components/billing/forms/PaymentForm";
+import { InvoicesSummaryCards } from "@/components/billing/InvoicesSummaryCards";
 import { InvoicesTable, type InvoiceAction } from "@/components/billing/InvoicesTable";
+import { InvoicesToolbar, type InvoicesFilters } from "@/components/billing/InvoicesToolbar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  CLASS_OPTIONS, INVOICES, INVOICE_STATUS_OPTIONS, type Invoice,
-} from "@/data/billingData";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { INVOICES, type Invoice } from "@/data/billingData";
 
-const selectClass = "h-8 rounded-lg border border-input bg-background px-2.5 text-[12px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring";
+const PAGE_SIZE = 10;
+type SortField = "invoiceNo" | "studentName" | "issueDate" | "dueDate" | "amount" | "balance" | "status";
+type SortDir = "asc" | "desc";
+
+const EMPTY_FILTERS: InvoicesFilters = { search: "", status: "all", className: "all" };
 
 export function BillingInvoicesPage() {
   const navigate = useNavigate();
   const [invoices, setInvoices] = useState<Invoice[]>(INVOICES);
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
-  const [className, setClassName] = useState("all");
+  const [filters, setFilters] = useState<InvoicesFilters>(EMPTY_FILTERS);
+  const [sortField, setSortField] = useState<SortField>("issueDate");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string | number>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
 
+  function updateFilters(next: Partial<InvoicesFilters>) {
+    setFilters((f) => ({ ...f, ...next }));
+    setPage(1);
+  }
+  function resetFilters() {
+    setFilters(EMPTY_FILTERS);
+    setPage(1);
+  }
+  function handleSort(field: string) {
+    const f = field as SortField;
+    if (sortField === f) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortField(f); setSortDir("asc"); }
+    setPage(1);
+  }
+
+  const hasActiveFilter = !!filters.search || filters.status !== "all" || filters.className !== "all";
+
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = filters.search.trim().toLowerCase();
     return invoices.filter((inv) => {
-      if (status !== "all" && inv.status !== status) return false;
-      if (className !== "all" && inv.className !== className) return false;
+      if (filters.status !== "all" && inv.status !== filters.status) return false;
+      if (filters.className !== "all" && inv.className !== filters.className) return false;
       if (q && !`${inv.invoiceNo} ${inv.studentName} ${inv.parentName}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [invoices, search, status, className]);
+  }, [invoices, filters]);
+
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const av: string | number = a[sortField] ?? "";
+      const bv: string | number = b[sortField] ?? "";
+      if (typeof av === "number" && typeof bv === "number") return sortDir === "asc" ? av - bv : bv - av;
+      return sortDir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+    });
+  }, [filtered, sortField, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated: Invoice[] = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   function handleAction(inv: Invoice, action: InvoiceAction) {
     switch (action) {
@@ -70,34 +107,39 @@ export function BillingInvoicesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-3.5 shadow-sm">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-[240px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by invoice no, student, or parent..."
-              className="h-8 w-full rounded-lg border border-input bg-background pl-8 pr-3 text-[12px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
-          </div>
-          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[12px]" onClick={() => { setSearch(""); setStatus("all"); setClassName("all"); }}>
-            <RotateCcw className="h-3.5 w-3.5" /> Reset
+      <PageHeader
+        title={
+          <>
+            {sorted.length} invoice{sorted.length !== 1 ? "s" : ""}{" "}
+            {hasActiveFilter && (
+              <span className="text-base font-normal text-muted-foreground">(filtered from {invoices.length} total)</span>
+            )}
+          </>
+        }
+        description="Manage fee invoices, payments, and balances."
+        actions={
+          <Button size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4" /> Create Invoice
           </Button>
-          <Button size="sm" className="h-8 gap-1.5 text-[12px]" onClick={() => setCreateOpen(true)}>
-            <Plus className="h-3.5 w-3.5" /> Create Invoice
-          </Button>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className={selectClass}>
-            <option value="all">All Statuses</option>
-            {INVOICE_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <select value={className} onChange={(e) => setClassName(e.target.value)} className={selectClass}>
-            <option value="all">All Classes</option>
-            {CLASS_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <span className="ml-auto text-[11.5px] text-muted-foreground">{filtered.length} invoices</span>
-        </div>
-      </div>
+        }
+      />
 
-      <InvoicesTable invoices={filtered} onAction={handleAction} />
+      <InvoicesSummaryCards invoices={invoices} />
+
+      <InvoicesToolbar filters={filters} onFiltersChange={updateFilters} hasActiveFilter={hasActiveFilter} onReset={resetFilters} />
+
+      <InvoicesTable
+        invoices={paginated}
+        onAction={handleAction}
+        sortField={sortField}
+        sortDir={sortDir}
+        onSort={handleSort}
+        selected={selected}
+        onSelectionChange={setSelected}
+        pagination={{ page: safePage, pageSize: PAGE_SIZE, total: sorted.length, onPage: (p) => { setPage(p); setSelected(new Set()); }, itemLabel: "invoices" }}
+        hasActiveFilter={hasActiveFilter}
+        onResetFilters={resetFilters}
+      />
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">

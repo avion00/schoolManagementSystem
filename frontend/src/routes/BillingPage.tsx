@@ -18,8 +18,8 @@ import { PendingDuesTable } from "@/components/billing/PendingDuesTable";
 import { RecentPaymentsTable } from "@/components/billing/RecentPaymentsTable";
 import { RevenueExpenseChart } from "@/components/billing/RevenueExpenseChart";
 import { Reveal } from "@/components/motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PremiumCard } from "@/components/ui/PremiumCard";
 import {
   BILLING_ACTIVITIES, EXPENSES, PAYMENTS, PAYROLL, type PaymentMethod,
 } from "@/data/billingData";
@@ -80,9 +80,9 @@ export function BillingPage() {
 
       {/* E + F: upcoming payroll / recent expenses */}
       <Reveal delay={140} className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card className="rounded-2xl border-border/60 shadow-sm">
-          <CardHeader className="pb-2"><CardTitle className="text-[13px] font-semibold">Upcoming Payroll</CardTitle></CardHeader>
-          <CardContent className="space-y-1 pt-0">
+        <PremiumCard className="p-4">
+          <h3 className="mb-2 text-[13px] font-semibold text-foreground">Upcoming Payroll</h3>
+          <div className="space-y-1">
             {upcomingPayroll.map((p) => (
               <button key={p.id} type="button" onClick={() => navigate("/billing/payroll")}
                 className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-muted/50">
@@ -96,12 +96,12 @@ export function BillingPage() {
                 </div>
               </button>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </PremiumCard>
 
-        <Card className="rounded-2xl border-border/60 shadow-sm">
-          <CardHeader className="pb-2"><CardTitle className="text-[13px] font-semibold">Recent Expenses</CardTitle></CardHeader>
-          <CardContent className="space-y-1 pt-0">
+        <PremiumCard className="p-4">
+          <h3 className="mb-2 text-[13px] font-semibold text-foreground">Recent Expenses</h3>
+          <div className="space-y-1">
             {recentExpenses.map((e) => (
               <button key={e.id} type="button" onClick={() => navigate("/billing/expenses")}
                 className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-muted/50">
@@ -115,15 +115,15 @@ export function BillingPage() {
                 </div>
               </button>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </PremiumCard>
       </Reveal>
 
       {/* G + H: payment method breakdown / alerts */}
       <Reveal delay={180} className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card className="rounded-2xl border-border/60 shadow-sm">
-          <CardHeader className="pb-2"><CardTitle className="text-[13px] font-semibold">Payment Method Breakdown</CardTitle></CardHeader>
-          <CardContent className="space-y-3 pt-0">
+        <PremiumCard className="p-4">
+          <h3 className="mb-3 text-[13px] font-semibold text-foreground">Payment Method Breakdown</h3>
+          <div className="space-y-3">
             {Object.entries(methodTotals).map(([method, total]) => {
               const Icon = METHOD_ICON[method as PaymentMethod];
               return (
@@ -138,12 +138,12 @@ export function BillingPage() {
                 </div>
               );
             })}
-          </CardContent>
-        </Card>
+          </div>
+        </PremiumCard>
 
-        <Card className="rounded-2xl border-border/60 shadow-sm">
-          <CardHeader className="pb-2"><CardTitle className="text-[13px] font-semibold">Finance Alerts</CardTitle></CardHeader>
-          <CardContent className="space-y-2 pt-0">
+        <PremiumCard className="p-4">
+          <h3 className="mb-2 text-[13px] font-semibold text-foreground">Finance Alerts</h3>
+          <div className="space-y-2">
             {alerts.map((a) => (
               <div key={a.text} className={`flex items-start gap-2.5 rounded-lg border p-2.5 text-[12px] ${
                 a.tone === "red" ? "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300"
@@ -153,30 +153,30 @@ export function BillingPage() {
                 {a.text}
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </PremiumCard>
       </Reveal>
 
       {/* I: quick actions */}
       <Reveal delay={220}>
-        <Card className="rounded-2xl border-border/60 shadow-sm">
-          <CardHeader className="pb-2"><CardTitle className="text-[13px] font-semibold">Quick Actions</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-2 gap-2.5 pt-0 sm:grid-cols-3 lg:grid-cols-6">
+        <PremiumCard className="p-4">
+          <h3 className="mb-2 text-[13px] font-semibold text-foreground">Quick Actions</h3>
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
             <QuickActionButton icon={FilePlus2} label="Create Invoice" onClick={() => setModal("invoice")} />
             <QuickActionButton icon={Receipt} label="Record Payment" onClick={() => setModal("payment")} />
             <QuickActionButton icon={Wallet} label="Add Expense" onClick={() => setModal("expense")} />
             <QuickActionButton icon={UserPlus} label="Generate Payroll" onClick={() => setModal("payroll")} />
             <QuickActionButton icon={Printer} label="Print Receipt" onClick={() => navigate("/billing/payments")} />
             <QuickActionButton icon={Send} label="Export Report" onClick={() => navigate("/billing/reports")} />
-          </CardContent>
-        </Card>
+          </div>
+        </PremiumCard>
       </Reveal>
 
       <Reveal delay={260}>
-        <Card className="rounded-2xl border-border/60 shadow-sm">
-          <CardHeader className="pb-2"><CardTitle className="text-[13px] font-semibold">Recent Billing Activity</CardTitle></CardHeader>
-          <CardContent className="pt-0"><BillingActivityTimeline activities={BILLING_ACTIVITIES} /></CardContent>
-        </Card>
+        <PremiumCard className="p-4">
+          <h3 className="mb-2 text-[13px] font-semibold text-foreground">Recent Billing Activity</h3>
+          <BillingActivityTimeline activities={BILLING_ACTIVITIES} />
+        </PremiumCard>
       </Reveal>
 
       {/* Quick action modals */}

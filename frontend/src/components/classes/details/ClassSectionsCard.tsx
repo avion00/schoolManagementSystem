@@ -1,7 +1,7 @@
-import { Eye, Pencil, Users } from "lucide-react";
+import { Eye, Layers, Pencil, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { ClassSection } from "@/data/classesData";
 
 const SECTION_COLORS = [
@@ -20,14 +20,11 @@ function pctBar(v: number) {
 
 export function ClassSectionsCard({ sections }: { sections: ClassSection[] }) {
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-[14px] font-semibold">Sections</CardTitle>
-          <Badge variant="outline" className="text-[11px]">{sections.length} sections</Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
+    <DetailCard
+      icon={Layers}
+      title="Sections"
+      action={<Badge variant="outline" className="text-[11px]">{sections.length} sections</Badge>}
+    >
         <div className={`grid gap-4 ${sections.length > 2 ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2"}`}>
           {sections.map((section, i) => {
             const usedPct = Math.round((section.totalStudents / section.capacity) * 100);
@@ -106,7 +103,6 @@ export function ClassSectionsCard({ sections }: { sections: ClassSection[] }) {
             );
           })}
         </div>
-      </CardContent>
-    </Card>
+    </DetailCard>
   );
 }

@@ -2,6 +2,7 @@ import { ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
+import { PremiumCard } from "@/components/ui/PremiumCard";
 import type { Role } from "@/lib/admin";
 import { cn } from "@/lib/utils";
 
@@ -9,7 +10,7 @@ export function RoleCard({ role, userCount }: { role: Role; userCount: number })
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border/60 p-3.5">
+    <PremiumCard hoverable className="flex flex-col gap-3 p-3.5">
       <div className="flex items-start justify-between gap-2">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-500/15">
           <ShieldCheck className="h-4 w-4 text-purple-600 dark:text-purple-400" />
@@ -31,6 +32,6 @@ export function RoleCard({ role, userCount }: { role: Role; userCount: number })
       <Button variant="outline" size="sm" className="h-7 text-[11.5px]" onClick={() => navigate("/roles")}>
         Manage
       </Button>
-    </div>
+    </PremiumCard>
   );
 }

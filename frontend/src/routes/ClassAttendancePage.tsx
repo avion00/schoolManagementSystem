@@ -1,7 +1,52 @@
-import { Card } from "@/components/ui/card";
-import { Layers, TrendingUp, TrendingDown } from "lucide-react";
-import { CLASS_COMPARISON, MONTHLY_TREND } from "@/data/attendanceData";
+import { Layers, BarChart3, TrendingUp, TrendingDown } from "lucide-react";
+import { Reveal } from "@/components/motion";
+import { PremiumBadge } from "@/components/ui/PremiumBadge";
+import { PremiumCard } from "@/components/ui/PremiumCard";
+import { PremiumDataTable, type PremiumDataTableColumn } from "@/components/ui/PremiumDataTable";
+import { KPITrendCard } from "@/components/ui/KPITrendCard";
+import { METRIC_TONES } from "@/components/ui/MetricCard";
+import { CATEGORICAL_COLORS, STATUS_COLORS } from "@/components/charts/palette";
+import { CLASS_COMPARISON, MONTHLY_TREND, type ClassComparison } from "@/data/attendanceData";
 import { cn } from "@/lib/utils";
+
+const SPARK = {
+  avg:   [{ value: 86 }, { value: 87 }, { value: 88 }, { value: 87 }, { value: 89 }, { value: 88 }, { value: 89 }],
+  best:  [{ value: 90 }, { value: 91 }, { value: 92 }, { value: 93 }, { value: 92 }, { value: 94 }, { value: 95 }],
+  worst: [{ value: 78 }, { value: 76 }, { value: 74 }, { value: 75 }, { value: 73 }, { value: 72 }, { value: 71 }],
+};
+
+function classDetailColumns(avg: number): PremiumDataTableColumn<ClassComparison>[] {
+  return [
+    { key: "className", header: "Class", render: (c) => <span className="font-medium text-foreground">{c.className}</span> },
+    { key: "section", header: "Section", render: (c) => <span className="text-muted-foreground">{c.section}</span> },
+    { key: "students", header: "Students", align: "center", render: (c) => <span>{c.students}</span> },
+    {
+      key: "rate", header: "Rate", align: "center", render: (c) => (
+        <span className={cn("font-bold", c.rate >= 90 ? "text-emerald-600" : c.rate >= 80 ? "text-amber-600" : "text-rose-600")}>
+          {c.rate}%
+        </span>
+      ),
+    },
+    {
+      key: "status", header: "Status", align: "center", render: (c) => (
+        <PremiumBadge
+          label={c.rate >= 90 ? "Excellent" : c.rate >= 80 ? "Good" : "Low"}
+          tone={c.rate >= 90 ? "success" : c.rate >= 80 ? "warning" : "danger"}
+        />
+      ),
+    },
+    {
+      key: "vsAverage", header: "vs Average", align: "right", render: (c) => {
+        const diff = c.rate - avg;
+        return (
+          <span className={cn("font-semibold", diff >= 0 ? "text-emerald-600" : "text-rose-600")}>
+            {diff >= 0 ? "+" : ""}{diff}%
+          </span>
+        );
+      },
+    },
+  ];
+}
 
 export function ClassAttendancePage() {
   const best  = [...CLASS_COMPARISON].sort((a, b) => b.rate - a.rate)[0];
@@ -10,38 +55,51 @@ export function ClassAttendancePage() {
 
   return (
     <div className="space-y-5">
-      <div>
+      <Reveal>
         <h1 className="text-2xl font-bold text-foreground">Class-wise Attendance</h1>
         <p className="text-[13px] text-muted-foreground mt-0.5">Compare attendance rates across all classes</p>
-      </div>
+      </Reveal>
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-4">
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">School Average</p>
-          <p className={cn("text-3xl font-bold", avg >= 90 ? "text-emerald-600" : avg >= 80 ? "text-amber-600" : "text-rose-600")}>{avg}%</p>
-          <p className="text-[11px] text-muted-foreground mt-1">Across {CLASS_COMPARISON.length} classes · July 2026</p>
-        </Card>
-        <Card className="p-4 border-emerald-200 bg-emerald-50/40 dark:border-emerald-800 dark:bg-emerald-950/10">
-          <div className="flex items-center gap-1.5 mb-1">
-            <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
-            <p className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wide">Best Class</p>
-          </div>
-          <p className="text-3xl font-bold text-emerald-700">{best?.rate}%</p>
-          <p className="text-[11px] text-emerald-600 mt-1">{best?.className} {best?.section} · {best?.students} students</p>
-        </Card>
-        <Card className="p-4 border-rose-200 bg-rose-50/40 dark:border-rose-800 dark:bg-rose-950/10">
-          <div className="flex items-center gap-1.5 mb-1">
-            <TrendingDown className="h-3.5 w-3.5 text-rose-600" />
-            <p className="text-[11px] font-semibold text-rose-700 uppercase tracking-wide">Needs Attention</p>
-          </div>
-          <p className="text-3xl font-bold text-rose-700">{worst?.rate}%</p>
-          <p className="text-[11px] text-rose-600 mt-1">{worst?.className} {worst?.section} · {worst?.students} students</p>
-        </Card>
+        <Reveal delay={0}>
+          <KPITrendCard
+            label="School Average"
+            value={`${avg}%`}
+            icon={BarChart3}
+            iconCls={METRIC_TONES.blue}
+            trend={{ value: "+0.8%", up: true, compareLabel: `Across ${CLASS_COMPARISON.length} classes · July 2026` }}
+            sparklineData={SPARK.avg}
+            sparklineColor={CATEGORICAL_COLORS[0]}
+          />
+        </Reveal>
+        <Reveal delay={40}>
+          <KPITrendCard
+            label="Best Class"
+            value={`${best?.rate}%`}
+            icon={TrendingUp}
+            iconCls={METRIC_TONES.green}
+            trend={{ value: "+2.1%", up: true, compareLabel: `${best?.className} ${best?.section} · ${best?.students} students` }}
+            sparklineData={SPARK.best}
+            sparklineColor={STATUS_COLORS.good}
+          />
+        </Reveal>
+        <Reveal delay={80}>
+          <KPITrendCard
+            label="Needs Attention"
+            value={`${worst?.rate}%`}
+            icon={TrendingDown}
+            iconCls={METRIC_TONES.red}
+            trend={{ value: "-3.4%", up: false, compareLabel: `${worst?.className} ${worst?.section} · ${worst?.students} students` }}
+            sparklineData={SPARK.worst}
+            sparklineColor={STATUS_COLORS.critical}
+          />
+        </Reveal>
       </div>
 
       {/* Horizontal bar chart */}
-      <Card className="p-5">
+      <Reveal delay={40}>
+      <PremiumCard className="p-5">
         <div className="flex items-center gap-2 mb-4">
           <Layers className="h-4 w-4 text-muted-foreground" />
           <h2 className="text-[14px] font-semibold text-foreground">Attendance Rate by Class · July 2026</h2>
@@ -69,60 +127,20 @@ export function ClassAttendancePage() {
             </div>
           ))}
         </div>
-      </Card>
+      </PremiumCard>
+      </Reveal>
 
       {/* Detail table */}
-      <Card className="p-5">
-        <h2 className="text-[14px] font-semibold text-foreground mb-4">Class Detail</h2>
-        <div className="overflow-x-auto rounded-xl border border-border/60">
-          <table className="min-w-full text-[12px]">
-            <thead className="bg-muted/40 border-b border-border/60">
-              <tr>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase">Class</th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase">Section</th>
-                <th className="px-4 py-2.5 text-center text-[11px] font-semibold text-muted-foreground uppercase">Students</th>
-                <th className="px-4 py-2.5 text-center text-[11px] font-semibold text-muted-foreground uppercase">Rate</th>
-                <th className="px-4 py-2.5 text-center text-[11px] font-semibold text-muted-foreground uppercase">Status</th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-muted-foreground uppercase">vs Average</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/40">
-              {CLASS_COMPARISON.map((c) => {
-                const diff = c.rate - avg;
-                return (
-                  <tr key={`${c.className}${c.section}`} className="hover:bg-muted/20">
-                    <td className="px-4 py-3 font-medium text-foreground">{c.className}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{c.section}</td>
-                    <td className="px-4 py-3 text-center">{c.students}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={cn("font-bold", c.rate >= 90 ? "text-emerald-600" : c.rate >= 80 ? "text-amber-600" : "text-rose-600")}>
-                        {c.rate}%
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset",
-                        c.rate >= 90 ? "bg-emerald-50 text-emerald-700 ring-emerald-500/30" :
-                        c.rate >= 80 ? "bg-amber-50 text-amber-700 ring-amber-500/30" :
-                        "bg-rose-50 text-rose-700 ring-rose-500/30"
-                      )}>
-                        {c.rate >= 90 ? "Excellent" : c.rate >= 80 ? "Good" : "Low"}
-                      </span>
-                    </td>
-                    <td className={cn("px-4 py-3 text-right font-semibold",
-                      diff >= 0 ? "text-emerald-600" : "text-rose-600"
-                    )}>
-                      {diff >= 0 ? "+" : ""}{diff}%
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      <Reveal delay={80}>
+      <PremiumCard className="overflow-hidden">
+        <h2 className="px-5 pt-5 text-[14px] font-semibold text-foreground mb-4">Class Detail</h2>
+        <PremiumDataTable columns={classDetailColumns(avg)} rows={CLASS_COMPARISON} rowKey={(c) => `${c.className}${c.section}`} stickyHeader={false} />
+      </PremiumCard>
+      </Reveal>
 
       {/* Monthly trend mini */}
-      <Card className="p-5">
+      <Reveal delay={120}>
+      <PremiumCard className="p-5">
         <h2 className="text-[14px] font-semibold text-foreground mb-4">School-wide Monthly Trend</h2>
         <div className="flex items-end gap-4 h-28">
           {MONTHLY_TREND.map((pt) => {
@@ -142,7 +160,8 @@ export function ClassAttendancePage() {
             );
           })}
         </div>
-      </Card>
+      </PremiumCard>
+      </Reveal>
     </div>
   );
 }

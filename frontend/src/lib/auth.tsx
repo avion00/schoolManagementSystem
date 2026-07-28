@@ -31,6 +31,21 @@ async function fetchMe(): Promise<User> {
   return data;
 }
 
+/**
+ * Roles that get the same school-management nav access as a platform
+ * admin. Principal already carries every real RBAC permission code
+ * server-side (see backend seed_demo.py ROLE_PERMISSIONS — "everything"),
+ * but a handful of nav items are gated behind the "superuser" sentinel,
+ * which only `is_superuser`/`is_platform_admin` can ever satisfy. This
+ * bridges that one frontend-only gap — it does not grant anything beyond
+ * what a real permission code would (message moderation/export/settings
+ * use their own distinct codes and stay correctly restricted).
+ */
+const SCHOOL_ADMIN_ROLES = ["Principal"];
+export function isSchoolAdminRole(roles: string[]) {
+  return SCHOOL_ADMIN_ROLES.some((r) => roles.includes(r));
+}
+
 interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
@@ -72,7 +87,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasPermission = (code: string) =>
     !!user &&
-    (user.is_superuser || user.is_platform_admin || user.permissions.includes(code));
+    (user.is_superuser ||
+      user.is_platform_admin ||
+      (code === "superuser" && isSchoolAdminRole(user.roles)) ||
+      user.permissions.includes(code));
 
   return (
     <AuthContext.Provider

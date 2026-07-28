@@ -57,7 +57,7 @@ export function FaqAccordion({ query = "" }: { query?: string }) {
     : FAQ_ITEMS;
 
   return (
-    <Card className="rounded-2xl border-border/60 shadow-sm">
+    <Card className="rounded-2xl border-border/60 shadow-elevated">
       <CardHeader>
         <CardTitle className="text-base font-semibold">Frequently Asked Questions</CardTitle>
       </CardHeader>

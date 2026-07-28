@@ -12,7 +12,7 @@ export function PendingDuesTable() {
     .slice(0, 6);
 
   return (
-    <Card className="h-full rounded-2xl border-border/60 shadow-sm">
+    <Card className="h-full rounded-2xl border-border/60 shadow-elevated">
       <CardHeader className="pb-2">
         <CardTitle className="text-[13px] font-semibold">Pending Dues</CardTitle>
       </CardHeader>

@@ -1,4 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Clock } from "lucide-react";
+
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { ScheduleEntry } from "@/data/teacherDetailsData";
 
 const SUBJECT_COLORS: Record<string, string> = {
@@ -23,43 +25,41 @@ function getColor(entry: ScheduleEntry) {
 
 export function TeacherScheduleCard({ schedule }: { schedule: ScheduleEntry[] }) {
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-[14px] font-semibold">Today's Schedule</CardTitle>
-          <span className="text-[12px] text-muted-foreground">
-            {schedule.filter((e) => !e.isBreak).length} classes
-          </span>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          {schedule.map((entry, i) => {
-            const color = getColor(entry);
-            return (
-              <div
-                key={i}
-                className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${color}`}
-              >
-                <div className="w-[90px] shrink-0">
-                  <p className="text-[11px] font-medium leading-tight">{entry.time}</p>
-                </div>
-                {entry.isBreak ? (
-                  <p className="flex-1 text-[12.5px] font-medium italic">{entry.subject}</p>
-                ) : (
-                  <>
-                    <div className="flex-1">
-                      <p className="text-[13px] font-semibold leading-tight">{entry.subject}</p>
-                      <p className="text-[11px] opacity-75">{entry.className}</p>
-                    </div>
-                    <span className="shrink-0 text-[11px] font-medium opacity-75">{entry.room}</span>
-                  </>
-                )}
+    <DetailCard
+      icon={Clock}
+      title="Today's Schedule"
+      action={
+        <span className="text-[12px] text-muted-foreground">
+          {schedule.filter((e) => !e.isBreak).length} classes
+        </span>
+      }
+    >
+      <div className="space-y-2">
+        {schedule.map((entry, i) => {
+          const color = getColor(entry);
+          return (
+            <div
+              key={i}
+              className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${color}`}
+            >
+              <div className="w-[90px] shrink-0">
+                <p className="text-[11px] font-medium leading-tight">{entry.time}</p>
               </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+              {entry.isBreak ? (
+                <p className="flex-1 text-[12.5px] font-medium italic">{entry.subject}</p>
+              ) : (
+                <>
+                  <div className="flex-1">
+                    <p className="text-[13px] font-semibold leading-tight">{entry.subject}</p>
+                    <p className="text-[11px] opacity-75">{entry.className}</p>
+                  </div>
+                  <span className="shrink-0 text-[11px] font-medium opacity-75">{entry.room}</span>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </DetailCard>
   );
 }

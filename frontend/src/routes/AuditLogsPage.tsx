@@ -1,13 +1,12 @@
 import { useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 
 import { AuditLogsTable } from "@/components/account/AuditLogsTable";
-import { Button } from "@/components/ui/button";
+import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { listAuditLogs } from "@/lib/audit";
 
 const PAGE_SIZE = 25;
-const selectClass = "h-8 rounded-lg border border-input bg-background px-2.5 text-[12px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring";
 
 function severityOf(action: string): "Low" | "Medium" | "High" {
   const a = action.toLowerCase();
@@ -38,11 +37,9 @@ export function AuditLogsPage() {
     return rows;
   }, [data, severity, dateRange]);
 
-  const totalPages = data ? Math.max(1, Math.ceil(data.count / PAGE_SIZE)) : 1;
-
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-3.5 shadow-sm">
+      <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-3.5 shadow-elevated">
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative min-w-[240px] flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
@@ -57,35 +54,42 @@ export function AuditLogsPage() {
           <span className="text-[11.5px] text-muted-foreground">{data ? `${data.count} log entries` : ""}</span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <select value={severity} onChange={(e) => setSeverity(e.target.value)} className={selectClass}>
-            <option value="all">Any Severity</option>
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-          </select>
-          <select value={dateRange} onChange={(e) => setDateRange(e.target.value as typeof dateRange)} className={selectClass}>
-            <option value="all">Any Date</option>
-            <option value="today">Today</option>
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
-          </select>
+          <PremiumSelect
+            value={severity}
+            onChange={setSeverity}
+            className="w-40"
+            options={[
+              { value: "all", label: "Any Severity" },
+              { value: "Low", label: "Low" },
+              { value: "Medium", label: "Medium" },
+              { value: "High", label: "High" },
+            ]}
+          />
+          <PremiumSelect
+            value={dateRange}
+            onChange={(v) => setDateRange(v as typeof dateRange)}
+            className="w-40"
+            options={[
+              { value: "all", label: "Any Date" },
+              { value: "today", label: "Today" },
+              { value: "7d", label: "Last 7 days" },
+              { value: "30d", label: "Last 30 days" },
+            ]}
+          />
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-20 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" /></div>
-      ) : (
-        <>
-          <AuditLogsTable logs={filtered} />
-          {data && data.count > PAGE_SIZE && (
-            <div className="flex items-center justify-end gap-2">
-              <span className="text-[12px] text-muted-foreground">Page {page} of {totalPages}</span>
-              <Button variant="outline" size="icon" className="h-7 w-7" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}><ChevronLeft className="h-3.5 w-3.5" /></Button>
-              <Button variant="outline" size="icon" className="h-7 w-7" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}><ChevronRight className="h-3.5 w-3.5" /></Button>
-            </div>
-          )}
-        </>
-      )}
+      <AuditLogsTable
+        logs={filtered}
+        loading={isLoading}
+        pagination={{
+          page,
+          pageSize: PAGE_SIZE,
+          total: data?.count ?? 0,
+          onPage: setPage,
+          itemLabel: "log entries",
+        }}
+      />
     </div>
   );
 }

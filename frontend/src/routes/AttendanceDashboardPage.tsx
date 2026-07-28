@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { CalendarCheck, CalendarDays, GraduationCap, Layers, Users, BarChart2, TrendingUp, TrendingDown } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { Reveal } from "@/components/motion";
+import { PremiumCard } from "@/components/ui/PremiumCard";
 import { AttendanceSummaryCards } from "@/components/attendance/AttendanceSummaryCards";
 import {
   ATTENDANCE_STATS, MONTHLY_TREND, CLASS_COMPARISON, TODAY,
@@ -14,7 +15,7 @@ function QuickAction({ label, icon: Icon, color, onClick }: {
 }) {
   return (
     <button onClick={onClick}
-      className="flex flex-col items-center gap-2 rounded-xl border border-border/60 bg-muted/20 p-4 text-center hover:bg-muted/40 transition-colors">
+      className="t-lift flex flex-col items-center gap-2 rounded-2xl border border-neutral-200/80 bg-white p-4 text-center shadow-elevated transition-shadow hover:shadow-lg dark:border-neutral-800 dark:bg-neutral-950">
       <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl text-white", color)}>
         <Icon className="h-5 w-5" />
       </div>
@@ -44,14 +45,14 @@ export function AttendanceDashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <Reveal className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Attendance Management</h1>
           <p className="text-[13px] text-muted-foreground mt-0.5">
             Today · {new Date(TODAY).toLocaleDateString("en", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
           </p>
         </div>
-      </div>
+      </Reveal>
 
       {/* KPI summary */}
       <AttendanceSummaryCards />
@@ -61,7 +62,8 @@ export function AttendanceDashboardPage() {
         {/* Left: 2/3 */}
         <div className="lg:col-span-2 space-y-6">
           {/* Today's student attendance snapshot */}
-          <Card className="p-5">
+          <Reveal delay={40}>
+          <PremiumCard className="p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <GraduationCap className="h-4 w-4 text-muted-foreground" />
@@ -111,10 +113,12 @@ export function AttendanceDashboardPage() {
                 );
               })}
             </div>
-          </Card>
+          </PremiumCard>
+          </Reveal>
 
           {/* Monthly trend */}
-          <Card className="p-5">
+          <Reveal delay={80}>
+          <PremiumCard className="p-5">
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
               <h2 className="text-[14px] font-semibold text-foreground">Monthly Attendance Trend</h2>
@@ -138,10 +142,12 @@ export function AttendanceDashboardPage() {
                 );
               })}
             </div>
-          </Card>
+          </PremiumCard>
+          </Reveal>
 
           {/* Class comparison */}
-          <Card className="p-5">
+          <Reveal delay={120}>
+          <PremiumCard className="p-5">
             <div className="flex items-center gap-2 mb-4">
               <Layers className="h-4 w-4 text-muted-foreground" />
               <h2 className="text-[14px] font-semibold text-foreground">Class Attendance Comparison</h2>
@@ -170,13 +176,15 @@ export function AttendanceDashboardPage() {
                 </div>
               ))}
             </div>
-          </Card>
+          </PremiumCard>
+          </Reveal>
         </div>
 
         {/* Right: 1/3 */}
         <div className="space-y-6">
           {/* Quick Actions */}
-          <Card className="p-5">
+          <Reveal delay={40}>
+          <PremiumCard className="p-5">
             <h2 className="text-[14px] font-semibold text-foreground mb-3">Quick Actions</h2>
             <div className="grid grid-cols-2 gap-2">
               <QuickAction label="Daily Attendance" icon={CalendarCheck} color="bg-emerald-500" onClick={() => navigate("/attendance/daily")} />
@@ -186,10 +194,12 @@ export function AttendanceDashboardPage() {
               <QuickAction label="Class Report"     icon={Layers}        color="bg-amber-500"   onClick={() => navigate("/attendance/class")} />
               <QuickAction label="Analytics"        icon={BarChart2}     color="bg-rose-500"    onClick={() => navigate("/attendance/reports")} />
             </div>
-          </Card>
+          </PremiumCard>
+          </Reveal>
 
           {/* Today's teachers */}
-          <Card className="p-5">
+          <Reveal delay={80}>
+          <PremiumCard className="p-5">
             <div className="flex items-center gap-2 mb-3">
               <Users className="h-4 w-4 text-muted-foreground" />
               <h2 className="text-[14px] font-semibold text-foreground">Teacher Attendance Today</h2>
@@ -218,10 +228,12 @@ export function AttendanceDashboardPage() {
                 );
               })}
             </div>
-          </Card>
+          </PremiumCard>
+          </Reveal>
 
           {/* Stats chips */}
-          <Card className="p-5">
+          <Reveal delay={120}>
+          <PremiumCard className="p-5">
             <div className="flex items-center gap-2 mb-3">
               <BarChart2 className="h-4 w-4 text-muted-foreground" />
               <h2 className="text-[14px] font-semibold text-foreground">July Progress</h2>
@@ -251,7 +263,8 @@ export function AttendanceDashboardPage() {
                 <span className="font-semibold text-violet-600">1 (Jul 17)</span>
               </div>
             </div>
-          </Card>
+          </PremiumCard>
+          </Reveal>
         </div>
       </div>
     </div>

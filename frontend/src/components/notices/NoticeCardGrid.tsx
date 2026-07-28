@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { Eye, Pencil, Trash2, Printer, Copy, Paperclip, Pin, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card }   from "@/components/ui/card";
+import { PremiumCard } from "@/components/ui/PremiumCard";
 import { NoticeStatusBadge }   from "@/components/notices/NoticeStatusBadge";
 import { NoticePriorityBadge } from "@/components/notices/NoticePriorityBadge";
 import type { Notice, NoticeCategory } from "@/data/noticesData";
@@ -28,8 +29,8 @@ function NoticeCard({ notice }: { notice: Notice }) {
   const navigate = useNavigate();
 
   return (
-    <Card className={cn(
-      "p-5 flex flex-col gap-3 hover:shadow-md transition-all duration-200 group relative",
+    <PremiumCard hoverable className={cn(
+      "p-5 flex flex-col gap-3 group relative",
       notice.priority === "Urgent" && "border-rose-200 dark:border-rose-800",
     )}>
       {/* Pin indicator */}
@@ -109,15 +110,17 @@ function NoticeCard({ notice }: { notice: Notice }) {
           <button className="rounded p-1.5 hover:bg-muted" title="Print" onClick={() => window.print()}>
             <Printer className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
-          <button className="rounded p-1.5 hover:bg-muted" title="Duplicate">
+          <button className="rounded p-1.5 hover:bg-muted" title="Duplicate"
+            onClick={() => toast.info("Duplicate notice — coming soon")}>
             <Copy className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
-          <button className="rounded p-1.5 hover:bg-rose-100" title="Delete">
+          <button className="rounded p-1.5 hover:bg-rose-100" title="Delete"
+            onClick={() => toast.info("Delete notice — coming soon")}>
             <Trash2 className="h-3.5 w-3.5 text-rose-400" />
           </button>
         </div>
       </div>
-    </Card>
+    </PremiumCard>
   );
 }
 

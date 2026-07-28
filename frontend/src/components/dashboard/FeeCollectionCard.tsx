@@ -8,13 +8,7 @@ import {
   YAxis,
 } from "recharts";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { PremiumCard } from "@/components/ui/PremiumCard";
 import { feeChartData, feeLegend } from "@/data/dashboardData";
 
 const FEE_COLORS = {
@@ -56,12 +50,12 @@ function ChartTip({ active, label, payload }: TipProps) {
 
 export function FeeCollectionCard() {
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">Fee Collection & Expenses</CardTitle>
-        <CardDescription>Monthly overview — Jan to Jul 2026.</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <PremiumCard className="flex h-full flex-col p-5">
+      <div className="mb-4">
+        <p className="font-display text-base font-semibold tracking-tight text-foreground">Fee Collection & Expenses</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">Monthly overview — Jan to Jul 2026.</p>
+      </div>
+      <div className="flex-1">
         <div className="h-56 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
@@ -130,7 +124,7 @@ export function FeeCollectionCard() {
             </div>
           ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </PremiumCard>
   );
 }

@@ -1,6 +1,6 @@
 import { MapPin } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { ContactInfo } from "@/data/studentDetailsData";
 
 function Row({ label, value }: { label: string; value?: string | null }) {
@@ -14,20 +14,14 @@ function Row({ label, value }: { label: string; value?: string | null }) {
 
 export function ContactAddressCard({ contact }: { contact: ContactInfo }) {
   return (
-    <Card className="rounded-2xl shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-          <MapPin className="h-4 w-4 text-primary" />
-          Contact & Address
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-5">
+    <DetailCard icon={MapPin} title="Contact & Address">
+      <div className="space-y-5">
         <div className="grid grid-cols-2 gap-x-6 gap-y-4">
           <Row label="Email"   value={contact.email} />
           <Row label="Mobile"  value={contact.mobile} />
         </div>
 
-        <div className="h-px bg-border/60" />
+        <div className="h-px bg-neutral-200/80 dark:bg-neutral-800" />
 
         <div className="grid grid-cols-2 gap-x-6 gap-y-4">
           <Row label="Current Address"   value={contact.currentAddress} />
@@ -37,7 +31,7 @@ export function ContactAddressCard({ contact }: { contact: ContactInfo }) {
           <Row label="Country"           value={contact.country} />
           <Row label="Postal Code"       value={contact.postalCode} />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </DetailCard>
   );
 }

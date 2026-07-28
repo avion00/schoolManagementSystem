@@ -32,14 +32,14 @@ export function NotificationSummaryCards({ notifications }: { notifications: App
       {stats.map((stat) => {
         const Icon = stat.icon;
         return (
-          <Card key={stat.label} className="rounded-2xl border-border/60 shadow-sm">
+          <Card key={stat.label} className="rounded-2xl border-border/60 shadow-elevated">
             <CardContent className="flex items-start gap-3 p-4">
               <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", TONE_STYLES[stat.tone])}>
                 <Icon className="h-[18px] w-[18px]" />
               </span>
               <div className="min-w-0">
-                <p className="text-[11px] font-medium text-muted-foreground">{stat.label}</p>
-                <p className="mt-0.5 text-xl font-semibold tabular-nums text-foreground">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{stat.label}</p>
+                <p className="mt-0.5 font-display text-2xl font-bold tabular-nums tracking-tight text-foreground">
                   <PopNumber value={stat.value} />
                 </p>
               </div>

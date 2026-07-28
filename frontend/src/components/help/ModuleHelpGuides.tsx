@@ -12,7 +12,7 @@ export function ModuleHelpGuides({ query = "" }: { query?: string }) {
     : MODULE_GUIDES;
 
   return (
-    <Card id="module-help-guides" className="scroll-mt-6 rounded-2xl border-border/60 shadow-sm">
+    <Card id="module-help-guides" className="scroll-mt-6 rounded-2xl border-border/60 shadow-elevated">
       <CardHeader>
         <CardTitle className="text-base font-semibold">Help by Module</CardTitle>
       </CardHeader>

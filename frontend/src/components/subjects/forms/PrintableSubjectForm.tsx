@@ -14,7 +14,7 @@ export function PrintableSubjectForm() {
   );
   const row2 = (a: string, b: string) => (
     <tr>
-      <td style={label}>{a}</td><td style={{ ...blank, colSpan: undefined }} colSpan={3} />
+      <td style={label}>{a}</td><td style={blank} colSpan={3} />
       <td style={label}>{b}</td><td style={blank} />
     </tr>
   );

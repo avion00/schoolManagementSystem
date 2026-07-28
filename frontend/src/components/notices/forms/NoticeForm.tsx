@@ -7,7 +7,8 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input }  from "@/components/ui/input";
-import { FormSection } from "@/components/students/forms/FormSection";
+import { FormSection } from "@/components/ui/form-section";
+import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { NoticeAudienceSelector }   from "@/components/notices/forms/NoticeAudienceSelector";
 import { NoticeAttachmentUploader } from "@/components/notices/forms/NoticeAttachmentUploader";
 import {
@@ -197,12 +198,12 @@ export function NoticeForm({ mode }: { mode: "create" | "edit" }) {
           </Field>
 
           <Field id="category" label="Category" required error={errors.category}>
-            <select id="category" value={form.category}
-              onChange={(e) => set("category", e.target.value as NoticeCategory)}
-              className="h-9 rounded-lg border border-input bg-background px-3 text-[12px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring">
-              <option value="">Select category</option>
-              {NOTICE_CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <PremiumSelect
+              value={form.category}
+              onChange={(v) => set("category", v as NoticeCategory)}
+              placeholder="Select category"
+              options={NOTICE_CATEGORY_OPTIONS.map((c) => ({ value: c, label: c }))}
+            />
           </Field>
 
           <Field id="priority" label="Priority" required error={errors.priority}>

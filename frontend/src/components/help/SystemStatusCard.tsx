@@ -18,7 +18,7 @@ export function SystemStatusCard() {
   const allOperational = SYSTEM_SERVICES.every((s) => s.status === "Operational");
 
   return (
-    <Card id="system-status" className="scroll-mt-6 rounded-2xl border-border/60 shadow-sm">
+    <Card id="system-status" className="scroll-mt-6 rounded-2xl border-border/60 shadow-elevated">
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-base font-semibold">System Status</CardTitle>
         <span

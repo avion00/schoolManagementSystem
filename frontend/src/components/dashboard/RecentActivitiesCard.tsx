@@ -1,15 +1,12 @@
 import { activities } from "@/data/dashboardData";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PremiumCard } from "@/components/ui/PremiumCard";
 import { cn } from "@/lib/utils";
 
 export function RecentActivitiesCard() {
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">Recent Activities</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ul>
+    <PremiumCard className="h-full p-5">
+      <p className="font-display mb-3 text-base font-semibold tracking-tight text-foreground">Recent Activities</p>
+      <ul>
           {activities.map((act, idx) => {
             const Icon = act.icon;
             const isLast = idx === activities.length - 1;
@@ -38,7 +35,6 @@ export function RecentActivitiesCard() {
             );
           })}
         </ul>
-      </CardContent>
-    </Card>
+    </PremiumCard>
   );
 }

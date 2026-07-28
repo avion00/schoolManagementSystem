@@ -1,6 +1,10 @@
 import { useNavigate } from "react-router-dom";
-import { Pencil, Trash2 } from "lucide-react";
-import { Button }  from "@/components/ui/button";
+import { Award } from "lucide-react";
+import { toast } from "sonner";
+
+import { PremiumBadge } from "@/components/ui/PremiumBadge";
+import { PremiumDataTable, type PremiumDataTableColumn } from "@/components/ui/PremiumDataTable";
+import { RowActionMenu } from "@/components/ui/RowActionMenu";
 import { GradeBadge } from "@/components/exams/GradeBadge";
 import type { GradeScale } from "@/data/examsData";
 import { cn } from "@/lib/utils";
@@ -15,83 +19,58 @@ const COLOR_BAR: Record<string, string> = {
   rose:    "bg-rose-500",
 };
 
-export function ExamGradeTable({ grades, onAdd }: { grades: GradeScale[]; onAdd: () => void }) {
+export function ExamGradeTable({ grades }: { grades: GradeScale[] }) {
   const navigate = useNavigate();
+
+  const columns: PremiumDataTableColumn<GradeScale>[] = [
+    { key: "gradeName", header: "Grade", width: "w-[100px]", render: (g) => <GradeBadge grade={g.gradeName} /> },
+    { key: "gradePoint", header: "Grade Point", width: "w-[120px]", render: (g) => <span className="font-bold text-foreground">{g.gradePoint.toFixed(2)}</span> },
+    {
+      key: "range", header: "% Range", width: "w-[140px]", render: (g) => (
+        <span className="text-foreground">
+          <span className="font-medium">{g.percentFrom}</span>
+          <span className="text-muted-foreground"> – </span>
+          <span className="font-medium">{g.percentUpto}</span>
+          <span className="text-muted-foreground">%</span>
+        </span>
+      ),
+    },
+    {
+      key: "colorLabel", header: "Color", width: "w-[130px]", render: (g) => (
+        <div className="flex items-center gap-2">
+          <div className={cn("h-3 w-8 rounded-full", COLOR_BAR[g.colorLabel] ?? "bg-muted")} />
+          <span className="capitalize text-muted-foreground">{g.colorLabel}</span>
+        </div>
+      ),
+    },
+    {
+      key: "resultStatus", header: "Result", width: "w-[100px]", render: (g) => (
+        <PremiumBadge label={g.resultStatus} tone={g.resultStatus === "Pass" ? "success" : "danger"} />
+      ),
+    },
+    { key: "comment", header: "Comment", render: (g) => <span className="text-muted-foreground">{g.comment}</span> },
+    {
+      key: "status", header: "Status", width: "w-[100px]", render: (g) => (
+        <PremiumBadge label={g.status.charAt(0).toUpperCase() + g.status.slice(1)} tone={g.status === "active" ? "success" : "neutral"} />
+      ),
+    },
+  ];
+
   return (
-    <div className="rounded-xl border border-border/60 shadow-sm overflow-hidden">
-      <table className="min-w-full text-[12px]">
-        <thead className="bg-muted/40 border-b border-border/60">
-          <tr>
-            <th className="px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Grade</th>
-            <th className="px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Grade Point</th>
-            <th className="px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">% Range</th>
-            <th className="px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Color</th>
-            <th className="px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Result</th>
-            <th className="px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Comment</th>
-            <th className="px-4 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
-            <th className="px-4 py-3 text-right text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border/40">
-          {grades.map((g) => (
-            <tr key={g.id} className="group hover:bg-muted/30 transition-colors">
-              <td className="px-4 py-3">
-                <GradeBadge grade={g.gradeName} />
-              </td>
-              <td className="px-4 py-3 font-bold text-foreground">{g.gradePoint.toFixed(2)}</td>
-              <td className="px-4 py-3 text-foreground">
-                <span className="font-medium">{g.percentFrom}</span>
-                <span className="text-muted-foreground"> – </span>
-                <span className="font-medium">{g.percentUpto}</span>
-                <span className="text-muted-foreground">%</span>
-              </td>
-              <td className="px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <div className={cn("h-3 w-8 rounded-full", COLOR_BAR[g.colorLabel] ?? "bg-muted")} />
-                  <span className="text-muted-foreground capitalize">{g.colorLabel}</span>
-                </div>
-              </td>
-              <td className="px-4 py-3">
-                <span className={cn(
-                  "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1",
-                  g.resultStatus === "Pass"
-                    ? "bg-emerald-50 text-emerald-700 ring-emerald-500/30"
-                    : "bg-rose-50 text-rose-700 ring-rose-500/30",
-                )}>
-                  {g.resultStatus}
-                </span>
-              </td>
-              <td className="px-4 py-3 text-muted-foreground">{g.comment}</td>
-              <td className="px-4 py-3">
-                <span className={cn(
-                  "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1",
-                  g.status === "active"
-                    ? "bg-green-50 text-green-700 ring-green-500/30"
-                    : "bg-muted text-muted-foreground ring-border/30",
-                )}>
-                  {g.status}
-                </span>
-              </td>
-              <td className="px-4 py-3">
-                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="rounded p-1 hover:bg-muted" title="Edit"
-                    onClick={() => navigate(`/exams/grades/${g.id}/edit`)}>
-                    <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                  </button>
-                  <button className="rounded p-1 hover:bg-rose-100" title="Delete">
-                    <Trash2 className="h-3.5 w-3.5 text-rose-400" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="border-t border-border/40 bg-muted/20 px-4 py-3">
-        <Button size="sm" variant="outline" className="h-8 text-[12px]" onClick={onAdd}>
-          + Add Grade
-        </Button>
-      </div>
-    </div>
+    <PremiumDataTable
+      columns={columns}
+      rows={grades}
+      rowKey={(g) => g.id}
+      emptyIcon={Award}
+      emptyTitle="No grade scales found"
+      emptyDescription="No grade levels have been configured yet."
+      rowActions={(g) => (
+        <RowActionMenu
+          entityLabel="grade"
+          onEdit={() => navigate(`/exams/grades/${g.id}/edit`)}
+          onDelete={() => toast.error(`Delete grade ${g.gradeName}? (static — no action taken)`, { duration: 2000 })}
+        />
+      )}
+    />
   );
 }

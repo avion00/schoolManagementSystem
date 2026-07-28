@@ -1,96 +1,92 @@
-import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Eye, MoreVertical, Printer, RotateCcw, SearchX, ShieldCheck } from "lucide-react";
+import { Eye, MoreHorizontal, Printer, Receipt, RotateCcw, ShieldCheck } from "lucide-react";
 
 import { BillingStatusBadge } from "@/components/billing/BillingStatusBadge";
 import { PaymentMethodBadge } from "@/components/billing/PaymentMethodBadge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PremiumDataTable, type PremiumDataTableColumn, type PremiumDataTablePagination } from "@/components/ui/PremiumDataTable";
+import { PremiumDropdownMenu, type PremiumMenuEntry } from "@/components/ui/PremiumDropdownMenu";
 import type { Payment } from "@/data/billingData";
 
-const PAGE_SIZE = 10;
 export type PaymentAction = "view-receipt" | "print-receipt" | "refund" | "verify";
 
 export function PaymentsTable({
   payments,
   onAction,
+  sortField,
+  sortDir,
+  onSort,
+  selected,
+  onSelectionChange,
+  pagination,
+  hasActiveFilter,
+  onResetFilters,
 }: {
   payments: Payment[];
   onAction: (payment: Payment, action: PaymentAction) => void;
+  sortField: string;
+  sortDir: "asc" | "desc";
+  onSort: (field: string) => void;
+  selected: Set<string | number>;
+  onSelectionChange: (keys: Set<string | number>) => void;
+  pagination: PremiumDataTablePagination;
+  hasActiveFilter: boolean;
+  onResetFilters: () => void;
 }) {
-  const [page, setPage] = useState(0);
-  const pageCount = Math.max(1, Math.ceil(payments.length / PAGE_SIZE));
-  useEffect(() => { setPage(0); }, [payments.length]);
-  const start = page * PAGE_SIZE;
-  const rows = payments.slice(start, start + PAGE_SIZE);
-
-  if (payments.length === 0) {
-    return (
-      <div className="flex flex-col items-center gap-2 rounded-2xl border border-border/60 bg-card py-16 text-center shadow-sm">
-        <SearchX className="h-6 w-6 text-muted-foreground/50" />
-        <p className="text-[13px] font-medium text-foreground">No payments match your filters</p>
-      </div>
-    );
-  }
+  const columns: PremiumDataTableColumn<Payment>[] = [
+    { key: "paymentId", header: "Payment ID", width: "w-[130px]", sortable: true, render: (p) => <span className="font-mono text-[12px] font-medium text-foreground">{p.paymentId}</span> },
+    { key: "invoiceNo", header: "Invoice No", width: "w-[120px]", render: (p) => <span className="font-mono text-[12px] text-muted-foreground">{p.invoiceNo}</span> },
+    { key: "studentName", header: "Student", width: "w-[160px]", sortable: true, render: (p) => <span className="text-[12.5px] font-medium text-foreground">{p.studentName}</span> },
+    { key: "parentName", header: "Parent", width: "w-[150px]", render: (p) => <span className="text-[12px] text-muted-foreground">{p.parentName}</span> },
+    { key: "amount", header: "Amount", width: "w-[100px]", sortable: true, render: (p) => <span className="text-[12.5px] font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">${p.amount.toLocaleString()}</span> },
+    { key: "method", header: "Method", width: "w-[140px]", render: (p) => <PaymentMethodBadge method={p.method} /> },
+    { key: "transactionId", header: "Transaction ID", width: "w-[120px]", render: (p) => <span className="font-mono text-[11.5px] text-muted-foreground">{p.transactionId}</span> },
+    { key: "paymentDate", header: "Date", width: "w-[110px]", sortable: true, render: (p) => <span className="whitespace-nowrap text-[12px] text-muted-foreground">{p.paymentDate}</span> },
+    { key: "receivedBy", header: "Received By", width: "w-[130px]", render: (p) => <span className="text-[12px] text-muted-foreground">{p.receivedBy}</span> },
+    { key: "status", header: "Status", width: "w-[110px]", sortable: true, render: (p) => <BillingStatusBadge status={p.status} /> },
+  ];
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
-      <Table>
-        <TableHeader className="bg-muted/40">
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="text-[11px]">Payment ID</TableHead>
-            <TableHead className="text-[11px]">Invoice No</TableHead>
-            <TableHead className="text-[11px]">Student</TableHead>
-            <TableHead className="text-[11px]">Parent</TableHead>
-            <TableHead className="text-[11px]">Amount</TableHead>
-            <TableHead className="text-[11px]">Method</TableHead>
-            <TableHead className="text-[11px]">Transaction ID</TableHead>
-            <TableHead className="text-[11px]">Date</TableHead>
-            <TableHead className="text-[11px]">Received By</TableHead>
-            <TableHead className="text-[11px]">Status</TableHead>
-            <TableHead className="w-9 text-[11px]" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((p, i) => (
-            <TableRow key={p.id} className="t-content-in" style={{ animationDelay: `${i * 25}ms` }}>
-              <TableCell className="font-mono text-[12px] font-medium text-foreground">{p.paymentId}</TableCell>
-              <TableCell className="font-mono text-[12px] text-muted-foreground">{p.invoiceNo}</TableCell>
-              <TableCell className="text-[12.5px] font-medium text-foreground">{p.studentName}</TableCell>
-              <TableCell className="text-[12px] text-muted-foreground">{p.parentName}</TableCell>
-              <TableCell className="text-[12.5px] font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">${p.amount.toLocaleString()}</TableCell>
-              <TableCell><PaymentMethodBadge method={p.method} /></TableCell>
-              <TableCell className="font-mono text-[11.5px] text-muted-foreground">{p.transactionId}</TableCell>
-              <TableCell className="whitespace-nowrap text-[12px] text-muted-foreground">{p.paymentDate}</TableCell>
-              <TableCell className="text-[12px] text-muted-foreground">{p.receivedBy}</TableCell>
-              <TableCell><BillingStatusBadge status={p.status} /></TableCell>
-              <TableCell className="px-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><MoreVertical className="h-4 w-4" /></Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-44">
-                    <DropdownMenuItem onClick={() => onAction(p, "view-receipt")}><Eye className="h-3.5 w-3.5" /> View Receipt</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onAction(p, "print-receipt")}><Printer className="h-3.5 w-3.5" /> Print Receipt</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onAction(p, "verify")}><ShieldCheck className="h-3.5 w-3.5" /> Verify</DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive" onClick={() => onAction(p, "refund")}><RotateCcw className="h-3.5 w-3.5" /> Refund</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/50 px-4 py-3">
-        <span className="text-[12px] text-muted-foreground">Showing {start + 1}–{Math.min(start + PAGE_SIZE, payments.length)} of {payments.length}</span>
-        <div className="flex items-center gap-2">
-          <span className="text-[12px] text-muted-foreground">Page {page + 1} of {pageCount}</span>
-          <Button variant="outline" size="icon" className="h-7 w-7" disabled={page === 0} onClick={() => setPage((p) => p - 1)}><ChevronLeft className="h-3.5 w-3.5" /></Button>
-          <Button variant="outline" size="icon" className="h-7 w-7" disabled={page >= pageCount - 1} onClick={() => setPage((p) => p + 1)}><ChevronRight className="h-3.5 w-3.5" /></Button>
-        </div>
-      </div>
-    </div>
+    <PremiumDataTable
+      columns={columns}
+      rows={payments}
+      rowKey={(p) => p.id}
+      selectable
+      selectedKeys={selected}
+      onSelectionChange={onSelectionChange}
+      sortField={sortField}
+      sortDir={sortDir}
+      onSort={onSort}
+      emptyIcon={Receipt}
+      emptyTitle="No payments found"
+      emptyDescription={hasActiveFilter ? "Try adjusting your search or filters." : "No payments have been recorded yet."}
+      emptyAction={hasActiveFilter ? <Button variant="outline" size="sm" onClick={onResetFilters}>Clear filters</Button> : undefined}
+      pagination={pagination}
+      bulkActions={(_count, clear) => (
+        <>
+          <Button variant="ghost" size="sm" className="ml-auto text-muted-foreground" onClick={clear}>Deselect all</Button>
+        </>
+      )}
+      rowActions={(payment) => {
+        const items: PremiumMenuEntry[] = [
+          { label: "View receipt", icon: Eye, onClick: () => onAction(payment, "view-receipt") },
+          { label: "Print receipt", icon: Printer, onClick: () => onAction(payment, "print-receipt") },
+          { label: "Verify", icon: ShieldCheck, onClick: () => onAction(payment, "verify") },
+          "separator",
+          { label: "Refund", icon: RotateCcw, danger: true, onClick: () => onAction(payment, "refund") },
+        ];
+        return (
+          <PremiumDropdownMenu
+            align="end"
+            width="w-44"
+            trigger={
+              <button type="button" aria-label="Row actions" className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/70 hover:text-foreground">
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+            }
+            items={items}
+          />
+        );
+      }}
+    />
   );
 }

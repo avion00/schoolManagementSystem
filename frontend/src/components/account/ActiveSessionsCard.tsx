@@ -30,7 +30,7 @@ export function ActiveSessionsCard() {
   }
 
   return (
-    <Card className="rounded-2xl border-border/60 shadow-sm">
+    <Card className="rounded-2xl border-border/60 shadow-elevated">
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-[13px] font-semibold">Active Sessions & Devices</CardTitle>
         <Button variant="outline" size="sm" className="h-7 gap-1.5 text-[11.5px] text-destructive hover:text-destructive"

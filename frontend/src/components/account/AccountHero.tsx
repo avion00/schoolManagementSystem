@@ -23,7 +23,7 @@ export function AccountHero({
   const roleLabel = user?.is_platform_admin ? "Platform Admin" : user?.roles?.[0] ?? "Super Admin";
 
   return (
-    <Card className="overflow-hidden rounded-2xl border-border/60 bg-gradient-to-br from-primary/[0.06] via-card to-card shadow-sm">
+    <Card className="overflow-hidden rounded-2xl border-border/60 bg-gradient-to-br from-primary/[0.06] via-card to-card shadow-elevated">
       <CardContent className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Avatar className="h-16 w-16 shrink-0 border border-border/60">

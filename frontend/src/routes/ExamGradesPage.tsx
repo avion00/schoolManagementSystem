@@ -1,11 +1,21 @@
 import { useNavigate } from "react-router-dom";
-import { Award, Plus } from "lucide-react";
+import { Award, CheckCircle2, Plus, TrendingDown, TrendingUp } from "lucide-react";
+import { CATEGORICAL_COLORS, STATUS_COLORS } from "@/components/charts/palette";
+import { Reveal } from "@/components/motion";
 import { Button } from "@/components/ui/button";
-import { Card }   from "@/components/ui/card";
+import { KPITrendCard } from "@/components/ui/KPITrendCard";
+import { METRIC_TONES } from "@/components/ui/MetricCard";
+import { PremiumCard } from "@/components/ui/PremiumCard";
 import { ExamGradeTable } from "@/components/exams/ExamGradeTable";
 import { GradeBadge }     from "@/components/exams/GradeBadge";
 import { GRADE_SCALE }    from "@/data/examsData";
 import { cn } from "@/lib/utils";
+
+const SPARK = {
+  up: [{ value: 5 }, { value: 5 }, { value: 6 }, { value: 6 }, { value: 6 }, { value: 7 }, { value: 7 }],
+  upSlow: [{ value: 4 }, { value: 4 }, { value: 5 }, { value: 5 }, { value: 5 }, { value: 5 }, { value: 5 }],
+  down: [{ value: 3 }, { value: 3 }, { value: 2 }, { value: 2 }, { value: 2 }, { value: 1 }, { value: 1 }],
+};
 
 const COLOR_BG: Record<string, string> = {
   emerald: "bg-emerald-500", green: "bg-green-500", teal: "bg-teal-500",
@@ -22,40 +32,68 @@ export function ExamGradesPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <Reveal className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Exam Grades</h1>
           <p className="text-[13px] text-muted-foreground mt-0.5">
             {GRADE_SCALE.length} grade levels · {activeGrades.length} active
           </p>
         </div>
-        <Button size="sm" className="h-9 gap-1.5 text-[12px]" onClick={() => navigate("/exams/grades/new")}>
+        <Button size="sm" className="h-9 gap-1.5 rounded-xl text-[12px]" onClick={() => navigate("/exams/grades/new")}>
           <Plus className="h-3.5 w-3.5" />Add Grade
         </Button>
-      </div>
+      </Reveal>
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card className="p-4 text-center">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Total Grades</p>
-          <p className="text-2xl font-bold text-foreground mt-1">{GRADE_SCALE.length}</p>
-        </Card>
-        <Card className="p-4 text-center">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Active</p>
-          <p className="text-2xl font-bold text-emerald-600 mt-1">{activeGrades.length}</p>
-        </Card>
-        <Card className="p-4 text-center">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Pass Levels</p>
-          <p className="text-2xl font-bold text-blue-600 mt-1">{passGrades.length}</p>
-        </Card>
-        <Card className="p-4 text-center">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Fail Levels</p>
-          <p className="text-2xl font-bold text-rose-600 mt-1">{failGrades.length}</p>
-        </Card>
+        <Reveal delay={0}>
+          <KPITrendCard
+            label="Total Grades"
+            value={GRADE_SCALE.length}
+            icon={Award}
+            iconCls={METRIC_TONES.blue}
+            trend={{ value: "+1.0%", up: true, compareLabel: "vs last term" }}
+            sparklineData={SPARK.up}
+            sparklineColor={CATEGORICAL_COLORS[0]}
+          />
+        </Reveal>
+        <Reveal delay={40}>
+          <KPITrendCard
+            label="Active"
+            value={activeGrades.length}
+            icon={CheckCircle2}
+            iconCls={METRIC_TONES.green}
+            trend={{ value: "0.0%", up: true, compareLabel: "vs last term" }}
+            sparklineData={SPARK.upSlow}
+            sparklineColor={STATUS_COLORS.good}
+          />
+        </Reveal>
+        <Reveal delay={80}>
+          <KPITrendCard
+            label="Pass Levels"
+            value={passGrades.length}
+            icon={TrendingUp}
+            iconCls={METRIC_TONES.green}
+            trend={{ value: "+2.5%", up: true, compareLabel: "vs last term" }}
+            sparklineData={SPARK.up}
+            sparklineColor={STATUS_COLORS.good}
+          />
+        </Reveal>
+        <Reveal delay={120}>
+          <KPITrendCard
+            label="Fail Levels"
+            value={failGrades.length}
+            icon={TrendingDown}
+            iconCls={METRIC_TONES.red}
+            trend={{ value: "-3.0%", up: false, compareLabel: "vs last term" }}
+            sparklineData={SPARK.down}
+            sparklineColor={STATUS_COLORS.critical}
+          />
+        </Reveal>
       </div>
 
       {/* Visual scale bar */}
-      <Card className="p-5">
+      <PremiumCard className="p-5">
         <h2 className="text-[13px] font-semibold text-foreground mb-4">Grade Scale Visual</h2>
         <div className="relative h-10 rounded-xl overflow-hidden flex">
           {GRADE_SCALE.map((g) => {
@@ -76,10 +114,10 @@ export function ExamGradesPage() {
           <span>0%</span>
           {GRADE_SCALE.map((g) => <span key={g.id}>{g.percentUpto}%</span>)}
         </div>
-      </Card>
+      </PremiumCard>
 
       {/* Grade badges legend */}
-      <Card className="p-5">
+      <PremiumCard className="p-5">
         <h2 className="text-[13px] font-semibold text-foreground mb-3">Grade Summary</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
           {GRADE_SCALE.map((g) => (
@@ -100,16 +138,16 @@ export function ExamGradesPage() {
             </div>
           ))}
         </div>
-      </Card>
+      </PremiumCard>
 
       {/* Main table */}
-      <Card className="p-5">
+      <PremiumCard className="p-5">
         <div className="flex items-center gap-2 mb-4">
           <Award className="h-4 w-4 text-muted-foreground" />
           <h2 className="text-[13px] font-semibold text-foreground">All Grade Scales</h2>
         </div>
-        <ExamGradeTable grades={GRADE_SCALE} onAdd={() => navigate("/exams/grades/new")} />
-      </Card>
+        <ExamGradeTable grades={GRADE_SCALE} />
+      </PremiumCard>
     </div>
   );
 }

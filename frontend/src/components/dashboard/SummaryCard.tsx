@@ -7,7 +7,7 @@ export function SummaryCard({ item }: { item: SummaryCardItem }) {
   return (
     <div
       className={cn(
-        "relative flex flex-col justify-between overflow-hidden rounded-xl p-4 text-white",
+        "relative flex flex-col justify-between overflow-hidden rounded-2xl p-4 text-white shadow-elevated",
         "bg-gradient-to-br",
         item.from,
         item.to,
@@ -20,7 +20,7 @@ export function SummaryCard({ item }: { item: SummaryCardItem }) {
       <div className="relative flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-sm font-medium text-white/80">{item.label}</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums">
+          <p className="font-display mt-1 text-2xl font-bold tabular-nums tracking-tight">
             <PopNumber value={item.value} />
           </p>
           <p className="mt-0.5 text-xs text-white/70">{item.sub}</p>

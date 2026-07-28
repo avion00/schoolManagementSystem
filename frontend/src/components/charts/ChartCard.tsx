@@ -22,7 +22,7 @@ export function ChartCard({
 }) {
   return (
     <Reveal className={cn("h-full", className)}>
-      <Card className="h-full rounded-2xl border-border/60 shadow-sm">
+      <Card className="h-full rounded-2xl border-border/60 shadow-elevated">
         <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
           <div>
             <CardTitle className="text-[13px] font-semibold">{title}</CardTitle>

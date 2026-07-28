@@ -229,12 +229,14 @@ function BrandMark({ className }: { className?: string }) {
 }
 
 /* ── Sidebar header brand ─────────────────────────────────────────────── */
+/* The sidebar is now a fixed dark-navy surface regardless of app theme
+   (light/dark), so it always uses the light-on-dark logo variant rather
+   than following `resolvedTheme` the way the rest of the app's chrome does. */
 function SidebarBrand({ collapsed }: { collapsed: boolean }) {
-  const { resolvedTheme } = useTheme();
   if (collapsed) {
     return (
       <img
-        src={resolvedTheme === "dark" ? "/logo_title-light.png" : "/logo-title-dark.png"}
+        src="/logo_title-light.png"
         alt="Online Dashboard"
         className="h-9 w-9 object-contain"
       />
@@ -242,7 +244,7 @@ function SidebarBrand({ collapsed }: { collapsed: boolean }) {
   }
   return (
     <img
-      src={resolvedTheme === "dark" ? "/logo-light.png" : "/logo-dark.png"}
+      src="/logo-light.png"
       alt="Online Dashboard"
       className="h-10 w-auto max-w-[190px] object-contain object-left"
     />
@@ -268,14 +270,14 @@ function SideNavItem({
         "group relative flex items-center gap-3 rounded-lg transition-all duration-150",
         collapsed ? "justify-center px-0 py-2.5" : "px-3 py-[9px]",
         active
-          ? "bg-primary/[0.08] text-primary"
-          : "text-foreground/60 hover:bg-accent/70 hover:text-foreground",
+          ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
       )}
     >
       {active && (
         <span
           className={cn(
-            "absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full bg-primary",
+            "absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full bg-sidebar-primary",
             collapsed ? "h-4 w-[3px]" : "h-5 w-[3px]",
           )}
         />
@@ -283,7 +285,7 @@ function SideNavItem({
       <Icon
         className={cn(
           "h-[17px] w-[17px] shrink-0 transition-colors",
-          active ? "text-primary" : "text-foreground/45 group-hover:text-foreground/75",
+          active ? "text-sidebar-primary" : "text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground",
         )}
       />
       {!collapsed && (
@@ -334,17 +336,17 @@ function ExpandableNavItem({
         className={cn(
           "group relative flex items-center justify-center rounded-lg px-0 py-2.5 transition-all duration-150",
           isParentActive
-            ? "bg-primary/[0.08] text-primary"
-            : "text-foreground/60 hover:bg-accent/70 hover:text-foreground",
+            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
         )}
       >
         {isParentActive && (
-          <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />
+          <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-sidebar-primary" />
         )}
         <Icon
           className={cn(
             "h-[17px] w-[17px] shrink-0",
-            isParentActive ? "text-primary" : "text-foreground/45",
+            isParentActive ? "text-sidebar-primary" : "text-sidebar-foreground/50",
           )}
         />
       </NavLink>
@@ -367,17 +369,17 @@ function ExpandableNavItem({
         className={cn(
           "group relative flex w-full items-center gap-3 rounded-lg px-3 py-[9px] transition-all duration-150",
           isParentActive
-            ? "bg-primary/[0.08] text-primary"
-            : "text-foreground/60 hover:bg-accent/70 hover:text-foreground",
+            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
         )}
       >
         {isParentActive && (
-          <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />
+          <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-sidebar-primary" />
         )}
         <Icon
           className={cn(
             "h-[17px] w-[17px] shrink-0 transition-colors",
-            isParentActive ? "text-primary" : "text-foreground/45 group-hover:text-foreground/75",
+            isParentActive ? "text-sidebar-primary" : "text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground",
           )}
         />
         <span className="flex-1 truncate text-left text-[13.5px] font-medium tracking-[-0.01em]">
@@ -398,7 +400,7 @@ function ExpandableNavItem({
         )}
       >
         <div className="overflow-hidden">
-          <div className="ml-4 mt-0.5 space-y-0.5 border-l border-border/50 pb-1 pl-3">
+          <div className="ml-4 mt-0.5 space-y-0.5 border-l border-sidebar-border/60 pb-1 pl-3">
             {children.map((child) => (
               <SideNavItem
                 key={child.to}
@@ -530,9 +532,9 @@ function UserMenu({ collapsed, compact }: { collapsed?: boolean; compact?: boole
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="flex w-full items-center justify-center rounded-xl p-2 transition-colors duration-150 hover:bg-accent/70 outline-none">
+          <button className="flex w-full items-center justify-center rounded-xl p-2 transition-colors duration-150 hover:bg-sidebar-accent/60 outline-none">
             <Avatar className="h-8 w-8">
-              <AvatarFallback className="text-[11px] font-bold tracking-wide">{initialsOf(name)}</AvatarFallback>
+              <AvatarFallback className="bg-sidebar-accent text-[11px] font-bold tracking-wide text-sidebar-accent-foreground">{initialsOf(name)}</AvatarFallback>
             </Avatar>
           </button>
         </DropdownMenuTrigger>
@@ -546,19 +548,19 @@ function UserMenu({ collapsed, compact }: { collapsed?: boolean; compact?: boole
       <DropdownMenuTrigger asChild>
         <button className="
           flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left
-          transition-colors duration-150 hover:bg-accent/70
-          outline-none focus-visible:ring-2 focus-visible:ring-ring
+          transition-colors duration-150 hover:bg-sidebar-accent/60
+          outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring
         ">
           <Avatar className="h-9 w-9 shrink-0">
-            <AvatarFallback className="bg-primary/10 text-[11px] font-bold tracking-wide text-primary">
+            <AvatarFallback className="bg-sidebar-accent text-[11px] font-bold tracking-wide text-sidebar-primary">
               {initialsOf(name)}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-semibold leading-snug text-foreground">{name}</p>
-            <p className="truncate text-[11.5px] leading-snug text-muted-foreground/80">{email}</p>
+            <p className="truncate text-[13px] font-semibold leading-snug text-sidebar-foreground">{name}</p>
+            <p className="truncate text-[11.5px] leading-snug text-sidebar-foreground/60">{email}</p>
           </div>
-          <MoreVertical className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+          <MoreVertical className="h-4 w-4 shrink-0 text-sidebar-foreground/40" />
         </button>
       </DropdownMenuTrigger>
       <ProfileDropdown name={name} email={email} side="right" onLogout={logout} />
@@ -601,14 +603,14 @@ export function Shell({ nav, brand }: { nav: NavGroup[]; brand: string }) {
       {/* ── Desktop sidebar ───────────────────────────────────────────── */}
       <aside
         className={cn(
-          "hidden flex-col border-r border-border/60 bg-card transition-[width] duration-300 ease-out md:flex print:hidden",
+          "hidden flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-300 ease-out md:flex print:hidden",
           collapsed ? "w-[68px]" : "w-64",
         )}
       >
         {/* Brand header */}
         <div
           className={cn(
-            "flex h-16 shrink-0 items-center border-b border-border/60",
+            "flex h-16 shrink-0 items-center border-b border-sidebar-border",
             collapsed ? "justify-center" : "px-5",
           )}
         >
@@ -621,7 +623,7 @@ export function Shell({ nav, brand }: { nav: NavGroup[]; brand: string }) {
             {visibleGroups.map((group) => (
               <div key={group.label} className="flex flex-col gap-0.5">
                 {!collapsed && (
-                  <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.09em] text-muted-foreground/50">
+                  <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.09em] text-sidebar-foreground/45">
                     {group.label}
                   </p>
                 )}
@@ -649,7 +651,7 @@ export function Shell({ nav, brand }: { nav: NavGroup[]; brand: string }) {
 
         {/* ── Pinned footer ─────────────────────────────────────────── */}
         <div className="shrink-0">
-          <div className={cn("border-t border-border/60", collapsed ? "p-2" : "p-2.5")}>
+          <div className={cn("border-t border-sidebar-border", collapsed ? "p-2" : "p-2.5")}>
             <UserMenu collapsed={collapsed} />
           </div>
         </div>
@@ -738,7 +740,10 @@ export function Shell({ nav, brand }: { nav: NavGroup[]; brand: string }) {
         </header>
 
         {/* ── Page content ──────────────────────────────────────────── */}
-        <main className="flex-1 overflow-y-auto bg-muted/30 print:overflow-visible print:bg-white">
+        <main
+          className="flex-1 overflow-y-scroll bg-muted/30 print:overflow-visible print:bg-white"
+          style={{ scrollbarGutter: "stable" }}
+        >
           <div className="mx-auto w-full p-4 md:p-8 print:p-0">
             <PageTransition key={transitionKeyFor(pathname)}>
               <Outlet />

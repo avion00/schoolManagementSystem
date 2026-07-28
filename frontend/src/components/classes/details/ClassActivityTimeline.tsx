@@ -1,5 +1,5 @@
-import { BookOpen, CalendarCheck, ClipboardList, FilePlus, GraduationCap, LayoutGrid, Settings, Users } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BookOpen, CalendarCheck, ClipboardList, FilePlus, GraduationCap, History, LayoutGrid, Settings, Users } from "lucide-react";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { ClassActivity } from "@/data/classDetailData";
 
 const TYPE_CFG: Record<ClassActivity["type"], { icon: typeof BookOpen; bg: string; text: string }> = {
@@ -21,11 +21,7 @@ function timeLabel(ts: string) {
 
 export function ClassActivityTimeline({ activities }: { activities: ClassActivity[] }) {
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-[14px] font-semibold">Activity Timeline</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <DetailCard icon={History} title="Activity Timeline">
         <ol className="space-y-0">
           {activities.map((act, i) => {
             const cfg = TYPE_CFG[act.type];
@@ -47,7 +43,6 @@ export function ClassActivityTimeline({ activities }: { activities: ClassActivit
             );
           })}
         </ol>
-      </CardContent>
-    </Card>
+    </DetailCard>
   );
 }

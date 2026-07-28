@@ -9,7 +9,7 @@ import {
   YAxis,
 } from "recharts";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { AttendanceMonth, AttendanceSummary } from "@/data/studentDetailsData";
 import { cn } from "@/lib/utils";
 
@@ -41,28 +41,25 @@ export function StudentAttendanceCard({ summary, monthly }: Props) {
   const barColor = pctNum >= 90 ? "#10b981" : pctNum >= 75 ? "#f59e0b" : "#ef4444";
 
   return (
-    <Card className="rounded-2xl shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center justify-between text-sm font-semibold">
-          <span className="flex items-center gap-2">
-            <CalendarCheck className="h-4 w-4 text-primary" />
-            Attendance Summary
-          </span>
-          <span
-            className={cn(
-              "rounded-full px-2.5 py-0.5 text-xs font-bold",
-              pctNum >= 90
-                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                : pctNum >= 75
-                  ? "bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                  : "bg-rose-500/10 text-rose-700 dark:text-rose-400",
-            )}
-          >
-            {pct}% present
-          </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-5">
+    <DetailCard
+      icon={CalendarCheck}
+      title="Attendance Summary"
+      action={
+        <span
+          className={cn(
+            "rounded-full px-2.5 py-0.5 text-xs font-bold",
+            pctNum >= 90
+              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+              : pctNum >= 75
+                ? "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                : "bg-rose-500/10 text-rose-700 dark:text-rose-400",
+          )}
+        >
+          {pct}% present
+        </span>
+      }
+    >
+      <div className="space-y-5">
         {/* Progress bar */}
         <div>
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
@@ -111,7 +108,7 @@ export function StudentAttendanceCard({ summary, monthly }: Props) {
             </AreaChart>
           </ResponsiveContainer>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </DetailCard>
   );
 }

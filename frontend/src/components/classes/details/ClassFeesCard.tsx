@@ -1,5 +1,6 @@
+import { Wallet } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { FeesSummary } from "@/data/classDetailData";
 
 function fmt(n: number) { return `NPR ${n.toLocaleString("en-IN")}`; }
@@ -8,11 +9,7 @@ export function ClassFeesCard({ fees }: { fees: FeesSummary }) {
   const collectedPct = Math.round((fees.collected / fees.totalExpected) * 100);
 
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-[14px] font-semibold">Fee Collection Summary</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-5">
+    <DetailCard icon={Wallet} title="Fee Collection Summary">
         {/* Top chips */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
@@ -84,7 +81,6 @@ export function ClassFeesCard({ fees }: { fees: FeesSummary }) {
             <span className="font-bold text-violet-700 dark:text-violet-400">{fmt(fees.scholarship)}</span>
           </div>
         )}
-      </CardContent>
-    </Card>
+    </DetailCard>
   );
 }

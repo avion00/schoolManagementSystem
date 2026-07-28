@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-import { BulkTicketActions } from "@/components/helpdesk/BulkTicketActions";
 import { CreateTicketModal, type NewTicketFormData } from "@/components/helpdesk/CreateTicketModal";
 import { HelpDeskSummaryCards } from "@/components/helpdesk/HelpDeskSummaryCards";
 import { DEFAULT_TICKET_FILTERS, HelpDeskToolbar, type TicketFilters } from "@/components/helpdesk/HelpDeskToolbar";
@@ -222,15 +221,6 @@ export function HelpDeskPage() {
         onNewTicket={() => setCreateOpen(true)}
       />
 
-      <BulkTicketActions
-        selectedIds={selectedIds}
-        onClear={() => setSelectedIds([])}
-        onBulkAssign={bulkAssign}
-        onBulkPriority={bulkPriority}
-        onBulkStatus={bulkStatus}
-        onBulkClose={bulkClose}
-      />
-
       <TicketInboxTable
         tickets={filteredTickets}
         selectedIds={selectedIds}
@@ -238,6 +228,10 @@ export function HelpDeskPage() {
         onToggleSelectAll={toggleSelectAll}
         onOpenTicket={openTicket}
         onQuickAction={quickAction}
+        onBulkAssign={bulkAssign}
+        onBulkPriority={bulkPriority}
+        onBulkStatus={bulkStatus}
+        onBulkClose={bulkClose}
       />
 
       <div>

@@ -1,4 +1,5 @@
 import { CheckCircle2, Clock } from "lucide-react";
+import { PremiumDataTable, type PremiumDataTableColumn } from "@/components/ui/PremiumDataTable";
 import type { RecipientRecord } from "@/data/noticesData";
 import { cn } from "@/lib/utils";
 
@@ -18,8 +19,41 @@ export function NoticeRecipientsTable({ recipients }: { recipients: RecipientRec
     );
   }
 
-  const readCount   = recipients.filter((r) => r.readStatus === "Read").length;
-  const ackCount    = recipients.filter((r) => r.acknowledged).length;
+  const readCount = recipients.filter((r) => r.readStatus === "Read").length;
+  const ackCount  = recipients.filter((r) => r.acknowledged).length;
+
+  const columns: PremiumDataTableColumn<RecipientRecord>[] = [
+    { key: "name", header: "Recipient", render: (r) => <span className="font-medium text-foreground">{r.name}</span> },
+    {
+      key: "role", header: "Role", render: (r) => (
+        <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold", ROLE_COLORS[r.role])}>
+          {r.role}
+        </span>
+      ),
+    },
+    { key: "classSection", header: "Class/Sec", render: (r) => <span className="text-muted-foreground">{r.classSection}</span> },
+    {
+      key: "readStatus", header: "Read Status", align: "center", render: (r) => (
+        r.readStatus === "Read" ? (
+          <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
+            <CheckCircle2 className="h-3.5 w-3.5" />Read
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-muted-foreground">
+            <Clock className="h-3.5 w-3.5" />Unread
+          </span>
+        )
+      ),
+    },
+    { key: "readTime", header: "Read Time", render: (r) => <span className="text-[11px] text-muted-foreground">{r.readTime ?? "—"}</span> },
+    {
+      key: "acknowledged", header: "Acknowledged", align: "center", render: (r) => (
+        r.acknowledged
+          ? <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
+          : <span className="text-muted-foreground text-[11px]">—</span>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-3">
@@ -30,50 +64,11 @@ export function NoticeRecipientsTable({ recipients }: { recipients: RecipientRec
         <span className="text-violet-600">Acknowledged: <strong>{ackCount}</strong></span>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border/60">
-        <table className="min-w-full text-[12px]">
-          <thead className="bg-muted/40 border-b border-border/60">
-            <tr>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Recipient</th>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Role</th>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Class/Sec</th>
-              <th className="px-3 py-2.5 text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Read Status</th>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Read Time</th>
-              <th className="px-3 py-2.5 text-center text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Acknowledged</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border/40">
-            {recipients.map((r) => (
-              <tr key={r.id} className="hover:bg-muted/20">
-                <td className="px-3 py-2.5 font-medium text-foreground">{r.name}</td>
-                <td className="px-3 py-2.5">
-                  <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold", ROLE_COLORS[r.role])}>
-                    {r.role}
-                  </span>
-                </td>
-                <td className="px-3 py-2.5 text-muted-foreground">{r.classSection}</td>
-                <td className="px-3 py-2.5 text-center">
-                  {r.readStatus === "Read" ? (
-                    <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
-                      <CheckCircle2 className="h-3.5 w-3.5" />Read
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-muted-foreground">
-                      <Clock className="h-3.5 w-3.5" />Unread
-                    </span>
-                  )}
-                </td>
-                <td className="px-3 py-2.5 text-[11px] text-muted-foreground">{r.readTime ?? "—"}</td>
-                <td className="px-3 py-2.5 text-center">
-                  {r.acknowledged
-                    ? <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
-                    : <span className="text-muted-foreground text-[11px]">—</span>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <PremiumDataTable
+        columns={columns}
+        rows={recipients}
+        rowKey={(r) => r.id}
+      />
     </div>
   );
 }

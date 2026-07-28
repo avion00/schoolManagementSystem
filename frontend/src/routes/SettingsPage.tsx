@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import { Card } from "@/components/ui/card";
+import { PremiumCard } from "@/components/ui/PremiumCard";
+import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { SettingsSidebar } from "@/components/settings/SettingsSidebar";
 import { MyProfileSettings }        from "@/components/settings/MyProfileSettings";
 import { MySecuritySettings }       from "@/components/settings/MySecuritySettings";
@@ -90,22 +91,19 @@ export function SettingsPage() {
       <div className="flex gap-6 items-start">
         {/* ── Left nav panel ──────────────────────────────────── */}
         <aside className="hidden w-56 shrink-0 lg:block">
-          <Card className="rounded-2xl p-3 shadow-sm sticky top-4">
+          <PremiumCard className="p-3 sticky top-4">
             <SettingsSidebar active={activePanel} onChange={handlePanelChange} />
-          </Card>
+          </PremiumCard>
         </aside>
 
         {/* ── Mobile nav ──────────────────────────────────────── */}
         <div className="w-full lg:hidden">
-          <select
+          <PremiumSelect
             value={activePanel}
-            onChange={(e) => handlePanelChange(e.target.value as SettingsPanel)}
-            className="mb-4 h-10 w-full rounded-xl border border-input bg-background px-3 text-[13px] text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            {(Object.keys(PANEL_PATH) as SettingsPanel[]).map((k) => (
-              <option key={k} value={k}>{PANEL_LABELS[k]}</option>
-            ))}
-          </select>
+            onChange={(v) => handlePanelChange(v as SettingsPanel)}
+            className="mb-4 w-full"
+            options={(Object.keys(PANEL_PATH) as SettingsPanel[]).map((k) => ({ value: k, label: PANEL_LABELS[k] }))}
+          />
         </div>
 
         {/* ── Right content panel ─────────────────────────────── */}

@@ -1,5 +1,5 @@
-import { Phone } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Phone, Users } from "lucide-react";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { DetailTeacher } from "@/data/classDetailData";
 
 const ROLE_CFG = {
@@ -8,8 +8,6 @@ const ROLE_CFG = {
   "Assistant Teacher": "bg-amber-50 text-amber-700 ring-amber-500/30 dark:bg-amber-950/40 dark:text-amber-400",
 };
 
-const PALETTE = ["bg-violet-500","bg-blue-500","bg-emerald-500","bg-amber-500","bg-rose-500","bg-sky-500"];
-
 function initials(name: string) {
   const w = name.trim().split(" ");
   return (w[0][0] + (w[1]?.[0] ?? "")).toUpperCase();
@@ -17,11 +15,7 @@ function initials(name: string) {
 
 export function ClassTeachersCard({ teachers }: { teachers: DetailTeacher[] }) {
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-[14px] font-semibold">Assigned Teachers</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <DetailCard icon={Users} title="Assigned Teachers">
         <div className="overflow-x-auto">
           <table className="w-full text-[12.5px]">
             <thead>
@@ -32,11 +26,11 @@ export function ClassTeachersCard({ teachers }: { teachers: DetailTeacher[] }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
-              {teachers.map((t, i) => (
+              {teachers.map((t) => (
                 <tr key={t.id} className="hover:bg-muted/30 transition-colors">
                   <td className="py-2.5 pr-4">
                     <div className="flex items-center gap-2.5">
-                      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ${PALETTE[i % PALETTE.length]}`}>
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary text-[10px] font-bold text-secondary-foreground">
                         {initials(t.name)}
                       </div>
                       <span className="font-medium text-foreground whitespace-nowrap">{t.name}</span>
@@ -59,7 +53,6 @@ export function ClassTeachersCard({ teachers }: { teachers: DetailTeacher[] }) {
             </tbody>
           </table>
         </div>
-      </CardContent>
-    </Card>
+    </DetailCard>
   );
 }

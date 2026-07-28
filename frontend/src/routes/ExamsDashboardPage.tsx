@@ -3,8 +3,9 @@ import {
   AlertTriangle, Award, BarChart2, CalendarDays,
   CreditCard, FileText, PenLine, Plus, TrendingUp,
 } from "lucide-react";
+import { Reveal } from "@/components/motion";
 import { Button } from "@/components/ui/button";
-import { Card }   from "@/components/ui/card";
+import { PremiumCard } from "@/components/ui/PremiumCard";
 import { ExamSummaryCards } from "@/components/exams/ExamSummaryCards";
 import { ExamStatusBadge }  from "@/components/exams/ExamStatusBadge";
 import { GradeBadge }       from "@/components/exams/GradeBadge";
@@ -70,15 +71,15 @@ export function ExamsDashboardPage() {
   return (
     <div className="space-y-6">
       {/* Page title */}
-      <div className="flex items-center justify-between">
+      <Reveal className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Exam Management</h1>
           <p className="text-[13px] text-muted-foreground mt-0.5">Academic Year 2026/27 · Manage schedules, marks, results, and reports</p>
         </div>
-        <Button size="sm" className="h-9 gap-1.5 text-[12px]" onClick={() => navigate("/exams/schedule/new")}>
+        <Button size="sm" className="h-9 gap-1.5 rounded-xl text-[12px]" onClick={() => navigate("/exams/schedule/new")}>
           <Plus className="h-3.5 w-3.5" />Add Exam
         </Button>
-      </div>
+      </Reveal>
 
       {/* KPI summary cards */}
       <ExamSummaryCards />
@@ -88,7 +89,7 @@ export function ExamsDashboardPage() {
         {/* Left column: 2/3 */}
         <div className="lg:col-span-2 space-y-6">
           {/* Upcoming Exams */}
-          <Card className="p-5">
+          <PremiumCard hoverable className="p-5">
             <SectionHeader title="Upcoming Exams" viewPath="/exams/schedule" icon={CalendarDays} />
             {upcomingExams.length === 0 ? (
               <p className="text-[12px] text-muted-foreground text-center py-6">No upcoming exams scheduled.</p>
@@ -114,11 +115,11 @@ export function ExamsDashboardPage() {
                 ))}
               </div>
             )}
-          </Card>
+          </PremiumCard>
 
           {/* Pending Marks Entry */}
           {pendingMarks.length > 0 && (
-            <Card className="p-5">
+            <PremiumCard hoverable className="p-5">
               <SectionHeader title="Pending Marks Entry" viewPath="/exams/marks-entry" icon={PenLine} />
               <div className="space-y-2">
                 {pendingMarks.map((ex) => (
@@ -136,11 +137,11 @@ export function ExamsDashboardPage() {
                   </div>
                 ))}
               </div>
-            </Card>
+            </PremiumCard>
           )}
 
           {/* Class Performance */}
-          <Card className="p-5">
+          <PremiumCard hoverable className="p-5">
             <SectionHeader title="Class Performance" icon={BarChart2} />
             <div className="space-y-3">
               {classPerf.map((cp) => (
@@ -159,13 +160,13 @@ export function ExamsDashboardPage() {
                 </div>
               ))}
             </div>
-          </Card>
+          </PremiumCard>
         </div>
 
         {/* Right column: 1/3 */}
         <div className="space-y-6">
           {/* Quick Actions */}
-          <Card className="p-5">
+          <PremiumCard hoverable className="p-5">
             <h2 className="text-[14px] font-semibold text-foreground mb-3">Quick Actions</h2>
             <div className="grid grid-cols-2 gap-2">
               <QuickAction label="Add Exam"      icon={Plus}        color="bg-indigo-500" onClick={() => navigate("/exams/schedule/new")} />
@@ -175,10 +176,10 @@ export function ExamsDashboardPage() {
               <QuickAction label="Admit Cards"   icon={CreditCard}  color="bg-teal-500"   onClick={() => navigate("/exams/admit-cards")} />
               <QuickAction label="Grade Scales"  icon={Award}       color="bg-rose-500"   onClick={() => navigate("/exams/grades")} />
             </div>
-          </Card>
+          </PremiumCard>
 
           {/* Recent Results */}
-          <Card className="p-5">
+          <PremiumCard hoverable className="p-5">
             <SectionHeader title="Recent Results" viewPath="/exams/results" icon={TrendingUp} />
             <div className="space-y-2">
               {recentResults.map((r) => (
@@ -198,10 +199,10 @@ export function ExamsDashboardPage() {
                 </div>
               ))}
             </div>
-          </Card>
+          </PremiumCard>
 
           {/* Grade Scale summary */}
-          <Card className="p-5">
+          <PremiumCard hoverable className="p-5">
             <SectionHeader title="Grade Scale" viewPath="/exams/grades" icon={Award} />
             <div className="space-y-1.5">
               {GRADE_SCALE.map((g) => (
@@ -215,11 +216,11 @@ export function ExamsDashboardPage() {
                 </div>
               ))}
             </div>
-          </Card>
+          </PremiumCard>
 
           {/* Conflict warning */}
           {EXAM_STATS.conflicts > 0 && (
-            <Card className="p-5 border-rose-200 bg-rose-50/60 dark:border-rose-800 dark:bg-rose-950/20">
+            <PremiumCard className="p-5 border-rose-200 bg-rose-50/60 dark:border-rose-800 dark:bg-rose-950/20">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
                 <div>
@@ -236,7 +237,7 @@ export function ExamsDashboardPage() {
                   </Button>
                 </div>
               </div>
-            </Card>
+            </PremiumCard>
           )}
         </div>
       </div>

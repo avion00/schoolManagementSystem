@@ -57,7 +57,7 @@ export function PrintableClassRoutine({ className, section, academicYear }: Prop
           </tr>
         </thead>
         <tbody>
-          {periods.map((p, idx) => (
+          {periods.map((p) => (
             <>
               {p.period === 4 && (
                 <tr key="break">

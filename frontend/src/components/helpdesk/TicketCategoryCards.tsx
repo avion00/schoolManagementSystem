@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 
 import { Reveal } from "@/components/motion";
-import { Card, CardContent } from "@/components/ui/card";
+import { PremiumCard } from "@/components/ui/PremiumCard";
 import { OPEN_STATUSES, type SupportTicket, type TicketCategory } from "@/data/helpDeskData";
 
 interface CategoryGroup {
@@ -53,33 +53,31 @@ export function TicketCategoryCards({ tickets }: { tickets: SupportTicket[] }) {
       {rows.map((row) => {
         const Icon = row.icon;
         return (
-          <Card key={row.label} className="rounded-2xl border-border/60 shadow-sm">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <Icon className="h-4 w-4 text-primary" />
-                </span>
-                <p className="text-[13px] font-semibold text-foreground">{row.label}</p>
+          <PremiumCard key={row.label} hoverable className="p-4">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <Icon className="h-4 w-4 text-primary" />
+              </span>
+              <p className="text-[13px] font-semibold text-foreground">{row.label}</p>
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-1 text-center">
+              <div>
+                <p className="text-[15px] font-semibold tabular-nums text-foreground">{row.total}</p>
+                <p className="text-[10px] text-muted-foreground">Total</p>
               </div>
-              <div className="mt-3 grid grid-cols-3 gap-1 text-center">
-                <div>
-                  <p className="text-[15px] font-semibold tabular-nums text-foreground">{row.total}</p>
-                  <p className="text-[10px] text-muted-foreground">Total</p>
-                </div>
-                <div>
-                  <p className="text-[15px] font-semibold tabular-nums text-blue-600 dark:text-blue-400">{row.open}</p>
-                  <p className="text-[10px] text-muted-foreground">Open</p>
-                </div>
-                <div>
-                  <p className="text-[15px] font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{row.resolved}</p>
-                  <p className="text-[10px] text-muted-foreground">Resolved</p>
-                </div>
+              <div>
+                <p className="text-[15px] font-semibold tabular-nums text-blue-600 dark:text-blue-400">{row.open}</p>
+                <p className="text-[10px] text-muted-foreground">Open</p>
               </div>
-              <p className="mt-2.5 border-t border-border/50 pt-2 text-[11px] text-muted-foreground">
-                Avg. response: <span className="font-medium text-foreground">{row.avg}</span>
-              </p>
-            </CardContent>
-          </Card>
+              <div>
+                <p className="text-[15px] font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{row.resolved}</p>
+                <p className="text-[10px] text-muted-foreground">Resolved</p>
+              </div>
+            </div>
+            <p className="mt-2.5 border-t border-border/50 pt-2 text-[11px] text-muted-foreground">
+              Avg. response: <span className="font-medium text-foreground">{row.avg}</span>
+            </p>
+          </PremiumCard>
         );
       })}
     </Reveal>

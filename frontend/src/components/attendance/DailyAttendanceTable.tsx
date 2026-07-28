@@ -100,7 +100,7 @@ export function DailyAttendanceTable({ students, initialData, date, readOnly = f
       )}
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-border/60 shadow-sm">
+      <div className="overflow-x-auto rounded-2xl border border-border/60 shadow-elevated">
         <table className="min-w-full text-[12px]">
           <thead className="bg-muted/40 border-b border-border/60">
             <tr>

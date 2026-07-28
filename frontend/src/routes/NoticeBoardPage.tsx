@@ -4,6 +4,7 @@ import { NoticeSummaryCards } from "@/components/notices/NoticeSummaryCards";
 import { NoticeToolbar, EMPTY_FILTERS } from "@/components/notices/NoticeToolbar";
 import { NoticeCardGrid }  from "@/components/notices/NoticeCardGrid";
 import { NoticeTable }     from "@/components/notices/NoticeTable";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { NOTICES } from "@/data/noticesData";
 import type { NoticeFilters } from "@/components/notices/NoticeToolbar";
 import { cn } from "@/lib/utils";
@@ -41,12 +42,7 @@ export function NoticeBoardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Notice Board</h1>
-        <p className="text-[13px] text-muted-foreground mt-0.5">
-          Manage school notices, announcements, and circulars
-        </p>
-      </div>
+      <PageHeader description="Manage school notices, announcements, and circulars" />
 
       {/* Summary KPIs */}
       <NoticeSummaryCards />

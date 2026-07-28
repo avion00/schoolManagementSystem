@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Save, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { PremiumBadge } from "@/components/ui/PremiumBadge";
 import { GradeBadge } from "@/components/exams/GradeBadge";
 import { getGradeForPercent } from "@/data/examsData";
 import type { MarksEntry, ExamSchedule } from "@/data/examsData";
@@ -88,7 +89,7 @@ export function MarksEntryTable({ entries: initial, schedule }: Props) {
         <span className="text-muted-foreground"><span className="font-semibold">{entered}</span> marks entered</span>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border/60 shadow-sm">
+      <div className="overflow-x-auto rounded-2xl border border-border/60 shadow-elevated">
         <table className="min-w-full text-[12px]">
           <thead className="bg-muted/40 border-b border-border/60">
             <tr>
@@ -141,14 +142,7 @@ export function MarksEntryTable({ entries: initial, schedule }: Props) {
                 </td>
                 <td className="px-3 py-2 text-center">
                   {!r.isAbsent && r.result && (
-                    <span className={cn(
-                      "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1",
-                      r.result === "Pass"
-                        ? "bg-emerald-50 text-emerald-700 ring-emerald-500/30"
-                        : "bg-rose-50 text-rose-700 ring-rose-500/30",
-                    )}>
-                      {r.result}
-                    </span>
+                    <PremiumBadge label={r.result} tone={r.result === "Pass" ? "success" : "danger"} />
                   )}
                 </td>
                 <td className="px-3 py-2 text-center">

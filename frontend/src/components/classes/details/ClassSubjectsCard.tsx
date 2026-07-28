@@ -1,5 +1,6 @@
+import { BookOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { ClassSubject } from "@/data/classesData";
 
 const TYPE_CFG = {
@@ -24,14 +25,11 @@ const SUBJECT_COLORS: Record<string, string> = {
 
 export function ClassSubjectsCard({ subjects }: { subjects: ClassSubject[] }) {
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-[14px] font-semibold">Subjects</CardTitle>
-          <Badge variant="outline" className="text-[11px]">{subjects.length} subjects</Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
+    <DetailCard
+      icon={BookOpen}
+      title="Subjects"
+      action={<Badge variant="outline" className="text-[11px]">{subjects.length} subjects</Badge>}
+    >
         <div className="overflow-x-auto">
           <table className="w-full text-[12.5px]">
             <thead>
@@ -73,7 +71,6 @@ export function ClassSubjectsCard({ subjects }: { subjects: ClassSubject[] }) {
             </tbody>
           </table>
         </div>
-      </CardContent>
-    </Card>
+    </DetailCard>
   );
 }

@@ -58,7 +58,7 @@ export function SecurityOverviewCard({ onManageSessions }: { onManageSessions: (
   }
 
   return (
-    <Card className="rounded-2xl border-border/60 shadow-sm">
+    <Card className="rounded-2xl border-border/60 shadow-elevated">
       <CardHeader><CardTitle className="text-[13px] font-semibold">Security Overview</CardTitle></CardHeader>
       <CardContent className="divide-y divide-border/40 pt-0">
         <StatusRow icon={KeyRound} label="Password Status" ok={SECURITY_SETTINGS.passwordStatus === "Strong"} okLabel="Strong" badLabel={SECURITY_SETTINGS.passwordStatus} />

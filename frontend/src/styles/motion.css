@@ -514,6 +514,15 @@
   animation-delay: calc(var(--row-index, 0) * 22ms);
 }
 
+/* ── Floating bulk-actions bar (rises in above the table) ──────────── */
+@keyframes t-bulkbar-in {
+  from { opacity: 0; transform: translate3d(0, 10px, 0) scale(0.98); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+.t-bulkbar {
+  animation: t-bulkbar-in var(--motion-medium) var(--motion-ease) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .t-reveal,
   .t-digit-group .t-digit,
@@ -537,7 +546,8 @@
   .t-card-resize,
   .t-dropdown,
   .t-modal-morph,
-  .t-row-in {
+  .t-row-in,
+  .t-bulkbar {
     transition: none !important;
     animation: none !important;
     opacity: 1 !important;

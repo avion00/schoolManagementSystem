@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { toast }    from "sonner";
 import { Button }   from "@/components/ui/button";
-import { FormSection } from "@/components/students/forms/FormSection";
+import { FormSection } from "@/components/ui/form-section";
 import {
   SUBJECTS,
   SUBJECT_TYPE_OPTIONS, SUBJECT_CATEGORY_OPTIONS, SUBJECT_STATUS_OPTIONS,

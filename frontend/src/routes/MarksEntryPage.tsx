@@ -1,7 +1,9 @@
 import { useState, useMemo } from "react";
 import { BookOpen, ChevronRight, PenLine } from "lucide-react";
+import { Reveal } from "@/components/motion";
 import { Button } from "@/components/ui/button";
-import { Card }   from "@/components/ui/card";
+import { PremiumCard } from "@/components/ui/PremiumCard";
+import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { MarksEntryTable } from "@/components/exams/MarksEntryTable";
 import {
   EXAM_SCHEDULES, MARKS_ENTRIES, EXAM_TERM_OPTIONS,
@@ -12,11 +14,13 @@ function Sel({ label, value, options, onChange, disabled }: {
   label: string; value: string; options: string[]; onChange: (v: string) => void; disabled?: boolean;
 }) {
   return (
-    <select value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}
-      className="h-10 rounded-lg border border-input bg-background px-3 text-[13px] text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-40 min-w-[160px]">
-      <option value="">{label}</option>
-      {options.map((o) => <option key={o} value={o}>{o}</option>)}
-    </select>
+    <PremiumSelect
+      value={value}
+      onChange={onChange}
+      placeholder={label}
+      className={disabled ? "w-44 pointer-events-none opacity-40" : "w-44"}
+      options={options.map((o) => ({ value: o, label: o }))}
+    />
   );
 }
 
@@ -75,15 +79,15 @@ export function MarksEntryPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div>
+      <Reveal>
         <h1 className="text-2xl font-bold text-foreground">Marks Entry</h1>
         <p className="text-[13px] text-muted-foreground mt-0.5">
           Select exam, class, and subject to enter student marks
         </p>
-      </div>
+      </Reveal>
 
       {/* Selector panel */}
-      <Card className="p-5">
+      <PremiumCard className="p-5">
         <div className="flex items-center gap-2 mb-4">
           <PenLine className="h-4 w-4 text-muted-foreground" />
           <h2 className="text-[13px] font-semibold text-foreground">Select Exam</h2>
@@ -138,11 +142,11 @@ export function MarksEntryPage() {
             <span><span className="text-muted-foreground">Pass Marks:</span> <strong>{matchedExam.passMarks}</strong></span>
           </div>
         )}
-      </Card>
+      </PremiumCard>
 
       {/* Marks table */}
       {loaded && matchedExam && (
-        <Card className="p-5">
+        <PremiumCard className="p-5">
           <div className="flex items-center gap-2 mb-4">
             <PenLine className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-[13px] font-semibold text-foreground">
@@ -150,7 +154,7 @@ export function MarksEntryPage() {
             </h2>
           </div>
           <MarksEntryTable entries={marksData} schedule={matchedExam} />
-        </Card>
+        </PremiumCard>
       )}
 
       {/* Empty state */}

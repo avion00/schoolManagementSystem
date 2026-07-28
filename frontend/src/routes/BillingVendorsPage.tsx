@@ -1,46 +1,100 @@
 import { useMemo, useState } from "react";
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
+import { VendorsSummaryCards } from "@/components/billing/VendorsSummaryCards";
 import { VendorsTable } from "@/components/billing/VendorsTable";
+import { VendorsToolbar, type VendorsFilters } from "@/components/billing/VendorsToolbar";
 import { Button } from "@/components/ui/button";
-import { VENDORS, VENDOR_CATEGORY_OPTIONS } from "@/data/billingData";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { VENDORS } from "@/data/billingData";
 
-const selectClass = "h-8 rounded-lg border border-input bg-background px-2.5 text-[12px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring";
+const PAGE_SIZE = 10;
+type SortField = "vendorId" | "vendorName" | "category" | "totalPurchases" | "outstandingBalance" | "status";
+type SortDir = "asc" | "desc";
+
+const EMPTY_FILTERS: VendorsFilters = { search: "", category: "all" };
 
 export function BillingVendorsPage() {
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("all");
+  const [filters, setFilters] = useState<VendorsFilters>(EMPTY_FILTERS);
+  const [sortField, setSortField] = useState<SortField>("vendorName");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string | number>>(new Set());
+
+  function updateFilters(next: Partial<VendorsFilters>) {
+    setFilters((f) => ({ ...f, ...next }));
+    setPage(1);
+  }
+  function resetFilters() {
+    setFilters(EMPTY_FILTERS);
+    setPage(1);
+  }
+  function handleSort(field: string) {
+    const f = field as SortField;
+    if (sortField === f) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortField(f); setSortDir("asc"); }
+    setPage(1);
+  }
+
+  const hasActiveFilter = !!filters.search || filters.category !== "all";
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = filters.search.trim().toLowerCase();
     return VENDORS.filter((v) => {
-      if (category !== "all" && v.category !== category) return false;
+      if (filters.category !== "all" && v.category !== filters.category) return false;
       if (q && !`${v.vendorId} ${v.vendorName}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [search, category]);
+  }, [filters]);
+
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const av: string | number = a[sortField] ?? "";
+      const bv: string | number = b[sortField] ?? "";
+      if (typeof av === "number" && typeof bv === "number") return sortDir === "asc" ? av - bv : bv - av;
+      return sortDir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+    });
+  }, [filtered, sortField, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-3.5 shadow-sm">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-[240px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by vendor ID or name..."
-              className="h-8 w-full rounded-lg border border-input bg-background pl-8 pr-3 text-[12px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
-          </div>
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className={selectClass}>
-            <option value="all">All Categories</option>
-            {VENDOR_CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <Button size="sm" className="ml-auto h-8 gap-1.5 text-[12px]" onClick={() => toast.info("Add vendor form — coming soon.")}>
-            <Plus className="h-3.5 w-3.5" /> Add Vendor
+      <PageHeader
+        title={
+          <>
+            {sorted.length} vendor{sorted.length !== 1 ? "s" : ""}{" "}
+            {hasActiveFilter && (
+              <span className="text-base font-normal text-muted-foreground">(filtered from {VENDORS.length} total)</span>
+            )}
+          </>
+        }
+        description="Manage suppliers and vendor accounts."
+        actions={
+          <Button size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => toast.info("Add vendor form — coming soon.")}>
+            <Plus className="h-4 w-4" /> Add Vendor
           </Button>
-        </div>
-      </div>
+        }
+      />
 
-      <VendorsTable vendors={filtered} />
+      <VendorsSummaryCards vendors={VENDORS} />
+
+      <VendorsToolbar filters={filters} onFiltersChange={updateFilters} hasActiveFilter={hasActiveFilter} onReset={resetFilters} />
+
+      <VendorsTable
+        vendors={paginated}
+        sortField={sortField}
+        sortDir={sortDir}
+        onSort={handleSort}
+        selected={selected}
+        onSelectionChange={setSelected}
+        pagination={{ page: safePage, pageSize: PAGE_SIZE, total: sorted.length, onPage: (p) => { setPage(p); setSelected(new Set()); }, itemLabel: "vendors" }}
+        hasActiveFilter={hasActiveFilter}
+        onResetFilters={resetFilters}
+      />
     </div>
   );
 }

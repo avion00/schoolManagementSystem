@@ -1,4 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FilePlus } from "lucide-react";
+import { DetailCard } from "@/components/ui/DetailCard";
 import type { ClassExam } from "@/data/classDetailData";
 
 const STATUS_CFG = {
@@ -9,11 +10,7 @@ const STATUS_CFG = {
 
 export function ClassExamsCard({ exams }: { exams: ClassExam[] }) {
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-[14px] font-semibold">Exams</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <DetailCard icon={FilePlus} title="Exams">
         <div className="overflow-x-auto">
           <table className="w-full text-[12.5px]">
             <thead>
@@ -43,7 +40,6 @@ export function ClassExamsCard({ exams }: { exams: ClassExam[] }) {
             </tbody>
           </table>
         </div>
-      </CardContent>
-    </Card>
+    </DetailCard>
   );
 }
