@@ -126,4 +126,6 @@ Create your own superuser: `python manage.py createsuperuser`.
 Per `BLUEPRINT-PREMIUM.md` §10: SaaS billing + entitlements → Students/Academics →
 Attendance → Admissions + CRM → Online payments → Exams → Integrations.
 
-hey
+heyasd
+asdf
+a
