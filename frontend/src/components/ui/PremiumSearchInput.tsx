@@ -11,11 +11,14 @@ export function PremiumSearchInput({
   value,
   onChange,
   placeholder = "Search by name, admission no, reg no, guardian…",
+  hint,
   className,
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  /** Optional trailing keyboard-shortcut badge (e.g. "⌘ K") shown when the field is empty. */
+  hint?: string;
   className?: string;
 }) {
   const hasValue = value.length > 0;
@@ -31,9 +34,14 @@ export function PremiumSearchInput({
           "placeholder:text-muted-foreground/70 transition-shadow",
           "focus:outline-none focus:ring-2 focus:ring-ring",
           "dark:border-neutral-800 dark:bg-neutral-950",
-          hasValue ? "pr-9" : "pr-3.5",
+          hasValue ? "pr-9" : hint ? "pr-14" : "pr-3.5",
         )}
       />
+      {hint && !hasValue && (
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-md border border-border/60 bg-muted/60 px-1.5 py-0.5 text-[10.5px] font-medium text-muted-foreground">
+          {hint}
+        </span>
+      )}
       <button
         type="button"
         tabIndex={hasValue ? 0 : -1}

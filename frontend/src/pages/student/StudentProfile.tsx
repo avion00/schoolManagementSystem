@@ -1,149 +1,243 @@
-import { Pencil } from "lucide-react";
+import {
+  BookOpen, Calendar, CalendarCheck, CircleCheckBig, Droplet, FileCheck, FileText, Flag,
+  GraduationCap, HeartPulse, Home, Mail, MapPin, Pencil, Phone, ShieldCheck, TrendingUp, User,
+  UserRound, Users,
+} from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-import { Reveal, SlidingTabs } from "@/components/motion";
-import { Button } from "@/components/ui/button";
+import { StudentCorrectionRequestModal, type CorrectionRequestPayload } from "@/components/student/ui/StudentCorrectionRequestModal";
+import { StudentDashboardMetricCard } from "@/components/student/ui/StudentDashboardMetricCard";
+import { StudentDocumentRow, type StudentDocumentItem } from "@/components/student/ui/StudentDocumentRow";
+import { StudentGuardianCard } from "@/components/student/ui/StudentGuardianCard";
+import { StudentImportantContactsCard } from "@/components/student/ui/StudentImportantContactsCard";
+import { StudentInfoCard } from "@/components/student/ui/StudentInfoCard";
+import { StudentPageHeader } from "@/components/student/ui/StudentPageHeader";
+import { StudentPageShell } from "@/components/student/ui/StudentPageShell";
+import { ProfileInfoGrid, ProfileInfoItem } from "@/components/student/ui/StudentProfileInfoGrid";
+import { StudentProfileActivityTimeline, type StudentProfileActivityItem } from "@/components/student/ui/StudentProfileActivityTimeline";
+import { StudentProfileCompletionCard } from "@/components/student/ui/StudentProfileCompletionCard";
+import { StudentProfileIdentityCard } from "@/components/student/ui/StudentProfileIdentityCard";
+import { StudentSectionHeader } from "@/components/student/ui/StudentSectionHeader";
+import { StudentTwoColumnLayout } from "@/components/student/ui/StudentTwoColumnLayout";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
-import { PremiumCard } from "@/components/ui/PremiumCard";
-import {
-  achievements, certificates, createStudentHelpTicket, studentProfile,
+  attendanceTrend, computeAttendanceSummary, createStudentHelpTicket, results, studentProfile, subjects, teachers,
 } from "@/data/studentDashboardData";
 
-const TABS = [
-  { value: "personal", label: "Personal Info" },
-  { value: "guardian", label: "Guardian Info" },
-  { value: "academic", label: "Academic Info" },
-  { value: "documents", label: "Documents" },
-  { value: "activity", label: "Activity" },
-];
-
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-0.5 text-[13.5px] text-foreground">{value}</p>
-    </div>
-  );
+function calcAge(dob: string) {
+  const d = new Date(dob);
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+  return age;
 }
 
-export function StudentProfile() {
-  const [tab, setTab] = useState("personal");
-  const [correctionOpen, setCorrectionOpen] = useState(false);
-  const [note, setNote] = useState("");
+const DOCUMENTS: StudentDocumentItem[] = [
+  { id: "doc-1", name: "Birth Certificate", status: "Verified", updatedOn: "2019-04-01" },
+  { id: "doc-2", name: "Admission Form", status: "Verified", updatedOn: "2019-04-01" },
+  { id: "doc-3", name: "Previous School Certificate", status: "Uploaded", updatedOn: "2019-04-05" },
+  { id: "doc-4", name: "Guardian ID Proof", status: "Verified", updatedOn: "2026-01-15" },
+  { id: "doc-5", name: "Student Photo", status: "Verified", updatedOn: "2026-01-15" },
+  { id: "doc-6", name: "Medical Record", status: "Missing", updatedOn: "—" },
+];
 
-  function submitCorrection() {
-    if (!note.trim()) return;
-    createStudentHelpTicket({ category: "Other", title: "Profile correction request", description: note.trim(), sentTo: "Admin Office" });
-    toast.success("Correction request sent to Admin Office.");
-    setCorrectionOpen(false);
-    setNote("");
+const ACTIVITY: StudentProfileActivityItem[] = [
+  { id: "act-1", icon: FileText, title: "Profile viewed", actor: "You", date: "Today, 10:15 AM", statusLabel: "Viewed", statusTone: "info" },
+  { id: "act-2", icon: Pencil, title: "Correction requested — Blood group", actor: "You", date: "2026-07-10", statusLabel: "Under review", statusTone: "warning" },
+  { id: "act-3", icon: Phone, title: "Guardian contact updated", actor: "Admin Office", date: "2026-06-15", statusLabel: "Completed", statusTone: "success" },
+  { id: "act-4", icon: FileCheck, title: "Document verified — Student Photo", actor: "Admin Office", date: "2026-05-20", statusLabel: "Verified", statusTone: "success" },
+  { id: "act-5", icon: MapPin, title: "Address update requested", actor: "You", date: "2026-05-02", statusLabel: "Pending", statusTone: "warning" },
+];
+
+export function StudentProfile() {
+  const navigate = useNavigate();
+  const [correctionOpen, setCorrectionOpen] = useState(false);
+
+  const classTeacher = teachers.find((t) => t.isClassTeacher);
+  const age = calcAge(studentProfile.dob);
+  const attendance = computeAttendanceSummary();
+  const latestResult = results[results.length - 1];
+  const verifiedDocs = DOCUMENTS.filter((d) => d.status === "Verified").length;
+
+  function handleCorrectionSubmit(payload: CorrectionRequestPayload) {
+    createStudentHelpTicket({
+      category: "Other",
+      title: `Profile correction — ${payload.section} · ${payload.field}`,
+      description: `Current: ${payload.currentValue || "—"} → Correct: ${payload.correctValue || "—"}. Reason: ${payload.reason}`,
+      sentTo: "Admin Office",
+    });
+    toast.success("Correction request submitted for admin review.");
+  }
+
+  function handleDocumentAction(doc: StudentDocumentItem) {
+    if (doc.status === "Missing") {
+      toast.info(`Upload request sent for ${doc.name}.`);
+    } else {
+      toast.info(`Opening ${doc.name}…`);
+    }
   }
 
   return (
-    <div className="space-y-4">
-      <Reveal>
-        <PremiumCard className="flex flex-wrap items-center justify-between gap-3 p-5">
-          <div className="flex items-center gap-4">
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-xl font-semibold text-primary">
-              {studentProfile.name.split(" ").map((n) => n[0]).join("")}
-            </span>
+    <StudentPageShell>
+      <StudentPageHeader
+        title="My Profile"
+        description="Your identity, contact, guardian, and academic record in one place."
+      />
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <StudentDashboardMetricCard
+          label="Attendance" value={`${attendance.presentPct}%`} supporting={`${attendance.presentDays} of ${attendance.totalDays} days`}
+          icon={CalendarCheck} tone="emerald" trendData={attendanceTrend.map((t) => ({ value: t.pct }))}
+          onClick={() => navigate("/student/attendance")}
+        />
+        <StudentDashboardMetricCard
+          label="Academic Progress" value={`${latestResult.percentage}%`} supporting={`GPA ${latestResult.gpa} · ${latestResult.term}`}
+          icon={TrendingUp} tone="violet" percent={latestResult.percentage}
+          onClick={() => navigate("/student/results")}
+        />
+        <StudentDashboardMetricCard
+          label="Documents" value={`${verifiedDocs}/${DOCUMENTS.length}`} supporting="Verified on file"
+          icon={FileCheck} tone="blue" percent={Math.round((verifiedDocs / DOCUMENTS.length) * 100)}
+        />
+      </div>
+
+      <StudentTwoColumnLayout
+        main={
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-elevated sm:p-5">
+              <StudentSectionHeader icon={User} title="Personal Information" />
+              <ProfileInfoGrid>
+                <ProfileInfoItem label="Full name" value={studentProfile.name} icon={User} />
+                <ProfileInfoItem label="Date of birth" value={studentProfile.dob} icon={Calendar} />
+                <ProfileInfoItem label="Age" value={`${age} years`} icon={Calendar} />
+                <ProfileInfoItem label="Blood group" value={studentProfile.bloodGroup} icon={Droplet} />
+                <ProfileInfoItem label="Student type" value={studentProfile.studentType} icon={BookOpen} />
+                <ProfileInfoItem label="Medical note" value="None on file" icon={HeartPulse} />
+                <ProfileInfoItem label="Email" value={studentProfile.email} icon={Mail} />
+                <ProfileInfoItem label="Phone" value={studentProfile.phone} icon={Phone} />
+                <ProfileInfoItem label="Address" value={studentProfile.address} icon={Home} />
+                <ProfileInfoItem label="House" value={studentProfile.house} icon={Flag} />
+                <ProfileInfoItem label="Emergency contact" value={studentProfile.emergencyContact} icon={ShieldCheck} />
+                <ProfileInfoItem label="Join date" value={studentProfile.joinDate} icon={Calendar} />
+              </ProfileInfoGrid>
+            </div>
+
             <div>
-              <p className="text-[16px] font-semibold text-foreground">{studentProfile.name}</p>
-              <p className="text-[12.5px] text-muted-foreground">{studentProfile.className} {studentProfile.section} · Roll {studentProfile.roll} · {studentProfile.admissionNo}</p>
+              <StudentSectionHeader icon={Users} title="Guardian & Emergency Contacts" />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <StudentGuardianCard
+                  icon={UserRound}
+                  roleLabel="Primary Guardian"
+                  name={studentProfile.guardian}
+                  phone={studentProfile.guardianPhone}
+                  email={studentProfile.guardianEmail}
+                  onMessage={() => navigate("/student/messages")}
+                />
+                <StudentGuardianCard
+                  icon={ShieldCheck}
+                  roleLabel="Emergency Contact"
+                  name={studentProfile.emergencyContact.replace(/\s*\(.*\)$/, "")}
+                  meta={studentProfile.emergencyContact.match(/\((.*)\)/)?.[1]}
+                  phone={studentProfile.emergencyContact.replace(/\s*\(.*\)$/, "")}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-elevated sm:p-5">
+              <StudentSectionHeader icon={GraduationCap} title="Academic Information" />
+              <ProfileInfoGrid>
+                <ProfileInfoItem label="Current class" value={studentProfile.className} />
+                <ProfileInfoItem label="Section" value={studentProfile.section} />
+                <ProfileInfoItem label="Roll number" value={studentProfile.roll} />
+                <ProfileInfoItem label="Admission number" value={studentProfile.admissionNo} />
+                <ProfileInfoItem label="Registration number" value={studentProfile.registrationNo} />
+                <ProfileInfoItem label="Academic year" value={studentProfile.academicYear} icon={Calendar} />
+                <ProfileInfoItem label="Class teacher" value={classTeacher?.name ?? "—"} icon={GraduationCap} />
+                <ProfileInfoItem label="Joined date" value={studentProfile.joinDate} icon={Calendar} />
+                <ProfileInfoItem label="Student type" value={studentProfile.studentType} />
+                <ProfileInfoItem label="House / Group" value={studentProfile.house} icon={Flag} />
+              </ProfileInfoGrid>
+
+              <div className="mt-4 border-t border-border/60 pt-4">
+                <StudentSectionHeader
+                  icon={BookOpen}
+                  title="Assigned Subjects"
+                  action={
+                    <button type="button" onClick={() => navigate("/student/subjects")} className="text-[12px] font-medium text-primary hover:underline">
+                      View Subjects
+                    </button>
+                  }
+                />
+                <div className="space-y-1.5">
+                  {subjects.slice(0, 5).map((s) => (
+                    <div key={s.id} className="flex items-center justify-between rounded-xl px-2 py-1.5 text-[12.5px]">
+                      <span className="font-medium text-foreground">{s.name}</span>
+                      <span className="text-muted-foreground">{s.teacher}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-elevated sm:p-5">
+              <StudentSectionHeader icon={FileCheck} title="Document Center" />
+              <div className="space-y-2">
+                {DOCUMENTS.map((doc) => (
+                  <StudentDocumentRow key={doc.id} document={doc} onAction={handleDocumentAction} />
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-elevated sm:p-5">
+              <StudentSectionHeader icon={CircleCheckBig} title="Profile Activity" />
+              <StudentProfileActivityTimeline items={ACTIVITY} />
             </div>
           </div>
-          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[12px]" onClick={() => setCorrectionOpen(true)}>
-            <Pencil className="h-3.5 w-3.5" /> Request correction
-          </Button>
-        </PremiumCard>
-      </Reveal>
+        }
+        sidebar={
+          <>
+            <StudentProfileIdentityCard
+              name={studentProfile.name}
+              className={studentProfile.className}
+              section={studentProfile.section}
+              roll={studentProfile.roll}
+              admissionNo={studentProfile.admissionNo}
+              photoUrl="https://i.pravatar.cc/300?img=13"
+              onRequestCorrection={() => setCorrectionOpen(true)}
+              onPrint={() => window.print()}
+            />
 
-      <Reveal delay={40} className="-mx-1 overflow-x-auto px-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <SlidingTabs value={tab} onValueChange={setTab} options={TABS} className="w-max" />
-      </Reveal>
+            <StudentProfileCompletionCard
+              percent={96}
+              missingFields={["Medical note / allergy"]}
+              onRequestUpdate={() => setCorrectionOpen(true)}
+            />
 
-      <Reveal delay={80}>
-        {tab === "personal" && (
-          <PremiumCard className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
-            <Field label="Full name" value={studentProfile.name} />
-            <Field label="Date of birth" value={studentProfile.dob} />
-            <Field label="Blood group" value={studentProfile.bloodGroup} />
-            <Field label="Email" value={studentProfile.email} />
-            <Field label="Phone" value={studentProfile.phone} />
-            <Field label="Address" value={studentProfile.address} />
-            <Field label="House" value={studentProfile.house} />
-            <Field label="Emergency contact" value={studentProfile.emergencyContact} />
-          </PremiumCard>
-        )}
-        {tab === "guardian" && (
-          <PremiumCard className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
-            <Field label="Guardian name" value={studentProfile.guardian} />
-            <Field label="Guardian phone" value={studentProfile.guardianPhone} />
-            <Field label="Guardian email" value={studentProfile.guardianEmail} />
-          </PremiumCard>
-        )}
-        {tab === "academic" && (
-          <PremiumCard className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
-            <Field label="Admission no" value={studentProfile.admissionNo} />
-            <Field label="Registration no" value={studentProfile.registrationNo} />
-            <Field label="Class / Section" value={`${studentProfile.className} ${studentProfile.section}`} />
-            <Field label="Roll no" value={studentProfile.roll} />
-            <Field label="Academic year" value={studentProfile.academicYear} />
-            <Field label="Student type" value={studentProfile.studentType} />
-            <Field label="Join date" value={studentProfile.joinDate} />
-            <Field label="Status" value={studentProfile.status} />
-          </PremiumCard>
-        )}
-        {tab === "documents" && (
-          <PremiumCard className="p-5">
-            <p className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Certificates</p>
-            <div className="space-y-2">
-              {certificates.map((c) => (
-                <div key={c.id} className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2 text-[12.5px]">
-                  <span className="text-foreground">{c.title}</span>
-                  <span className="text-muted-foreground">Issued {c.issuedOn}</span>
-                </div>
-              ))}
-            </div>
-          </PremiumCard>
-        )}
-        {tab === "activity" && (
-          <PremiumCard className="p-5">
-            <p className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Achievements</p>
-            <div className="space-y-2">
-              {achievements.map((a) => (
-                <div key={a.id} className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2 text-[12.5px]">
-                  <span className="text-foreground">{a.title}</span>
-                  <span className="text-muted-foreground">{a.category} · {a.date}</span>
-                </div>
-              ))}
-            </div>
-          </PremiumCard>
-        )}
-      </Reveal>
+            <StudentImportantContactsCard
+              contacts={[
+                { label: "Class Teacher", name: classTeacher?.name ?? "—", icon: GraduationCap, onAction: () => navigate("/student/teachers") },
+                { label: "Guardian", name: studentProfile.guardian, icon: UserRound, onAction: () => navigate("/student/messages") },
+                { label: "Emergency Contact", name: studentProfile.emergencyContact, icon: ShieldCheck },
+              ]}
+            />
 
-      <Dialog open={correctionOpen} onOpenChange={setCorrectionOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Request a correction</DialogTitle>
-            <DialogDescription>Tell the admin office what needs to be fixed on your profile.</DialogDescription>
-          </DialogHeader>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            rows={4}
-            placeholder="e.g. My blood group is listed incorrectly…"
-            className="w-full resize-none rounded-xl border border-input bg-background px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-ring"
-          />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCorrectionOpen(false)}>Cancel</Button>
-            <Button onClick={submitCorrection} disabled={!note.trim()}>Send request</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+            <StudentInfoCard
+              title="Account Access"
+              icon={ShieldCheck}
+              rows={[
+                { label: "Email verified", value: "Yes" },
+                { label: "Phone verified", value: "Yes" },
+                { label: "Last login", value: "Today, 8:02 AM" },
+                { label: "Account status", value: "Managed by school" },
+              ]}
+            />
+          </>
+        }
+      />
+
+      <StudentCorrectionRequestModal open={correctionOpen} onOpenChange={setCorrectionOpen} onSubmit={handleCorrectionSubmit} />
+    </StudentPageShell>
   );
 }
