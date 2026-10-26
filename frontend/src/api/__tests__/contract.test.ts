@@ -96,3 +96,16 @@ run("contract: classes", () => {
     expect(Array.isArray(d.timetable)).toBe(true);
   });
 });
+
+run("contract: subjects", () => {
+  beforeAll(() => signIn());
+
+  it("lists subjects and builds a subject detail view", async () => {
+    const { fetchSubjectDetail } = await import("../subjects");
+    const { getAll } = await import("../http");
+    const subjects = await getAll<{ id: string; code: string }>("/academics/subjects/");
+    const d = await fetchSubjectDetail(subjects[0].id);
+    expect(d.subject.subjectCode).toBe(subjects[0].code);
+    expect(Array.isArray(d.classMappings)).toBe(true);
+  });
+});

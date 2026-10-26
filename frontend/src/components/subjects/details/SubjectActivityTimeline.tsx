@@ -2,7 +2,7 @@ import {
   BookOpen, ClipboardList, FileText, Layers, PenLine, Users, RefreshCw, Award,
 } from "lucide-react";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { SubjectActivity, SubjectActivityType } from "@/data/subjectDetailData";
+import type { SubjectActivity, SubjectActivityType } from "@/api/types/subjects";
 
 const TYPE_CFG: Record<SubjectActivityType, { icon: React.ElementType; bg: string; text: string }> = {
   create:   { icon: PenLine,      bg: "bg-violet-100 dark:bg-violet-900/40",  text: "text-violet-600 dark:text-violet-400" },

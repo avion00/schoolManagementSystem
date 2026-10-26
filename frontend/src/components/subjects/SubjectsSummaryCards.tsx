@@ -4,10 +4,18 @@ import { CATEGORICAL_COLORS, STATUS_COLORS } from "@/components/charts/palette";
 import { Reveal } from "@/components/motion";
 import { KPITrendCard } from "@/components/ui/KPITrendCard";
 import { METRIC_TONES } from "@/components/ui/MetricCard";
-import { SUBJECT_STATS } from "@/data/subjectsData";
+import type { SubjectData } from "@/api/types/subjects";
 
 
-export function SubjectsSummaryCards() {
+export function SubjectsSummaryCards({ subjects }: { subjects: SubjectData[] }) {
+  const SUBJECT_STATS = {
+    total: subjects.length,
+    compulsory: subjects.filter((x) => x.category === "Compulsory").length,
+    optional: subjects.filter((x) => x.category === "Optional").length,
+    practical: subjects.filter((x) => x.type !== "Theory").length,
+    teachers: new Set(subjects.map((x) => x.primaryTeacher?.id).filter(Boolean)).size,
+    classes: new Set(subjects.flatMap((x) => x.assignedClasses)).size,
+  };
   const stats = [
     {
       label: "Total Subjects", value: SUBJECT_STATS.total, icon: BookOpen, tone: METRIC_TONES.blue,
