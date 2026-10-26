@@ -7,6 +7,14 @@ from apps.guardians.serializers import GuardianMiniSerializer
 from .models import Student, StudentHistory
 
 
+def section_is_full(section, extra):
+    """Would adding `extra` active students exceed the section's capacity?"""
+    if section.capacity is None:
+        return False
+    enrolled = Student.objects.filter(section=section, status=Student.Status.ACTIVE).count()
+    return enrolled + extra > section.capacity
+
+
 class StudentSerializer(serializers.ModelSerializer):
     # Org-scoped related fields to prevent cross-tenant references (IDOR).
     academic_year = TenantPrimaryKeyRelatedField(queryset=AcademicYear.objects.all())
@@ -58,6 +66,9 @@ class StudentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"section": "Section does not belong to the selected class level."}
             )
+        moving_in = section and (self.instance is None or self.instance.section_id != section.id)
+        if moving_in and section_is_full(section, extra=1):
+            raise serializers.ValidationError({"section": f"Section {section} is full."})
         return attrs
 
 
@@ -99,6 +110,10 @@ class PromoteSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"to_section": "Section does not belong to the selected class level."}
             )
+        if section:
+            incoming = sum(1 for s in attrs["students"] if s.section_id != section.id)
+            if section_is_full(section, extra=incoming):
+                raise serializers.ValidationError({"to_section": f"Section {section} doesn't have room for {incoming} more students."})
         inactive = [s.admission_number for s in attrs["students"] if s.status != Student.Status.ACTIVE]
         if inactive:
             raise serializers.ValidationError(

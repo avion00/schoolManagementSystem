@@ -16,7 +16,7 @@ import datetime
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from apps.academics.models import AcademicYear, ClassLevel, Section, Subject
+from apps.academics.models import AcademicYear, ClassLevel, ClassSubject, Section, Subject
 from apps.accounts.models import Organization, School, User
 from apps.guardians.models import Guardian, StudentGuardian
 from apps.rbac.catalog import PERMISSIONS, ROLE_PERMISSIONS
@@ -117,6 +117,12 @@ class Command(BaseCommand):
                 organization=org, school=school, code=s_code, defaults={"name": s_name}
             )
             subjects[s_code] = subj
+        for cl in class_levels.values():
+            for subj in subjects.values():
+                ClassSubject.objects.get_or_create(
+                    organization=org, academic_year=year, class_level=cl, subject=subj,
+                    defaults={"weekly_periods": 5, "school": school},
+                )
         self.stdout.write(self.style.SUCCESS("Academic structure ready."))
 
         # --- Guardians + students ---

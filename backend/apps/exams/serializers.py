@@ -63,6 +63,8 @@ class ExamSubjectSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         exam = merged_value(attrs, self.instance, "exam")
+        if not self.instance:
+            self._default_marks(attrs, exam)
         if exam and exam.is_locked:
             raise serializers.ValidationError("This exam is locked and its subjects cannot be changed.")
         if self.instance and "exam" in attrs and attrs["exam"] != self.instance.exam:
@@ -74,6 +76,22 @@ class ExamSubjectSerializer(serializers.ModelSerializer):
         if passing is not None and full is not None and not 0 <= passing <= full:
             raise serializers.ValidationError({"pass_marks": "Pass marks must be between 0 and full marks."})
         return attrs
+
+
+    @staticmethod
+    def _default_marks(attrs, exam):
+        """Unspecified full/pass marks come from the class curriculum, else the subject."""
+        from apps.academics.models import ClassSubject
+
+        if "full_marks" in attrs and "pass_marks" in attrs:
+            return
+        cs = ClassSubject.objects.filter(
+            academic_year_id=exam.academic_year_id, class_level=attrs["class_level"],
+            subject=attrs["subject"],
+        ).select_related("subject").first()
+        subject = attrs["subject"]
+        attrs.setdefault("full_marks", cs.effective_full_marks if cs else subject.full_marks)
+        attrs.setdefault("pass_marks", cs.effective_pass_marks if cs else subject.pass_marks)
 
 
 class MarkSerializer(serializers.ModelSerializer):
