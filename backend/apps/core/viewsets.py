@@ -8,11 +8,13 @@ for free:
   - soft delete instead of hard delete (school.md §13, §14.3)
   - audit log entries for create / update / delete (school.md §7.19)
 """
+from django.db import IntegrityError, transaction
 from rest_framework import viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 
 from apps.audit.services import diff, record_audit, snapshot
+from apps.core.integrity import integrity_error_to_validation
 from apps.core.permissions import HasPermission
 
 
@@ -44,12 +46,19 @@ class TenantModelViewSet(viewsets.ModelViewSet):
             )
         return org_id
 
+    def _save(self, serializer, **kwargs):
+        try:
+            with transaction.atomic():  # savepoint: keeps an outer transaction usable
+                return serializer.save(**kwargs)
+        except IntegrityError as exc:
+            raise integrity_error_to_validation(serializer.Meta.model, exc)
+
     def perform_create(self, serializer, **extra):
         """`extra` lets subclasses add server-assigned fields (e.g. numbers)."""
         user = self.request.user
         org_id = self._require_org()
-        obj = serializer.save(
-            organization_id=org_id, created_by=user, updated_by=user, **extra
+        obj = self._save(
+            serializer, organization_id=org_id, created_by=user, updated_by=user, **extra
         )
         record_audit(
             action=f"{self.audit_label}.create", actor=user, instance=obj,
@@ -59,7 +68,7 @@ class TenantModelViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         user = self.request.user
         before = snapshot(serializer.instance, serializer.validated_data.keys())
-        obj = serializer.save(updated_by=user)
+        obj = self._save(serializer, updated_by=user)
         record_audit(
             action=f"{self.audit_label}.update", actor=user, instance=obj,
             request=self.request, organization=user.organization,

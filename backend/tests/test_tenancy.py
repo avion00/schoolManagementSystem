@@ -41,3 +41,23 @@ def test_audit_log_is_tenant_scoped(api, tenant, other_tenant):
     res = api(tenant.users["Principal"]).get("/api/v1/audit/logs/")
     assert res.status_code == 200
     assert res.json()["count"] == 0
+
+
+def test_duplicate_tenant_scoped_value_is_400_not_500(api, tenant):
+    res = api(tenant.users["Principal"]).post("/api/v1/students/", {
+        "first_name": "X", "last_name": "Y", "admission_number": tenant.student.admission_number,
+        "academic_year": str(tenant.year.id), "class_level": str(tenant.grade.id),
+    }, format="json")
+    assert res.status_code == 400
+    assert "admission_number" in res.json()
+
+
+def test_same_value_allowed_in_another_tenant(api, tenant, other_tenant):
+    res = api(tenant.users["Principal"]).post("/api/v1/fees/fee-categories/", {
+        "name": "Tuition", "code": "TUI",
+    }, format="json")
+    assert res.status_code == 201
+    res = api(other_tenant.users["Principal"]).post("/api/v1/fees/fee-categories/", {
+        "name": "Tuition", "code": "TUI",
+    }, format="json")
+    assert res.status_code == 201

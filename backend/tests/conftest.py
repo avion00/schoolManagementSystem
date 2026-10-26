@@ -14,10 +14,10 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.academics.models import AcademicYear, ClassLevel, Section, Subject
-from apps.accounts.management.commands.seed_demo import PERMISSIONS, ROLE_PERMISSIONS
 from apps.accounts.models import Organization, School, User
 from apps.exams.models import Exam, ExamSubject
 from apps.fees.models import Invoice, InvoiceItem
+from apps.rbac.catalog import PERMISSIONS, ROLE_PERMISSIONS
 from apps.rbac.models import Permission, Role, RolePermission, UserRole
 from apps.students.models import Student
 

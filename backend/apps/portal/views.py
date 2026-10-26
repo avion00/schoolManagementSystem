@@ -1,9 +1,8 @@
-"""Student self-service portal endpoints (student-dashboard.md).
+"""Self-service portals (student-dashboard.md, parent portal).
 
-Every endpoint resolves the Student from the JWT (request.user.student_profile) and
-returns ONLY that student's data — never via a URL id (IDOR-safe).
+Every endpoint resolves the subject from the JWT — the student's own record, or
+a child linked to the requesting guardian — never from an unchecked URL id.
 """
-from django.db.models import Sum
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -13,69 +12,37 @@ from apps.attendance.models import Attendance
 from apps.attendance.serializers import AttendanceSerializer
 from apps.audit.services import record_audit
 from apps.core.pagination import DefaultPagination
-from apps.exams.models import Mark
 from apps.fees.models import Invoice
 from apps.fees.serializers import InvoiceSerializer
+from apps.students import services
 
-from .permissions import HasStudentProfile, get_student
-from .serializers import StudentSelfSerializer, StudentSelfUpdateSerializer
+from .permissions import HasGuardianProfile, HasStudentProfile, get_child, get_guardian, get_student
+from .serializers import ChildSerializer, StudentSelfSerializer, StudentSelfUpdateSerializer
 
 STUDENT_PERMS = [IsAuthenticated, HasStudentProfile]
+GUARDIAN_PERMS = [IsAuthenticated, HasGuardianProfile]
 
 
-def _attendance_summary(student):
-    qs = Attendance.objects.filter(student=student, is_active=True)
-    total = qs.count()
-    by_status = {}
-    for row in qs.values("status"):
-        by_status[row["status"]] = by_status.get(row["status"], 0) + 1
-    present_like = sum(by_status.get(s, 0) for s in ("present", "late", "half_day"))
-    pct = round(present_like / total * 100, 1) if total else None
-    return {"total": total, "by_status": by_status, "present_pct": pct}
+def _invoices(student, request):
+    invoices = Invoice.objects.filter(student=student).prefetch_related("items")
+    return {
+        "summary": services.fees_summary(student),
+        "invoices": InvoiceSerializer(invoices, many=True, context={"request": request}).data,
+    }
 
 
-def _fees_summary(student):
-    rows = Invoice.objects.filter(student=student, is_active=True).exclude(
-        status=Invoice.Status.CANCELLED
-    ).aggregate(billed=Sum("total_amount"), paid=Sum("paid_amount"))
-    billed = float(rows["billed"] or 0)
-    paid = float(rows["paid"] or 0)
-    return {"billed": billed, "paid": paid, "outstanding": billed - paid}
+def _dashboard(student):
+    results = services.exam_results(student)
+    return {
+        "profile": StudentSelfSerializer(student).data,
+        "attendance": services.attendance_summary(student),
+        "fees": services.fees_summary(student),
+        "published_exams": len(results),
+        "latest_result": results[0] if results else None,
+    }
 
 
-def _published_results(student):
-    marks = (
-        Mark.objects.filter(
-            student=student, is_active=True, exam_subject__exam__is_published=True,
-        )
-        .select_related("exam_subject", "exam_subject__exam", "exam_subject__subject")
-        .order_by("-exam_subject__exam__start_date")
-    )
-    exams: dict = {}
-    for m in marks:
-        ex = m.exam_subject.exam
-        d = exams.setdefault(str(ex.id), {
-            "exam_id": str(ex.id), "exam": ex.name, "subjects": [],
-            "obtained": 0.0, "full": 0.0,
-        })
-        obtained = float(m.marks_obtained) if m.marks_obtained is not None else None
-        full = float(m.exam_subject.full_marks)
-        d["subjects"].append({
-            "subject": m.exam_subject.subject.name,
-            "marks_obtained": obtained,
-            "full_marks": full,
-            "pass_marks": float(m.exam_subject.pass_marks),
-            "is_absent": m.is_absent,
-        })
-        if obtained is not None and not m.is_absent:
-            d["obtained"] += obtained
-        d["full"] += full
-    results = []
-    for d in exams.values():
-        d["percentage"] = round(d["obtained"] / d["full"] * 100, 2) if d["full"] else None
-        results.append(d)
-    return results
-
+# --- student portal ---------------------------------------------------------
 
 class MyProfileView(APIView):
     permission_classes = STUDENT_PERMS
@@ -102,48 +69,92 @@ class MyAttendanceView(generics.ListAPIView):
     filterset_fields = ["status", "date"]
 
     def get_queryset(self):
-        return Attendance.objects.filter(
-            student=get_student(self.request.user), is_active=True
-        )
+        return Attendance.objects.filter(student=get_student(self.request.user))
 
 
 class MyAttendanceSummaryView(APIView):
     permission_classes = STUDENT_PERMS
 
     def get(self, request):
-        return Response(_attendance_summary(get_student(request.user)))
+        return Response(services.attendance_summary(get_student(request.user)))
 
 
 class MyResultsView(APIView):
     permission_classes = STUDENT_PERMS
 
     def get(self, request):
-        return Response(_published_results(get_student(request.user)))
+        return Response(services.exam_results(get_student(request.user)))
 
 
 class MyFeesView(APIView):
     permission_classes = STUDENT_PERMS
 
     def get(self, request):
-        student = get_student(request.user)
-        invoices = (
-            Invoice.objects.filter(student=student, is_active=True)
-            .select_related("student").prefetch_related("items")
-        )
-        data = InvoiceSerializer(invoices, many=True, context={"request": request}).data
-        return Response({"summary": _fees_summary(student), "invoices": data})
+        return Response(_invoices(get_student(request.user), request))
 
 
 class MyDashboardView(APIView):
     permission_classes = STUDENT_PERMS
 
     def get(self, request):
-        student = get_student(request.user)
-        results = _published_results(student)
-        return Response({
-            "profile": StudentSelfSerializer(student).data,
-            "attendance": _attendance_summary(student),
-            "fees": _fees_summary(student),
-            "published_exams": len(results),
-            "latest_result": results[0] if results else None,
-        })
+        return Response(_dashboard(get_student(request.user)))
+
+
+# --- parent portal ----------------------------------------------------------
+
+class MyChildrenView(APIView):
+    permission_classes = GUARDIAN_PERMS
+
+    def get(self, request):
+        guardian = get_guardian(request.user)
+        links = guardian.student_links.select_related(
+            "student", "student__class_level", "student__section", "student__academic_year"
+        ).filter(student__is_active=True)
+        return Response([
+            {
+                **ChildSerializer(link.student).data,
+                "relation": link.relation,
+                **services.child_summary(link.student),
+            }
+            for link in links
+        ])
+
+
+class MyChildDashboardView(APIView):
+    permission_classes = GUARDIAN_PERMS
+
+    def get(self, request, student_id):
+        return Response(_dashboard(get_child(request.user, student_id)))
+
+
+class MyChildAttendanceView(generics.ListAPIView):
+    serializer_class = AttendanceSerializer
+    permission_classes = GUARDIAN_PERMS
+    pagination_class = DefaultPagination
+    filterset_fields = ["status", "date"]
+
+    def get_queryset(self):
+        return Attendance.objects.filter(
+            student=get_child(self.request.user, self.kwargs["student_id"])
+        )
+
+
+class MyChildAttendanceSummaryView(APIView):
+    permission_classes = GUARDIAN_PERMS
+
+    def get(self, request, student_id):
+        return Response(services.attendance_summary(get_child(request.user, student_id)))
+
+
+class MyChildResultsView(APIView):
+    permission_classes = GUARDIAN_PERMS
+
+    def get(self, request, student_id):
+        return Response(services.exam_results(get_child(request.user, student_id)))
+
+
+class MyChildFeesView(APIView):
+    permission_classes = GUARDIAN_PERMS
+
+    def get(self, request, student_id):
+        return Response(_invoices(get_child(request.user, student_id), request))
