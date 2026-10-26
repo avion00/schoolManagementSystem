@@ -4,8 +4,10 @@ from django.db import transaction
 from django.db.models import Prefetch
 from django.http import HttpResponse
 from django.utils import timezone
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from apps.accounts.services import provision_login
@@ -21,6 +23,7 @@ from .models import Student, StudentHistory
 from .serializers import (
     PromoteSerializer,
     StatusChangeSerializer,
+    StudentDocumentSerializer,
     StudentHistorySerializer,
     StudentListSerializer,
     StudentSerializer,
@@ -77,6 +80,8 @@ class StudentViewSet(TenantModelViewSet):
         "promote": "student.promote",
         "export": "student.export",
         "create_login": "user.manage",
+        "documents": ("student.update", "student.view.all"),
+        "document_detail": "student.update",
     }
     filterset_fields = ["status", "class_level", "section", "academic_year", "gender"]
     search_fields = [
@@ -254,3 +259,39 @@ class StudentViewSet(TenantModelViewSet):
         return Response({
             "user_id": str(user.id), "email": user.email, "temporary_password": password,
         })
+
+    @action(detail=True, methods=["get", "post"])
+    def documents(self, request, pk=None):
+        """List or add (POST {kind, file_id}) documents on file for the student."""
+        student = self.get_object()
+        if request.method == "POST":
+            if not user_has_permission(request.user, "student.update") and not request.user.is_superuser:
+                raise PermissionDenied()
+            data = StudentDocumentSerializer(data=request.data, context={"request": request})
+            data.is_valid(raise_exception=True)
+            doc = data.save(organization_id=student.organization_id, student=student,
+                            created_by=request.user, updated_by=request.user)
+            record_audit(action="student.document_added", actor=request.user, instance=student,
+                         request=request, organization=request.user.organization, changes={"kind": doc.kind})
+            return Response(StudentDocumentSerializer(doc).data, status=201)
+        docs = student.documents.select_related("file", "verified_by")
+        return Response(StudentDocumentSerializer(docs, many=True).data)
+
+    @extend_schema(methods=["post"], operation_id="v1_students_documents_verify",
+                   parameters=[OpenApiParameter("document_id", OpenApiTypes.UUID, OpenApiParameter.PATH)])
+    @extend_schema(methods=["delete"], operation_id="v1_students_documents_destroy",
+                   parameters=[OpenApiParameter("document_id", OpenApiTypes.UUID, OpenApiParameter.PATH)])
+    @action(detail=True, methods=["post", "delete"], url_path=r"documents/(?P<document_id>[0-9a-f-]{36})")
+    def document_detail(self, request, pk=None, document_id=None):
+        """POST verifies a document; DELETE removes it."""
+        student = self.get_object()
+        doc = student.documents.filter(pk=document_id).first()
+        if doc is None:
+            raise ValidationError({"document": "Not found."})
+        if request.method == "DELETE":
+            doc.soft_delete()
+            return Response(status=204)
+        doc.verified_by, doc.verified_at = request.user, timezone.now()
+        doc.save(update_fields=["verified_by", "verified_at", "updated_at"])
+        return Response(StudentDocumentSerializer(doc).data)
+

@@ -1,6 +1,6 @@
-# Backend Roadmap
+# Roadmap
 
-Plan for completing the Django/DRF backend. Status is kept up to date as work lands.
+Plan for completing the platform end to end (backend, then wiring the frontend to it, then production). Status is kept up to date as work lands.
 
 **Legend:** ✅ done · 🚧 in progress · ⬜ not started
 
@@ -60,7 +60,34 @@ Plan for completing the Django/DRF backend. Status is kept up to date as work la
 | Help desk | Tickets from any user (TKT codes, category, department, related student), **SLA first-response targets by priority** with on track / due soon / overdue / met / breached, public replies and agent-only internal notes, attachments, assignment to help desk staff, status workflow, resolve / close / reopen (7-day window for requesters), ratings, activity timeline, notifications, stats (open, overdue, unassigned, average first response, SLA met %) | ✅ |
 | Settings and account | School profile with logo; organization settings (notifications, fees, attendance, exams, security, appearance) stored sparsely over code defaults and **validated** (unknown keys, types, ranges); attendance lock period and notification toggles take effect; **login lockout** from the security settings; profile edit; change password (signs out other devices); **forgot-password by email** (single-use links, same answer for unknown emails); **active sessions** with device/IP and immediate revocation (session id in the JWT) | ✅ |
 
-## Phase 3: Production readiness
+## Phase 3: Frontend integration 🚧
+
+The SPA was built on mock data (`frontend/src/data/*.ts`). Each module moves to a typed API
+layer in `frontend/src/api/`: types generated from the backend's OpenAPI schema
+(`npm run api:types`), TanStack Query hooks, and mappers from API responses to the shapes the
+pages already use, with unit tests. A module's mock arrays are deleted when it's wired, so the
+type-checker shows anything still using fake data.
+
+| Module | Status |
+|---|---|
+| Foundation (generated types, HTTP helpers, Vitest, dev env) | ✅ |
+| Students: list, details, add/edit form with guardians, photo, documents (upload/verify), status changes, CSV export | ✅ |
+| Parents / guardians | 🚧 |
+| Teachers | ⬜ |
+| Classes, subjects, class routine | ⬜ |
+| Attendance | ⬜ |
+| Exams (schedule, grades, marks entry, results, report and admit cards) | ⬜ |
+| Billing (fees, invoices, payments, expenses, payroll, vendors, reports) | ⬜ |
+| Notices and notifications | ⬜ |
+| Messages (REST + WebSocket) | ⬜ |
+| Help desk | ⬜ |
+| Settings, account, sessions | ⬜ |
+| Dashboards (principal, accountant) | ⬜ |
+| Student portal | ⬜ |
+| Teacher portal | ⬜ |
+| Parent portal (new pages) | ⬜ |
+
+## Phase 4: Production readiness
 
 | Item | Status |
 |---|---|
@@ -70,6 +97,11 @@ Plan for completing the Django/DRF backend. Status is kept up to date as work la
 | Structured logging, Sentry, readiness checks | ⬜ |
 | Backups | ⬜ |
 | SaaS billing, entitlements and admissions CRM (`BLUEPRINT-PREMIUM.md`) | ⬜ |
+
+### Known gaps (no backend yet, shown honestly in the UI)
+- Student CSV **import**, transport and hostel, awards, teacher remarks.
+- Student list loads all rows client-side (fine for a few thousand students); move to server-side
+  pagination + a stats endpoint for very large schools.
 
 ## Open questions for the repo owner
 

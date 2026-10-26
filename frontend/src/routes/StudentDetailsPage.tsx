@@ -21,8 +21,11 @@ import { Button } from "@/components/ui/button";
 import { DetailCard } from "@/components/ui/DetailCard";
 import { PremiumCard } from "@/components/ui/PremiumCard";
 import { PremiumTabs } from "@/components/ui/PremiumTabs";
-import { STUDENT_DETAIL_MOCK } from "@/data/studentDetailsData";
-import { STUDENTS } from "@/data/studentsData";
+import { errorMessage } from "@/api/http";
+import { useStudentDetail } from "@/api/students";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { useAuth } from "@/lib/auth";
 
 /* ── Health / Transport / Hostel mini-cards ─────────────────────────────── */
 import { Heart, Bus, Building2, type LucideIcon } from "lucide-react";
@@ -67,11 +70,37 @@ export function StudentDetailsPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState("overview");
 
-  const student = STUDENTS.find((s) => s.id === Number(id));
-  const mock = STUDENT_DETAIL_MOCK;
+  const { hasPermission } = useAuth();
+  const canSeeFees = hasPermission("fee.view");
+  const detail = useStudentDetail(id, canSeeFees);
+
+  if (detail.isLoading) {
+    return (
+      <div className="space-y-4">
+        <PremiumSkeleton className="h-40 w-full rounded-2xl" />
+        <PremiumSkeleton className="h-10 w-80 rounded-xl" />
+        <div className="grid gap-4 lg:grid-cols-3">
+          <PremiumSkeleton className="h-72 rounded-2xl lg:col-span-2" />
+          <PremiumSkeleton className="h-72 rounded-2xl" />
+        </div>
+      </div>
+    );
+  }
+  const notFound = (detail.error as { response?: { status?: number } } | null)?.response?.status === 404;
+  if (detail.isError && !notFound) {
+    return (
+      <PremiumEmptyState
+        title="Couldn't load this student"
+        description={errorMessage(detail.error)}
+        action={<Button size="sm" variant="outline" onClick={() => detail.refetch()}>Try again</Button>}
+      />
+    );
+  }
+  const mock = detail.data;
+  const student = mock?.student;
 
   /* ── Not found ─────────────────────────────────────────────────────── */
-  if (!student) {
+  if (!student || !mock) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <PremiumCard className="w-full max-w-md p-8 text-center">
@@ -145,16 +174,17 @@ export function StudentDetailsPage() {
               </PremiumCard>
 
               {/* Fee mini */}
+              {mock.fees && (
               <PremiumCard className="p-5">
                 <p className="mb-3 text-sm font-semibold text-foreground">Fee Status</p>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-2xl font-extrabold text-foreground">
-                      ${mock.fees.paid.toLocaleString()}
-                      <span className="text-sm font-normal text-muted-foreground"> / ${mock.fees.totalFee.toLocaleString()}</span>
+                      {mock.fees.paid.toLocaleString()}
+                      <span className="text-sm font-normal text-muted-foreground"> / {mock.fees.totalFee.toLocaleString()}</span>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Due: ${mock.fees.due.toLocaleString()} · {mock.fees.status}
+                      Due: {mock.fees.due.toLocaleString()} · {mock.fees.status}
                     </p>
                   </div>
                   <Button variant="outline" size="sm" onClick={() => setTab("fees")}>
@@ -164,10 +194,11 @@ export function StudentDetailsPage() {
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
                   <div
                     className="h-full rounded-full bg-blue-500 transition-all"
-                    style={{ width: `${Math.round((mock.fees.paid / mock.fees.totalFee) * 100)}%` }}
+                    style={{ width: `${mock.fees.totalFee ? Math.round((mock.fees.paid / mock.fees.totalFee) * 100) : 0}%` }}
                   />
                 </div>
               </PremiumCard>
+              )}
 
               {/* Health */}
               <MiniInfoCard
@@ -184,37 +215,14 @@ export function StudentDetailsPage() {
               />
 
               {/* Transport */}
-              <MiniInfoCard
-                icon={Bus}
-                title="Transport"
-                rows={[
-                  { label: "Route",         value: mock.transport.busRoute },
-                  { label: "Bus No",        value: mock.transport.busNo },
-                  { label: "Pickup Point",  value: mock.transport.pickupPoint },
-                  { label: "Pickup Time",   value: mock.transport.pickupTime },
-                  { label: "Driver",        value: mock.transport.driverName },
-                  { label: "Driver Ph.",    value: mock.transport.driverPhone },
-                ]}
-              />
+              <DetailCard icon={Bus} title="Transport">
+                <p className="text-sm text-muted-foreground">Transport isn't set up for this school yet.</p>
+              </DetailCard>
 
               {/* Hostel */}
-              {mock.hostel.enrolled ? (
-                <MiniInfoCard
-                  icon={Building2}
-                  title="Hostel"
-                  rows={[
-                    { label: "Hostel",  value: mock.hostel.hostelName },
-                    { label: "Room",    value: mock.hostel.roomNo },
-                    { label: "Type",    value: mock.hostel.roomType },
-                    { label: "Warden", value: mock.hostel.wardenName },
-                    { label: "Phone",  value: mock.hostel.wardenPhone },
-                  ]}
-                />
-              ) : (
-                <DetailCard icon={Building2} title="Hostel">
-                  <p className="text-sm text-muted-foreground">Not enrolled in hostel.</p>
-                </DetailCard>
-              )}
+              <DetailCard icon={Building2} title="Hostel">
+                <p className="text-sm text-muted-foreground">Hostel isn't set up for this school yet.</p>
+              </DetailCard>
             </div>
           </div>
         </Reveal>
@@ -224,9 +232,21 @@ export function StudentDetailsPage() {
       {tab === "academics" && (
         <Reveal delay={120}>
           <div className="space-y-4">
-            <StudentScoresCard scores={mock.scores} meta={mock.examMeta} />
+            {mock.examMeta ? (
+              <StudentScoresCard scores={mock.scores} meta={mock.examMeta} />
+            ) : (
+              <PremiumCard className="p-5">
+                <PremiumEmptyState title="No exam results yet" description="Results appear here once marks are entered." className="py-6" />
+              </PremiumCard>
+            )}
             <div className="grid gap-4 lg:grid-cols-2">
-              <StudentRankCard rank={mock.rank} />
+              {mock.rank ? (
+                <StudentRankCard rank={mock.rank} />
+              ) : (
+                <PremiumCard className="p-5">
+                  <PremiumEmptyState title="Not ranked yet" description="A rank is shown after a complete exam result." className="py-6" />
+                </PremiumCard>
+              )}
               <StudentAttendanceCard summary={mock.attendanceSummary} monthly={mock.attendanceMonthly} />
             </div>
             <StudentTimetableCard timetable={mock.timetable} />
@@ -237,7 +257,13 @@ export function StudentDetailsPage() {
       {/* ── Fees ──────────────────────────────────────────────────────── */}
       {tab === "fees" && (
         <Reveal delay={120}>
-          <StudentFeesCard fees={mock.fees} payments={mock.payments} />
+          {mock.fees ? (
+            <StudentFeesCard fees={mock.fees} payments={mock.payments} />
+          ) : (
+            <PremiumCard className="p-5">
+              <PremiumEmptyState title="Fee details are restricted" description="You need fee access to see this student's fees." className="py-6" />
+            </PremiumCard>
+          )}
         </Reveal>
       )}
 

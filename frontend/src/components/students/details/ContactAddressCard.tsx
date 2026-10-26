@@ -1,7 +1,7 @@
 import { MapPin } from "lucide-react";
 
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { ContactInfo } from "@/data/studentDetailsData";
+import type { ContactInfo } from "@/api/types/students";
 
 function Row({ label, value }: { label: string; value?: string | null }) {
   return (

@@ -1,7 +1,8 @@
 import { Trophy } from "lucide-react";
 
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { Award } from "@/data/studentDetailsData";
+import type { Award } from "@/api/types/students";
 import { cn } from "@/lib/utils";
 
 const CAT_COLOR: Record<Award["category"], string> = {
@@ -17,6 +18,13 @@ function fmt(d: string) {
 }
 
 export function StudentAwardsCard({ awards }: { awards: Award[] }) {
+  if (awards.length === 0) {
+    return (
+      <DetailCard icon={Trophy} title="Awards & Prizes">
+        <PremiumEmptyState title="No awards recorded yet." className="py-6" />
+      </DetailCard>
+    );
+  }
   return (
     <DetailCard
       icon={Trophy}

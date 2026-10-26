@@ -57,6 +57,18 @@ class Student(TenantBaseModel):
     allergies = models.TextField(blank=True)
     emergency_contact_name = models.CharField(max_length=120, blank=True)
     emergency_contact_phone = models.CharField(max_length=32, blank=True)
+    regular_medication = models.TextField(blank=True)
+    medical_note = models.TextField(blank=True)
+    doctor_name = models.CharField(max_length=120, blank=True)
+    doctor_phone = models.CharField(max_length=32, blank=True)
+    height_cm = models.PositiveSmallIntegerField(null=True, blank=True)
+    weight_kg = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
+
+    student_type = models.CharField(max_length=20, blank=True)  # e.g. day scholar, boarder
+    admin_notes = models.TextField(blank=True)  # staff-only
+    photo = models.ForeignKey(
+        "files.StoredFile", null=True, blank=True, on_delete=models.SET_NULL, related_name="student_photos"
+    )
     academic_year = models.ForeignKey(
         "academics.AcademicYear", on_delete=models.PROTECT, related_name="students"
     )
@@ -155,3 +167,27 @@ class StudentHistory(TenantBaseModel):
 
     def __str__(self):
         return f"{self.student_id} {self.kind} {self.effective_date}"
+
+
+class StudentDocument(TenantBaseModel):
+    """An admission / identity document on file for a student."""
+
+    class Kind(models.TextChoices):
+        BIRTH_CERTIFICATE = "birth_certificate", "Birth Certificate"
+        TRANSFER_CERTIFICATE = "transfer_certificate", "Transfer Certificate"
+        PREVIOUS_MARKSHEET = "previous_marksheet", "Previous Marksheet"
+        PARENT_ID = "parent_id", "Parent / Guardian ID"
+        MEDICAL_FORM = "medical_form", "Medical Form"
+        ADDRESS_PROOF = "address_proof", "Address Proof"
+        OTHER = "other", "Other"
+
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="documents")
+    kind = models.CharField(max_length=24, choices=Kind.choices)
+    file = models.ForeignKey("files.StoredFile", on_delete=models.PROTECT, related_name="student_documents")
+    verified_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    verified_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["kind", "-created_at"]

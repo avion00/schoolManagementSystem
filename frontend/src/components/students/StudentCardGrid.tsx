@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { PremiumCard } from "@/components/ui/PremiumCard";
 import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
 import { RowActionMenu } from "@/components/ui/RowActionMenu";
-import type { Student } from "@/data/studentsData";
+import type { Student } from "@/api/types/students";
 
 function StudentCard({ student, index }: { student: Student; index: number }) {
   const navigate = useNavigate();

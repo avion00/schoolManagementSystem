@@ -6,7 +6,7 @@ from apps.files.serializers import FileIdsField, StoredFileSerializer
 
 class SchoolProfileSerializer(serializers.ModelSerializer):
     logo_id = FileIdsField(required=False, allow_null=True, write_only=True, source="logo")
-    logo = StoredFileSerializer(read_only=True)
+    logo = StoredFileSerializer(read_only=True, allow_null=True)
 
     class Meta:
         model = School

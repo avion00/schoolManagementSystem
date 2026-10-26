@@ -4,7 +4,7 @@ import { CATEGORICAL_COLORS, STATUS_COLORS } from "@/components/charts/palette";
 import { Reveal } from "@/components/motion";
 import { KPITrendCard } from "@/components/ui/KPITrendCard";
 import { METRIC_TONES } from "@/components/ui/MetricCard";
-import type { Student } from "@/data/studentsData";
+import type { Student } from "@/api/types/students";
 
 const SPARK = {
   up: [{ value: 30 }, { value: 33 }, { value: 31 }, { value: 35 }, { value: 34 }, { value: 37 }, { value: 40 }],

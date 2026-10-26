@@ -2,9 +2,10 @@ from rest_framework import serializers
 
 from apps.academics.models import AcademicYear, ClassLevel, Section
 from apps.core.serializers import TenantPrimaryKeyRelatedField, merged_value
+from apps.files.serializers import FileIdsField, StoredFileSerializer
 from apps.guardians.serializers import GuardianMiniSerializer
 
-from .models import Student, StudentHistory
+from .models import Student, StudentDocument, StudentHistory
 
 
 def section_is_full(section, extra):
@@ -30,6 +31,8 @@ class StudentSerializer(serializers.ModelSerializer):
     guardians = GuardianMiniSerializer(source="guardian_links", many=True, read_only=True)
     primary_guardian_name = serializers.SerializerMethodField()
     has_login = serializers.SerializerMethodField()
+    photo_id = FileIdsField(required=False, allow_null=True, write_only=True, source="photo")
+    photo = StoredFileSerializer(read_only=True, allow_null=True)
 
     class Meta:
         model = Student
@@ -43,6 +46,8 @@ class StudentSerializer(serializers.ModelSerializer):
             "academic_year", "academic_year_name", "class_level", "class_level_name",
             "section", "section_name",
             "medical_conditions", "allergies", "emergency_contact_name", "emergency_contact_phone",
+            "regular_medication", "medical_note", "doctor_name", "doctor_phone", "height_cm", "weight_kg",
+            "student_type", "admin_notes", "photo_id", "photo",
             "guardians", "primary_guardian_name", "has_login",
             "status", "is_active",
         ]
@@ -66,6 +71,9 @@ class StudentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"section": "Section does not belong to the selected class level."}
             )
+        photo = attrs.get("photo")
+        if photo is not None and photo.kind != "image":
+            raise serializers.ValidationError({"photo_id": "The photo must be an image."})
         moving_in = section and (self.instance is None or self.instance.section_id != section.id)
         if moving_in and section_is_full(section, extra=1):
             raise serializers.ValidationError({"section": f"Section {section} is full."})
@@ -81,7 +89,7 @@ class StudentListSerializer(StudentSerializer):
             "gender", "date_of_birth", "phone", "email", "address",
             "admission_number", "registration_number", "roll_number",
             "academic_year", "academic_year_name", "class_level", "class_level_name",
-            "section", "section_name", "primary_guardian_name", "has_login",
+            "section", "section_name", "primary_guardian_name", "has_login", "photo",
             "status", "is_active",
         ]
 
@@ -139,3 +147,15 @@ class StudentHistorySerializer(serializers.ModelSerializer):
             "from_class_level_name", "to_class_level_name",
             "from_section_name", "to_section_name", "actor", "created_at",
         ]
+
+
+class StudentDocumentSerializer(serializers.ModelSerializer):
+    file_id = FileIdsField(write_only=True, source="file")
+    file = StoredFileSerializer(read_only=True)
+    kind_label = serializers.CharField(source="get_kind_display", read_only=True)
+    verified_by_name = serializers.CharField(source="verified_by.full_name", read_only=True, default=None)
+
+    class Meta:
+        model = StudentDocument
+        fields = ["id", "kind", "kind_label", "file_id", "file", "verified_at", "verified_by_name", "created_at"]
+        read_only_fields = ["verified_at", "created_at"]

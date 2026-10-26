@@ -86,7 +86,7 @@ class MaterialSerializer(serializers.ModelSerializer):
     section = TenantPrimaryKeyRelatedField(queryset=Section.objects.all(), required=False, allow_null=True)
     subject = TenantPrimaryKeyRelatedField(queryset=Subject.objects.all())
     file_id = FileIdsField(required=False, allow_null=True, write_only=True, source="file")
-    file = StoredFileSerializer(read_only=True)
+    file = StoredFileSerializer(read_only=True, allow_null=True)
     subject_name = serializers.CharField(source="subject.name", read_only=True)
     class_level_name = serializers.CharField(source="class_level.name", read_only=True)
     section_name = serializers.CharField(source="section.name", read_only=True, default=None)

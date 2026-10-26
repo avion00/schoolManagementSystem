@@ -3,7 +3,7 @@ import { Layers } from "lucide-react";
 
 import { Reveal } from "@/components/motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Student } from "@/data/studentsData";
+import type { Student } from "@/api/types/students";
 import { cn } from "@/lib/utils";
 
 const ROW_TONES = [

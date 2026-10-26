@@ -24,7 +24,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
     vendor = TenantPrimaryKeyRelatedField(queryset=Vendor.objects.all(), required=False, allow_null=True)
     vendor_name = serializers.CharField(source="vendor.name", read_only=True, default=None)
     receipt_id = FileIdsField(required=False, allow_null=True, write_only=True, source="receipt")
-    receipt = StoredFileSerializer(read_only=True)
+    receipt = StoredFileSerializer(read_only=True, allow_null=True)
     recorded_by = serializers.CharField(source="created_by.full_name", read_only=True, default=None)
     decided_by_name = serializers.CharField(source="decided_by.full_name", read_only=True, default=None)
 

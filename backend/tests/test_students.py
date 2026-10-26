@@ -131,3 +131,34 @@ def test_create_login_and_delete_revokes_it(principal, tenant):
     principal.delete(f"/api/v1/students/{s.id}/")
     s.user.refresh_from_db()
     assert s.user.is_active is False
+
+
+def test_documents_upload_verify_and_access(api, tenant, settings, tmp_path):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    settings.MEDIA_ROOT = tmp_path
+    principal = api(tenant.users["Principal"])
+    f = principal.post("/api/v1/files/", {"file": SimpleUploadedFile("bc.pdf", b"%PDF-1.4 x")}, format="multipart").json()
+    url = f"/api/v1/students/{tenant.student.id}/documents/"
+    doc = principal.post(url, {"kind": "birth_certificate", "file_id": f["id"]}, format="json")
+    assert doc.status_code == 201 and doc.json()["kind_label"] == "Birth Certificate"
+    verified = principal.post(f"{url}{doc.json()['id']}/").json()
+    assert verified["verified_at"] and verified["verified_by_name"]
+    assert api(tenant.users["Student"]).get(f["download_url"]).status_code == 200  # own document
+    assert api(tenant.users["Accountant"]).get(f["download_url"]).status_code == 404
+    assert principal.delete(f"{url}{doc.json()['id']}/").status_code == 204
+    assert principal.get(url).json() == []
+
+
+def test_photo_must_be_image(api, tenant, settings, tmp_path):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    settings.MEDIA_ROOT = tmp_path
+    principal = api(tenant.users["Principal"])
+    pdf = principal.post("/api/v1/files/", {"file": SimpleUploadedFile("x.pdf", b"%PDF-1.4 x")}, format="multipart").json()
+    res = principal.patch(f"/api/v1/students/{tenant.student.id}/", {"photo_id": pdf["id"]}, format="json")
+    assert res.status_code == 400
+    png = principal.post("/api/v1/files/", {"file": SimpleUploadedFile("p.png", b"\x89PNG\r\n\x1a\nxx")}, format="multipart").json()
+    body = principal.patch(f"/api/v1/students/{tenant.student.id}/", {"photo_id": png["id"]}, format="json").json()
+    assert body["photo"]["kind"] == "image"
+    assert api(tenant.users["Student"]).get(png["download_url"]).status_code == 200

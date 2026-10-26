@@ -1,8 +1,8 @@
 import { User } from "lucide-react";
 
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { StudentDetailMock } from "@/data/studentDetailsData";
-import type { Student } from "@/data/studentsData";
+import type { StudentDetailView } from "@/api/types/students";
+import type { Student } from "@/api/types/students";
 
 function Row({ label, value }: { label: string; value?: string | null }) {
   return (
@@ -22,7 +22,7 @@ function fmt(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-interface Props { student: Student; mock: StudentDetailMock; }
+interface Props { student: Student; mock: StudentDetailView; }
 
 export function PersonalInfoCard({ student, mock }: Props) {
   const { personalExtra } = mock;
