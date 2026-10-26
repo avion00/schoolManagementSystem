@@ -224,6 +224,7 @@ class ExamViewSet(TenantModelViewSet):
                     "registration_number": s.registration_number, "roll_number": s.roll_number,
                     "class_level_name": s.class_level.name,
                     "section_name": s.section.name if s.section_id else None,
+                    "date_of_birth": s.date_of_birth,
                     "symbol_number": f"{exam.code}-{s.admission_number}",
                 }
                 for s in students

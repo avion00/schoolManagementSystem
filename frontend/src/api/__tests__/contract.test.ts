@@ -145,3 +145,28 @@ run("contract: attendance", () => {
     await getAll("/holidays/", { start_date__lte: "2026-12-31", end_date__gte: "2026-01-01" });
   });
 });
+
+run("contract: exams", () => {
+  beforeAll(() => signIn());
+
+  it("maps exams, papers, scales, marks sheet, results and admit cards", async () => {
+    const { get, getAll } = await import("../http");
+    const { mapExam, mapPaper, mapScale } = await import("../exams");
+    const exams = (await getAll<never>("/exams/exams/")).map(mapExam);
+    expect(exams.length).toBeGreaterThan(0);
+    const papers = (await getAll<never>("/exams/exam-subjects/")).map((p) => mapPaper(p, exams[0], new Map()));
+    expect(papers[0].fullMarks).toBeGreaterThan(0);
+    expect(papers[0].startTime === "" || /^\d\d:\d\d$/.test(papers[0].startTime)).toBe(true);
+    const scales = (await getAll<never>("/exams/grade-scales/")).map(mapScale);
+    expect(scales[0].bands.every((b) => b.percentUpto >= b.percentFrom)).toBe(true);
+    const sheet = await get<{ rows: unknown[]; components: object }>("/exams/marks/sheet/", { exam_subject: papers[0].id });
+    expect(Array.isArray(sheet.rows)).toBe(true);
+    const paper = papers[0];
+    const results = await get<{ rows: { result: string }[] }>(`/exams/exams/${paper.examRecordId}/results/`, { class_level: paper.classLevelId });
+    for (const r of results.rows) expect(["pass", "fail", "absent", "incomplete"]).toContain(r.result);
+    const admit = await get<{ cards: { symbol_number: string; date_of_birth: string | null }[] }>(
+      `/exams/exams/${paper.examRecordId}/admit-cards/`, { class_level: paper.classLevelId });
+    expect(admit.cards.every((c) => "date_of_birth" in c)).toBe(true);
+    await get(`/exams/exam-subjects/conflicts/`, { exam: paper.examRecordId });
+  });
+});

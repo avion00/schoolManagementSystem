@@ -1,66 +1,23 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { CreditCard } from "lucide-react";
 import { PremiumCard } from "@/components/ui/PremiumCard";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
 import { PremiumSelect } from "@/components/ui/PremiumSelect";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
 import { AdmitCardPreview } from "@/components/exams/AdmitCardPreview";
-import {
-  EXAM_RESULTS, EXAM_SCHEDULES, EXAM_TERM_OPTIONS, CLASS_OPTIONS, SECTION_OPTIONS,
-} from "@/data/examsData";
-
-// Static DOB map for students (indexed by studentId)
-const DOB_MAP: Record<number, string> = {
-  101: "2014-03-15", 102: "2014-07-22", 103: "2014-11-08", 104: "2015-01-30",
-  105: "2014-09-14", 106: "2015-05-20", 107: "2014-12-03", 108: "2015-02-18",
-  109: "2014-08-25", 110: "2015-04-10",
-};
-
-function Sel({ label, value, options, onChange, disabled, className }: {
-  label: string; value: string; options: string[]; onChange: (v: string) => void; disabled?: boolean; className?: string;
-}) {
-  return (
-    <PremiumSelect
-      value={value}
-      onChange={onChange}
-      placeholder={label}
-      disabled={disabled}
-      className={className}
-      options={options.map((o) => ({ value: o, label: o }))}
-    />
-  );
-}
+import { EMPTY_SELECTION, ExamPicker, useSelection, type ExamSelection } from "@/components/exams/ExamPicker";
+import { useAdmitCards } from "@/api/exams";
+import { errorMessage } from "@/api/http";
 
 export function AdmitCardsPage() {
-  const [term,    setTerm]    = useState<string>("Mid Term");
-  const [cls,     setCls]     = useState<string>("Grade 6");
-  const [section, setSection] = useState<string>("A");
+  const [sel, setSel] = useState<ExamSelection>(EMPTY_SELECTION);
   const [studentId, setStudentId] = useState<string>("");
+  const { exam } = useSelection(sel);
+  const query = useAdmitCards(sel.exam || undefined, sel.classLevel || undefined, sel.section || undefined);
 
-  const availableStudents = useMemo(() =>
-    EXAM_RESULTS.filter((r) => r.className === cls && r.section === section).sort((a, b) => a.roll - b.roll),
-  [cls, section]);
-
-  const selected = availableStudents.find((r) => String(r.studentId) === studentId) ?? (availableStudents[0] ?? null);
-
-  // Exam schedules for the selected term + class + section
-  const examSchedules = useMemo(() =>
-    EXAM_SCHEDULES
-      .filter((e) => e.term === term && e.className === cls && e.section === section)
-      .sort((a, b) => a.date.localeCompare(b.date)),
-  [term, cls, section]);
-
-  function onTermChange(v: string)  { setTerm(v); }
-  function onClsChange(v: string)   { setCls(v);     setStudentId(""); }
-  function onSectionChange(v: string){ setSection(v); setStudentId(""); }
-
-  const studentInfo = selected ? {
-    name:           selected.studentName,
-    registrationNo: selected.registrationNo,
-    admissionNo:    selected.admissionNo,
-    className:      selected.className,
-    section:        selected.section,
-    roll:           selected.roll,
-    dob:            DOB_MAP[selected.studentId] ?? "2014-01-01",
-  } : null;
+  const availableStudents = query.data?.cards ?? [];
+  const examSchedules = query.data?.schedule ?? [];
+  const selected = availableStudents.find((r) => r.studentId === studentId) ?? (availableStudents[0] ?? null);
 
   return (
     <div className="space-y-5">
@@ -71,60 +28,57 @@ export function AdmitCardsPage() {
       </div>
 
       {/* Selector panel */}
-      <PremiumCard className="p-5">
+      <PremiumCard className="p-5 print:hidden">
         <div className="flex items-center gap-2 mb-4">
           <CreditCard className="h-4 w-4 text-muted-foreground" />
           <h2 className="text-[13px] font-semibold text-foreground">Select Parameters</h2>
         </div>
         <div className="flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-medium text-foreground">Exam Term</label>
-            <Sel label="Select term" value={term} options={EXAM_TERM_OPTIONS as unknown as string[]} onChange={onTermChange} className="w-44" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-medium text-foreground">Class</label>
-            <Sel label="Select class" value={cls} options={CLASS_OPTIONS} onChange={onClsChange} className="w-40" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-medium text-foreground">Section</label>
-            <Sel label="Select section" value={section} options={SECTION_OPTIONS} onChange={onSectionChange} className="w-32" />
-          </div>
+          <ExamPicker value={sel} onChange={(v) => { setSel(v); setStudentId(""); }} mode="section" />
           <div className="flex flex-col gap-1">
             <label className="text-[11px] font-medium text-foreground">Student</label>
             <PremiumSelect
-              value={studentId}
+              value={selected?.studentId ?? ""}
               onChange={setStudentId}
               disabled={availableStudents.length === 0}
-              placeholder="All / First student"
+              placeholder="Select student"
               className="w-56"
-              options={availableStudents.map((r) => ({ value: String(r.studentId), label: `${r.roll}. ${r.studentName}` }))}
+              options={availableStudents.map((r) => ({ value: r.studentId, label: `${r.roll ? `${r.roll}. ` : ""}${r.name}` }))}
             />
           </div>
         </div>
 
         {/* Info chips */}
-        <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-          <span className="rounded-full bg-muted px-3 py-1">{examSchedules.length} subjects scheduled</span>
-          <span className="rounded-full bg-muted px-3 py-1">{availableStudents.length} students</span>
-        </div>
+        {query.data && (
+          <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+            <span className="rounded-full bg-muted px-3 py-1">{examSchedules.length} subjects scheduled</span>
+            <span className="rounded-full bg-muted px-3 py-1">{availableStudents.length} students</span>
+            {examSchedules.some((s) => !s.date) && (
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-amber-700">Some papers have no date yet</span>
+            )}
+          </div>
+        )}
       </PremiumCard>
+
+      {query.isLoading && <PremiumSkeleton className="h-96 w-full rounded-2xl" />}
+      {query.isError && <PremiumEmptyState title="Couldn't load admit cards" description={errorMessage(query.error)} />}
 
       {/* Student quick-switch */}
       {availableStudents.length > 1 && (
-        <PremiumCard className="p-4">
+        <PremiumCard className="p-4 print:hidden">
           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">
             Click to switch student
           </p>
           <div className="flex flex-wrap gap-2">
             {availableStudents.map((r) => (
               <button key={r.studentId}
-                onClick={() => setStudentId(String(r.studentId))}
+                onClick={() => setStudentId(r.studentId)}
                 className={`rounded-lg border px-3 py-1.5 text-[12px] transition-colors ${
                   selected?.studentId === r.studentId
                     ? "border-primary bg-primary/10 text-primary font-semibold"
                     : "border-neutral-200/80 hover:bg-muted/30 text-foreground dark:border-neutral-800"
                 }`}>
-                {r.roll}. {r.studentName}
+                {r.roll ? `${r.roll}. ` : ""}{r.name}
               </button>
             ))}
           </div>
@@ -132,20 +86,21 @@ export function AdmitCardsPage() {
       )}
 
       {/* Admit card */}
-      {studentInfo ? (
+      {selected && exam ? (
         <AdmitCardPreview
-          student={studentInfo}
+          student={selected}
           schedules={examSchedules}
-          term={term || "Examination"}
-          year="2026/27"
+          term={[exam.name, exam.term].filter(Boolean).join(" · ")}
+          year={exam.academicYear}
+          instructions={exam.instructions || undefined}
         />
-      ) : (
+      ) : query.isSuccess || !sel.classLevel ? (
         <div className="rounded-xl border border-dashed border-border/60 py-16 text-center">
           <CreditCard className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-[14px] font-medium text-foreground">No admit card</p>
-          <p className="text-[12px] text-muted-foreground mt-1">Select term, class, and section to generate admit cards.</p>
+          <p className="text-[12px] text-muted-foreground mt-1">Select an exam and a class with active students.</p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

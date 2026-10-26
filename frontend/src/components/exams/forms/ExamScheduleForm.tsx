@@ -1,29 +1,40 @@
-import { useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AlertTriangle, BookOpen, CalendarDays, Clock, FileText, RefreshCw, Save, Users, X } from "lucide-react";
+import { AlertTriangle, BookOpen, CalendarDays, Clock, FileText, Save, Users, X } from "lucide-react";
 import { toast }   from "sonner";
 import { Button }  from "@/components/ui/button";
 import { Input }   from "@/components/ui/input";
 import { FormSection } from "@/components/ui/form-section";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
 import {
-  EXAM_SCHEDULES, EXAM_TERM_OPTIONS, EXAM_TYPE_OPTIONS, EXAM_STATUS_OPTIONS,
-  CLASS_OPTIONS, SECTION_OPTIONS, SUBJECT_OPTIONS, INVIGILATOR_OPTIONS, ROOM_OPTIONS,
-  ACADEMIC_YEAR_OPTIONS, EXAM_ROOMS,
-  type ExamTerm, type ExamType, type ExamStatus, type ExamSchedule,
-} from "@/data/examsData";
+  TYPE_VALUE, clashMessages, useExams, useGradeScales, usePaperRecord, useSaveExam, useSavePaper,
+} from "@/api/exams";
+import { errorMessage } from "@/api/http";
+import { useRooms, useTeacherOptions } from "@/api/routine";
+import { useAcademicOptions } from "@/api/students";
+import { useSubjectList } from "@/api/subjects";
+import { EXAM_TYPE_OPTIONS } from "@/api/types/exams";
 
-// ─── form state ───────────────────────────────────────────────────────────────
+// ─── form state ──────────────────────────────────────────────────────────────
+const NEW_EXAM = "__new__";
+const EXAM_STATUSES = [
+  { value: "draft", label: "Draft" }, { value: "scheduled", label: "Scheduled" },
+  { value: "completed", label: "Completed" }, { value: "cancelled", label: "Cancelled" },
+];
+
 interface FormData {
-  examId:               string;
+  exam:                 string;   // exam id, or NEW_EXAM
   examName:             string;
-  term:                 ExamTerm | "";
-  academicYear:         string;
-  examType:             ExamType | "";
-  status:               ExamStatus | "";
-  className:            string;
-  section:              string;
+  term:                 string;
+  examType:             string;   // label
+  academicYear:         string;   // id
+  status:               string;
+  gradeScale:           string;
+  examStart:            string;
+  examEnd:              string;
+  classLevel:           string;
   subject:              string;
-  subjectTeacher:       string;
   fullMarks:            string;
   passMarks:            string;
   theoryMarks:          string;
@@ -34,7 +45,6 @@ interface FormData {
   endTime:              string;
   reportingTime:        string;
   room:                 string;
-  seatCapacity:         string;
   invigilator:          string;
   assistantInvigilator: string;
   instructions:         string;
@@ -45,12 +55,11 @@ type Errors = Partial<Record<keyof FormData, string>>;
 
 function defaultForm(): FormData {
   return {
-    examId: "", examName: "", term: "", academicYear: "2026/27", examType: "",
-    status: "draft", className: "", section: "", subject: "", subjectTeacher: "",
-    fullMarks: "100", passMarks: "40", theoryMarks: "80", practicalMarks: "0", internalMarks: "20",
-    date: "", startTime: "10:00", endTime: "12:00", reportingTime: "09:45",
-    room: "", seatCapacity: "35", invigilator: "", assistantInvigilator: "",
-    instructions: "", notes: "",
+    exam: "", examName: "", term: "", examType: "Final Term", academicYear: "", status: "draft", gradeScale: "",
+    examStart: "", examEnd: "", classLevel: "", subject: "",
+    fullMarks: "100", passMarks: "40", theoryMarks: "", practicalMarks: "", internalMarks: "",
+    date: "", startTime: "10:00", endTime: "13:00", reportingTime: "09:45",
+    room: "", invigilator: "", assistantInvigilator: "", instructions: "", notes: "",
   };
 }
 
@@ -69,15 +78,17 @@ function Field({ id, label, required, error, children }: {
   );
 }
 
+type Opt = { value: string; label: string };
+
 function Sel({ id, value, options, onChange, placeholder, disabled }: {
-  id: string; value: string; options: readonly string[]; onChange: (v: string) => void;
+  id: string; value: string; options: Opt[]; onChange: (v: string) => void;
   placeholder?: string; disabled?: boolean;
 }) {
   return (
     <select id={id} value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}
       className="h-9 w-full rounded-md border border-input bg-background px-2.5 text-[12px] text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50">
-      {placeholder && <option value="">{placeholder}</option>}
-      {options.map((o) => <option key={o} value={o}>{o}</option>)}
+      {placeholder !== undefined && <option value="">{placeholder}</option>}
+      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
   );
 }
@@ -89,71 +100,95 @@ function calcDuration(start: string, end: string): number {
   return (eh * 60 + em) - (sh * 60 + sm);
 }
 
-function genExamId(form: FormData): string {
-  if (!form.date || !form.term) return "";
-  const year = form.date.split("-")[0];
-  const count = EXAM_SCHEDULES.length + 1;
-  return `EXM-${year}-${String(count).padStart(3, "0")}`;
-}
-
-function checkConflict(form: FormData, excludeId: number): ExamSchedule | undefined {
-  if (!form.date || !form.startTime || !form.invigilator) return undefined;
-  return EXAM_SCHEDULES.find(
-    (s) => s.id !== excludeId && s.date === form.date && s.startTime === form.startTime && s.invigilator === form.invigilator,
-  );
-}
+const blankToNull = (v: string) => (v === "" ? null : v);
 
 // ─── Component ───────────────────────────────────────────────────────────────
 export function ExamScheduleForm({ mode }: { mode: "create" | "edit" }) {
   const navigate    = useNavigate();
   const { id }      = useParams<{ id: string }>();
-  const numId       = Number(id ?? 0);
-  const existing    = mode === "edit" ? EXAM_SCHEDULES.find((e) => e.id === numId) : undefined;
+  const record      = usePaperRecord(mode === "edit" ? id : undefined);
+  const examsQuery  = useExams();
+  const academics   = useAcademicOptions();
+  const subjects    = useSubjectList();
+  const rooms       = useRooms();
+  const teachers    = useTeacherOptions();
+  const scales      = useGradeScales();
+  const saveExam    = useSaveExam();
+  const savePaper   = useSavePaper();
 
-  const [form, setForm] = useState<FormData>(() => {
-    if (existing) {
-      return {
-        examId: existing.examId, examName: existing.examName, term: existing.term,
-        academicYear: existing.academicYear, examType: existing.examType, status: existing.status,
-        className: existing.className, section: existing.section, subject: existing.subject,
-        subjectTeacher: existing.subjectTeacher, fullMarks: String(existing.fullMarks),
-        passMarks: String(existing.passMarks), theoryMarks: String(existing.theoryMarks),
-        practicalMarks: String(existing.practicalMarks), internalMarks: String(existing.internalMarks),
-        date: existing.date, startTime: existing.startTime, endTime: existing.endTime,
-        reportingTime: existing.reportingTime, room: existing.room, seatCapacity: String(existing.seatCapacity),
-        invigilator: existing.invigilator, assistantInvigilator: existing.assistantInvigilator,
-        instructions: existing.instructions, notes: existing.notes,
-      };
-    }
-    return defaultForm();
-  });
+  const [form, setForm] = useState<FormData>(defaultForm);
+  const [loaded, setLoaded] = useState(mode === "create");
   const [errors,  setErrors]  = useState<Errors>({});
+  const [clashes, setClashes] = useState<string[]>([]);
   const [saving,  setSaving]  = useState(false);
+
+  const exams = useMemo(() => examsQuery.data ?? [], [examsQuery.data]);
+  const openExams = exams.filter((e) => !e.isLocked || e.id === form.exam);
+
+  // Fill the form once the paper (edit) or the defaults (create) are known.
+  useEffect(() => {
+    if (mode === "edit" && record.data && !loaded && examsQuery.data) {
+      const p = record.data;
+      const t = (v: string | null | undefined) => (v ? v.slice(0, 5) : "");
+      const n = (v: string | null | undefined) => (v === null || v === undefined ? "" : String(Number(v)));
+      setForm((f) => ({
+        ...f, exam: p.exam, classLevel: p.class_level, subject: p.subject,
+        fullMarks: n(p.full_marks), passMarks: n(p.pass_marks), theoryMarks: n(p.theory_marks),
+        practicalMarks: n(p.practical_marks), internalMarks: n(p.internal_marks),
+        date: p.exam_date ?? "", startTime: t(p.start_time), endTime: t(p.end_time), reportingTime: t(p.reporting_time),
+        room: p.room ?? "", invigilator: p.invigilator ?? "", assistantInvigilator: p.assistant_invigilator ?? "",
+        instructions: p.instructions ?? "", notes: p.notes ?? "",
+      }));
+      setLoaded(true);
+    }
+  }, [mode, record.data, loaded, examsQuery.data]);
+
+  useEffect(() => {
+    if (mode === "create" && !form.exam && examsQuery.isSuccess) {
+      const first = exams.find((e) => !e.isLocked && (e.status === "draft" || e.status === "scheduled"));
+      setForm((f) => ({ ...f, exam: first?.id ?? NEW_EXAM }));
+    }
+  }, [mode, form.exam, examsQuery.isSuccess, exams]);
+
+  useEffect(() => {
+    if (!form.academicYear && academics.data) {
+      const year = academics.data.years.find((y) => y.isCurrent) ?? academics.data.years[0];
+      if (year) setForm((f) => ({ ...f, academicYear: year.id }));
+    }
+    if (!form.gradeScale && scales.data?.length) setForm((f) => ({ ...f, gradeScale: scales.data![0].id }));
+  }, [academics.data, scales.data, form.academicYear, form.gradeScale]);
 
   const set = useCallback((key: keyof FormData, value: string) => {
     setForm((f) => ({ ...f, [key]: value }));
     setErrors((e) => ({ ...e, [key]: undefined }));
+    setClashes([]);
   }, []);
 
-  const conflict = checkConflict(form, numId);
+  const selectedExam = exams.find((e) => e.id === form.exam);
+  const creatingExam = form.exam === NEW_EXAM;
   const duration = calcDuration(form.startTime, form.endTime);
+  const roomCap = rooms.data?.find((r) => r.id === form.room)?.capacity;
+  const partsSum = Number(form.theoryMarks || 0) + Number(form.practicalMarks || 0) + Number(form.internalMarks || 0);
+  const hasParts = [form.theoryMarks, form.practicalMarks, form.internalMarks].some((v) => v !== "" && Number(v) > 0);
 
   function validate(): boolean {
     const e: Errors = {};
-    if (!form.examName.trim()) e.examName = "Exam name is required.";
-    if (!form.term)            e.term     = "Term is required.";
-    if (!form.examType)        e.examType = "Exam type is required.";
-    if (!form.className)       e.className = "Class is required.";
-    if (!form.section)         e.section  = "Section is required.";
+    if (!form.exam) e.exam = "Choose an exam.";
+    if (creatingExam) {
+      if (!form.examName.trim()) e.examName = "Exam name is required.";
+      if (!form.academicYear)    e.academicYear = "Academic year is required.";
+      if (form.examStart && form.examEnd && form.examEnd < form.examStart) e.examEnd = "End date is before the start date.";
+    }
+    if (!form.classLevel)      e.classLevel = "Class is required.";
     if (!form.subject)         e.subject  = "Subject is required.";
-    if (!form.date)            e.date     = "Date is required.";
-    if (!form.startTime)       e.startTime = "Start time is required.";
-    if (!form.endTime)         e.endTime  = "End time is required.";
-    if (!form.room)            e.room     = "Room is required.";
-    if (!form.invigilator)     e.invigilator = "Invigilator is required.";
-    const th = Number(form.theoryMarks), pr = Number(form.practicalMarks), inn = Number(form.internalMarks);
-    if (th + pr + inn !== Number(form.fullMarks)) {
-      e.theoryMarks = `Theory + Practical + Internal must equal ${form.fullMarks}.`;
+    if (!form.fullMarks || Number(form.fullMarks) <= 0) e.fullMarks = "Full marks must be greater than zero.";
+    if (Number(form.passMarks) > Number(form.fullMarks)) e.passMarks = "Pass marks can't exceed full marks.";
+    if (hasParts && partsSum !== Number(form.fullMarks)) {
+      e.theoryMarks = `Theory + Practical + Internal must equal ${form.fullMarks} (now ${partsSum}).`;
+    }
+    if (form.startTime && form.endTime && duration <= 0) e.endTime = "End time must be after the start time.";
+    if (form.invigilator && form.invigilator === form.assistantInvigilator) {
+      e.assistantInvigilator = "Choose a different assistant.";
     }
     setErrors(e);
     if (Object.keys(e).length > 0) {
@@ -167,13 +202,58 @@ export function ExamScheduleForm({ mode }: { mode: "create" | "edit" }) {
   async function handleSave() {
     if (!validate()) return;
     setSaving(true);
-    await new Promise((res) => setTimeout(res, 600));
-    setSaving(false);
-    toast.success(mode === "create" ? "Exam schedule created!" : "Exam schedule updated!");
-    navigate("/exams/schedule");
+    setClashes([]);
+    try {
+      let examId = form.exam;
+      if (creatingExam) {
+        const created = await saveExam.mutateAsync({ body: {
+          name: form.examName.trim(), term: form.term.trim(), exam_type: TYPE_VALUE[form.examType] ?? "final_term",
+          status: form.status, academic_year: form.academicYear, grade_scale: form.gradeScale || null,
+          start_date: blankToNull(form.examStart), end_date: blankToNull(form.examEnd),
+        } });
+        examId = created.id;
+        setForm((f) => ({ ...f, exam: created.id }));
+      }
+      const parts = hasParts
+        ? { theory_marks: form.theoryMarks || "0", practical_marks: form.practicalMarks || "0", internal_marks: form.internalMarks || "0" }
+        : { theory_marks: null, practical_marks: null, internal_marks: null };
+      await savePaper.mutateAsync({
+        id: mode === "edit" ? id : undefined,
+        body: {
+          ...(mode === "create" ? { exam: examId } : {}),
+          class_level: form.classLevel, subject: form.subject,
+          full_marks: form.fullMarks, pass_marks: form.passMarks || "0", ...parts,
+          exam_date: blankToNull(form.date), start_time: blankToNull(form.startTime),
+          end_time: blankToNull(form.endTime), reporting_time: blankToNull(form.reportingTime),
+          room: blankToNull(form.room), invigilator: blankToNull(form.invigilator),
+          assistant_invigilator: blankToNull(form.assistantInvigilator),
+          instructions: form.instructions, notes: form.notes,
+        },
+      });
+      toast.success(mode === "create" ? "Paper scheduled." : "Paper updated.");
+      navigate("/exams/schedule");
+    } catch (err) {
+      const found = clashMessages(err);
+      if (found) {
+        setClashes(found);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        toast.error(errorMessage(err));
+      }
+    } finally {
+      setSaving(false);
+    }
   }
 
-  const roomCap = EXAM_ROOMS.find((r) => r.roomName === form.room)?.capacity;
+  if (mode === "edit" && record.isError) {
+    return <PremiumEmptyState title="Couldn't load this paper" description={errorMessage(record.error)} />;
+  }
+  if (!loaded || examsQuery.isLoading) return <PremiumSkeleton className="mx-auto h-96 max-w-4xl rounded-2xl" />;
+
+  const classOpts = (academics.data?.classes ?? []).map((c) => ({ value: c.id, label: c.name }));
+  const subjectOpts = (subjects.data ?? []).map((s) => ({ value: String(s.id), label: `${s.subjectName} (${s.subjectCode})` }));
+  const teacherOpts = (teachers.data ?? []).map((t) => ({ value: t.id, label: t.name }));
+  const roomOpts = (rooms.data ?? []).map((r) => ({ value: r.id, label: `${r.name}${r.capacity ? ` · ${r.capacity} seats` : ""}` }));
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-6">
@@ -181,10 +261,10 @@ export function ExamScheduleForm({ mode }: { mode: "create" | "edit" }) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-foreground">
-            {mode === "create" ? "Add New Exam Schedule" : "Edit Exam Schedule"}
+            {mode === "create" ? "Schedule Exam Paper" : "Edit Exam Paper"}
           </h1>
           <p className="text-[12px] text-muted-foreground mt-0.5">
-            {mode === "create" ? "Schedule a new examination" : `Editing ${existing?.examId ?? "exam"}`}
+            A paper is one subject of an exam for one class (all its sections).
           </p>
         </div>
         <div className="flex gap-2">
@@ -194,78 +274,93 @@ export function ExamScheduleForm({ mode }: { mode: "create" | "edit" }) {
           </Button>
           <Button size="sm" className="h-8 gap-1.5 text-[12px]" disabled={saving} onClick={handleSave}>
             <Save className="h-3.5 w-3.5" />
-            {saving ? "Saving…" : "Save Schedule"}
+            {saving ? "Saving…" : "Save Paper"}
           </Button>
         </div>
       </div>
 
-      {/* Conflict banner */}
-      {conflict && (
+      {/* Server-reported clashes */}
+      {clashes.length > 0 && (
         <div className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 dark:border-rose-800 dark:bg-rose-950/30">
           <AlertTriangle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
           <div className="text-[12px]">
-            <p className="font-semibold text-rose-700 dark:text-rose-300">Invigilator Schedule Conflict</p>
-            <p className="text-rose-600 dark:text-rose-400 mt-0.5">
-              <strong>{form.invigilator}</strong> is already assigned to {conflict.examId} ({conflict.subject}, {conflict.className} {conflict.section}) on {conflict.date} at {conflict.startTime}.
-              Please choose a different invigilator or time.
-            </p>
+            <p className="font-semibold text-rose-700 dark:text-rose-300">Schedule conflict</p>
+            {clashes.map((c) => <p key={c} className="text-rose-600 dark:text-rose-400 mt-0.5">{c}</p>)}
+            <p className="text-rose-600 dark:text-rose-400 mt-1">Choose a different time, room or invigilator.</p>
           </div>
         </div>
       )}
 
-      {/* ── Section A: Basic Exam Info ──────────────────────────────────────── */}
-      <FormSection icon={FileText} title="Basic Exam Information" subtitle="Name, term, type, and status" defaultOpen>
+      {/* ── Section A: Exam ─────────────────────────────────────────────────── */}
+      <FormSection icon={FileText} title="Exam" subtitle="The exam this paper belongs to" defaultOpen>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field id="examName" label="Exam Name" required error={errors.examName}>
-            <Input id="examName" value={form.examName} onChange={(e) => set("examName", e.target.value)}
-              placeholder="e.g. First Term Examination 2026" className="h-9 text-[12px]" />
+          <Field id="exam" label="Exam" required error={errors.exam}>
+            <Sel id="exam" value={form.exam} disabled={mode === "edit"} onChange={(v) => set("exam", v)} placeholder="Select exam"
+              options={[
+                ...openExams.map((e) => ({ value: e.id, label: `${e.name}${e.code ? ` · ${e.code}` : ""}` })),
+                { value: NEW_EXAM, label: "+ Create a new exam" },
+              ]} />
           </Field>
-          <Field id="term" label="Exam Term" required error={errors.term}>
-            <Sel id="term" value={form.term} options={EXAM_TERM_OPTIONS} onChange={(v) => set("term", v as ExamTerm)} placeholder="Select term" />
-          </Field>
-          <Field id="examType" label="Exam Type" required error={errors.examType}>
-            <Sel id="examType" value={form.examType} options={EXAM_TYPE_OPTIONS} onChange={(v) => set("examType", v as ExamType)} placeholder="Select type" />
-          </Field>
-          <Field id="academicYear" label="Academic Year">
-            <Sel id="academicYear" value={form.academicYear} options={ACADEMIC_YEAR_OPTIONS} onChange={(v) => set("academicYear", v)} />
-          </Field>
-          <Field id="status" label="Status">
-            <Sel id="status" value={form.status} options={EXAM_STATUS_OPTIONS} onChange={(v) => set("status", v as ExamStatus)} placeholder="Select status" />
-          </Field>
-          <Field id="examId" label="Exam ID">
-            <div className="flex gap-2">
-              <Input id="examId" value={form.examId} onChange={(e) => set("examId", e.target.value)}
-                placeholder="Auto-generated" className="h-9 text-[12px] flex-1 font-mono" />
-              <Button size="icon" variant="outline" className="h-9 w-9 shrink-0" title="Generate ID"
-                onClick={() => set("examId", genExamId(form))}>
-                <RefreshCw className="h-3.5 w-3.5" />
-              </Button>
+          {selectedExam && !creatingExam && (
+            <div className="sm:col-span-2 flex flex-wrap items-center gap-x-5 gap-y-1 self-end pb-2 text-[12px] text-muted-foreground">
+              <span>{selectedExam.examType}</span>
+              {selectedExam.term && <span>{selectedExam.term}</span>}
+              <span>{selectedExam.academicYear}</span>
+              {selectedExam.startDate && <span>{selectedExam.startDate} → {selectedExam.endDate}</span>}
+              <span className="capitalize">{selectedExam.status}</span>
             </div>
-          </Field>
+          )}
+          {creatingExam && (<>
+            <Field id="examName" label="Exam Name" required error={errors.examName}>
+              <Input id="examName" value={form.examName} onChange={(e) => set("examName", e.target.value)}
+                placeholder="e.g. First Term Examination 2026" className="h-9 text-[12px]" />
+            </Field>
+            <Field id="term" label="Term">
+              <Input id="term" value={form.term} onChange={(e) => set("term", e.target.value)}
+                placeholder="e.g. First Term" className="h-9 text-[12px]" />
+            </Field>
+            <Field id="examType" label="Exam Type" required>
+              <Sel id="examType" value={form.examType} onChange={(v) => set("examType", v)}
+                options={EXAM_TYPE_OPTIONS.map((t) => ({ value: t, label: t }))} />
+            </Field>
+            <Field id="academicYear" label="Academic Year" required error={errors.academicYear}>
+              <Sel id="academicYear" value={form.academicYear} onChange={(v) => set("academicYear", v)}
+                options={(academics.data?.years ?? []).map((y) => ({ value: y.id, label: y.name }))} />
+            </Field>
+            <Field id="status" label="Status">
+              <Sel id="status" value={form.status} onChange={(v) => set("status", v)} options={EXAM_STATUSES} />
+            </Field>
+            <Field id="gradeScale" label="Grade Scale">
+              <Sel id="gradeScale" value={form.gradeScale} onChange={(v) => set("gradeScale", v)} placeholder="No grading"
+                options={(scales.data ?? []).map((s) => ({ value: s.id, label: s.name }))} />
+            </Field>
+            <Field id="examStart" label="Exam Starts">
+              <Input id="examStart" type="date" value={form.examStart} onChange={(e) => set("examStart", e.target.value)} className="h-9 text-[12px]" />
+            </Field>
+            <Field id="examEnd" label="Exam Ends" error={errors.examEnd}>
+              <Input id="examEnd" type="date" value={form.examEnd} onChange={(e) => set("examEnd", e.target.value)} className="h-9 text-[12px]" />
+            </Field>
+          </>)}
         </div>
       </FormSection>
 
       {/* ── Section B: Class & Subject ─────────────────────────────────────── */}
-      <FormSection icon={BookOpen} title="Class & Subject" subtitle="Class, section, subject, teacher, and marks structure">
+      <FormSection icon={BookOpen} title="Class & Subject" subtitle="Class, subject, and marks structure" defaultOpen>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field id="className" label="Class" required error={errors.className}>
-            <Sel id="className" value={form.className} options={CLASS_OPTIONS} onChange={(v) => set("className", v)} placeholder="Select class" />
-          </Field>
-          <Field id="section" label="Section" required error={errors.section}>
-            <Sel id="section" value={form.section} options={SECTION_OPTIONS} onChange={(v) => set("section", v)} placeholder="Select section" />
+          <Field id="classLevel" label="Class" required error={errors.classLevel}>
+            <Sel id="classLevel" value={form.classLevel} options={classOpts} onChange={(v) => set("classLevel", v)} placeholder="Select class" />
           </Field>
           <Field id="subject" label="Subject" required error={errors.subject}>
-            <Sel id="subject" value={form.subject} options={SUBJECT_OPTIONS} onChange={(v) => set("subject", v)} placeholder="Select subject" />
+            <Sel id="subject" value={form.subject} options={subjectOpts} onChange={(v) => set("subject", v)} placeholder="Select subject" />
           </Field>
-          <Field id="subjectTeacher" label="Subject Teacher">
-            <Sel id="subjectTeacher" value={form.subjectTeacher} options={INVIGILATOR_OPTIONS} onChange={(v) => set("subjectTeacher", v)} placeholder="Select teacher" />
-          </Field>
-          <Field id="fullMarks" label="Full Marks">
+          <div />
+          <Field id="fullMarks" label="Full Marks" required error={errors.fullMarks}>
             <Input id="fullMarks" type="number" value={form.fullMarks} onChange={(e) => set("fullMarks", e.target.value)} className="h-9 text-[12px]" />
           </Field>
-          <Field id="passMarks" label="Pass Marks">
+          <Field id="passMarks" label="Pass Marks" error={errors.passMarks}>
             <Input id="passMarks" type="number" value={form.passMarks} onChange={(e) => set("passMarks", e.target.value)} className="h-9 text-[12px]" />
           </Field>
+          <div />
           <Field id="theoryMarks" label="Theory Marks" error={errors.theoryMarks}>
             <Input id="theoryMarks" type="number" value={form.theoryMarks} onChange={(e) => set("theoryMarks", e.target.value)} className="h-9 text-[12px]" />
           </Field>
@@ -277,21 +372,23 @@ export function ExamScheduleForm({ mode }: { mode: "create" | "edit" }) {
           </Field>
         </div>
         <p className="text-[11px] text-muted-foreground mt-2">
-          Theory + Practical + Internal must equal Full Marks ({form.fullMarks}).
-          {" "}Current sum: {Number(form.theoryMarks) + Number(form.practicalMarks) + Number(form.internalMarks)}.
+          Leave the components empty to mark the paper as a single total. If you split it, Theory + Practical + Internal
+          must equal Full Marks ({form.fullMarks || 0}); current sum: {partsSum}.
         </p>
       </FormSection>
 
       {/* ── Section C: Date & Time ─────────────────────────────────────────── */}
-      <FormSection icon={CalendarDays} title="Date & Time" subtitle="Exam date, start/end times, and reporting time">
+      <FormSection icon={CalendarDays} title="Date & Time" subtitle="Exam date, start/end times, and reporting time" defaultOpen>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Field id="date" label="Exam Date" required error={errors.date}>
-            <Input id="date" type="date" value={form.date} onChange={(e) => set("date", e.target.value)} className="h-9 text-[12px]" />
+          <Field id="date" label="Exam Date" error={errors.date}>
+            <Input id="date" type="date" value={form.date} onChange={(e) => set("date", e.target.value)}
+              min={selectedExam?.startDate ?? (form.examStart || undefined)} max={selectedExam?.endDate ?? (form.examEnd || undefined)}
+              className="h-9 text-[12px]" />
           </Field>
-          <Field id="startTime" label="Start Time" required error={errors.startTime}>
+          <Field id="startTime" label="Start Time" error={errors.startTime}>
             <Input id="startTime" type="time" value={form.startTime} onChange={(e) => set("startTime", e.target.value)} className="h-9 text-[12px]" />
           </Field>
-          <Field id="endTime" label="End Time" required error={errors.endTime}>
+          <Field id="endTime" label="End Time" error={errors.endTime}>
             <Input id="endTime" type="time" value={form.endTime} onChange={(e) => set("endTime", e.target.value)} className="h-9 text-[12px]" />
           </Field>
           <Field id="reportingTime" label="Reporting Time">
@@ -307,38 +404,33 @@ export function ExamScheduleForm({ mode }: { mode: "create" | "edit" }) {
       </FormSection>
 
       {/* ── Section D: Room & Invigilation ────────────────────────────────── */}
-      <FormSection icon={Users} title="Room & Invigilation" subtitle="Exam room and assigned invigilators">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Field id="room" label="Exam Room" required error={errors.room}>
-            <Sel id="room" value={form.room} options={ROOM_OPTIONS} onChange={(v) => set("room", v)} placeholder="Select room" />
+      <FormSection icon={Users} title="Room & Invigilation" subtitle="Exam room and assigned invigilators" defaultOpen>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Field id="room" label="Exam Room">
+            <Sel id="room" value={form.room} options={roomOpts} onChange={(v) => set("room", v)}
+              placeholder={roomOpts.length ? "Select room" : "No exam rooms set up"} />
           </Field>
-          <Field id="seatCapacity" label="Seat Capacity">
-            <Input id="seatCapacity" type="number" value={form.seatCapacity}
-              onChange={(e) => set("seatCapacity", e.target.value)} className="h-9 text-[12px]" />
-          </Field>
-          <Field id="invigilator" label="Invigilator" required error={errors.invigilator}>
-            <Sel id="invigilator" value={form.invigilator} options={INVIGILATOR_OPTIONS}
+          <Field id="invigilator" label="Invigilator">
+            <Sel id="invigilator" value={form.invigilator} options={teacherOpts}
               onChange={(v) => set("invigilator", v)} placeholder="Select invigilator" />
           </Field>
-          <Field id="assistantInvigilator" label="Assistant Invigilator">
-            <Sel id="assistantInvigilator" value={form.assistantInvigilator} options={INVIGILATOR_OPTIONS}
+          <Field id="assistantInvigilator" label="Assistant Invigilator" error={errors.assistantInvigilator}>
+            <Sel id="assistantInvigilator" value={form.assistantInvigilator} options={teacherOpts}
               onChange={(v) => set("assistantInvigilator", v)} placeholder="Select assistant" />
           </Field>
         </div>
-        {roomCap && Number(form.seatCapacity) > roomCap && (
-          <p className="text-[11px] text-amber-600 mt-2">
-            ⚠ Seat capacity ({form.seatCapacity}) exceeds room capacity ({roomCap}).
-          </p>
+        {roomCap !== undefined && (
+          <p className="text-[11px] text-muted-foreground mt-2">Room capacity: {roomCap} seats.</p>
         )}
       </FormSection>
 
       {/* ── Section E: Instructions ────────────────────────────────────────── */}
-      <FormSection icon={FileText} title="Instructions & Notes" subtitle="Student instructions, teacher notes, and remarks">
+      <FormSection icon={FileText} title="Instructions & Notes" subtitle="Student instructions and staff notes">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Field id="instructions" label="Student Instructions">
             <textarea id="instructions" value={form.instructions}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("instructions", e.target.value)}
-              placeholder="Instructions visible on admit card…"
+              placeholder="Instructions for this paper…"
               rows={4}
               className="w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-[12px] text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring" />
           </Field>
@@ -360,7 +452,7 @@ export function ExamScheduleForm({ mode }: { mode: "create" | "edit" }) {
         </Button>
         <Button size="sm" className="h-9 gap-1.5 text-[12px]" disabled={saving} onClick={handleSave}>
           <Save className="h-3.5 w-3.5" />
-          {saving ? "Saving…" : "Save Schedule"}
+          {saving ? "Saving…" : "Save Paper"}
         </Button>
       </div>
     </div>

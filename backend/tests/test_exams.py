@@ -191,6 +191,7 @@ def test_report_card_and_admit_cards(principal, tenant, scale):
     assert card["result"]["grade"] == "B" and card["result"]["result"] == "pass" and card["class_size"] == 1
     admit = principal.get(f"/api/v1/exams/exams/{tenant.exam.id}/admit-cards/", {"class_level": str(tenant.grade.id)}).json()
     assert admit["cards"][0]["name"] == "Asha Rai" and admit["exam"]["code"] == ""
+    assert "date_of_birth" in admit["cards"][0]
 
 
 def test_exam_with_marks_cannot_be_deleted(principal, tenant):

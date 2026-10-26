@@ -77,7 +77,7 @@ type-checker shows anything still using fake data.
 | Classes: list, details (sections with attendance, students with fee status, teachers, timetable, performance from the latest exam, fees, exam papers), add/edit with sections and curriculum | ✅ |
 | Subjects (list, details with mappings/teachers/syllabus/performance, form with class mappings) and class routine (list, weekly grid with real breaks, conflict flags from the server, print view, add/edit by section·day·period with clash messages, bell-schedule manager) | ✅ |
 | Attendance: dashboard (today's sections, staff today, 6-month trend, holidays), daily student register and staff register with real saves, monthly sheet (holidays and weekends from settings, CSV export), class comparison, student history over any range, reports (per-student summary via new `attendance/student-summary/`, low-attendance list, status split) | ✅ |
-| Exams (schedule, grades, marks entry, results, report and admit cards) | 🚧 |
+| Exams: dashboard (upcoming papers, papers awaiting marks, class performance and top results from the latest published exam), paper schedule with server clash flags and CSV export, paper form (pick or create the exam; marks split; room and invigilators; server clash messages), grade scales and bands, marks entry (component or single-total papers, absent, bulk save, read-only when locked), results with **lock → publish** workflow (missing-marks prompt), report cards (attendance, class size) and admit cards (symbol numbers). `seed_exams` adds a demo grade scale, rooms and paper timetable | ✅ |
 | Billing (fees, invoices, payments, expenses, payroll, vendors, reports) | ⬜ |
 | Notices and notifications | ⬜ |
 | Messages (REST + WebSocket) | ⬜ |
