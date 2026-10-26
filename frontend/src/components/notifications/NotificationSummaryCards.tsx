@@ -3,8 +3,9 @@ import { AlertTriangle, Bell, ClipboardCheck, CreditCard, MailWarning, ServerCog
 
 import { PopNumber, Reveal } from "@/components/motion";
 import { Card, CardContent } from "@/components/ui/card";
-import type { AppNotification } from "@/data/notificationsData";
+import type { AppNotification } from "@/api/types/notifications";
 import { cn } from "@/lib/utils";
+import { isApproval } from "@/api/notifications";
 
 const TONE_STYLES = {
   neutral: "bg-muted text-foreground",
@@ -18,11 +19,11 @@ export function NotificationSummaryCards({ notifications }: { notifications: App
   const stats = useMemo(() => {
     const nonArchived = notifications.filter((n) => n.status !== "archived");
     return [
-      { label: "Total Notifications", value: String(notifications.length), icon: Bell,           tone: "neutral" as const },
+      { label: "Notifications",       value: String(nonArchived.length), icon: Bell,           tone: "neutral" as const },
       { label: "Unread",               value: String(notifications.filter((n) => n.status === "unread").length), icon: MailWarning, tone: "blue" as const },
       { label: "Urgent",               value: String(nonArchived.filter((n) => n.priority === "urgent").length), icon: AlertTriangle, tone: "red" as const },
-      { label: "Pending Approvals",    value: String(notifications.filter((n) => n.isApproval && !n.approvalDecision).length), icon: ClipboardCheck, tone: "amber" as const },
-      { label: "Billing Alerts",       value: String(nonArchived.filter((n) => n.category === "Fees" || n.category === "Billing" || n.category === "Payroll").length), icon: CreditCard, tone: "purple" as const },
+      { label: "Approvals",            value: String(nonArchived.filter(isApproval).length), icon: ClipboardCheck, tone: "amber" as const },
+      { label: "Fee Alerts",           value: String(nonArchived.filter((n) => n.category === "Fees").length), icon: CreditCard, tone: "purple" as const },
       { label: "System Alerts",        value: String(nonArchived.filter((n) => n.category === "System" || n.category === "Security").length), icon: ServerCog, tone: "red" as const },
     ];
   }, [notifications]);

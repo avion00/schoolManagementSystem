@@ -8388,6 +8388,78 @@ paths:
               schema:
                 $ref: '#/components/schemas/Notification'
           description: ''
+  /api/v1/me/notifications/{id}/unarchive/:
+    post:
+      operationId: v1_me_notifications_unarchive_create
+      description: 'The current user''s notifications. ?status=unread|read|archived
+        (default: not archived).'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this notification.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notification'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Notification'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Notification'
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/me/notifications/{id}/unread/:
+    post:
+      operationId: v1_me_notifications_unread_create
+      description: 'The current user''s notifications. ?status=unread|read|archived
+        (default: not archived).'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this notification.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notification'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Notification'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Notification'
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
   /api/v1/me/notifications/read-all/:
     post:
       operationId: v1_me_notifications_read_all_create
@@ -14580,6 +14652,11 @@ components:
           type: string
         instructions:
           type: string
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoredFile'
+          readOnly: true
         external_link:
           oneOf:
           - type: string
@@ -14612,6 +14689,7 @@ components:
           readOnly: true
       required:
       - acknowledged_at
+      - attachments
       - body
       - id
       - published_by_name
@@ -14640,6 +14718,26 @@ components:
           readOnly: true
         audience:
           $ref: '#/components/schemas/AudienceEnum'
+        attachment_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+            writeOnly: true
+          writeOnly: true
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoredFile'
+          readOnly: true
+        read_count:
+          type: integer
+          readOnly: true
+          default: 0
+        acknowledged_count:
+          type: integer
+          readOnly: true
+          default: 0
         target_class_levels:
           type: array
           items:
@@ -14698,6 +14796,8 @@ components:
           type: boolean
           readOnly: true
       required:
+      - acknowledged_count
+      - attachments
       - body
       - code
       - created_at
@@ -14705,6 +14805,7 @@ components:
       - id
       - is_active
       - published_by_name
+      - read_count
       - status
       - title
     NoticeCategoryEnum:
@@ -16898,6 +16999,26 @@ components:
           readOnly: true
         audience:
           $ref: '#/components/schemas/AudienceEnum'
+        attachment_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+            writeOnly: true
+          writeOnly: true
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoredFile'
+          readOnly: true
+        read_count:
+          type: integer
+          readOnly: true
+          default: 0
+        acknowledged_count:
+          type: integer
+          readOnly: true
+          default: 0
         target_class_levels:
           type: array
           items:

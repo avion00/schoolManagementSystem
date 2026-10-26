@@ -1,5 +1,5 @@
 import { FilePlus, Pencil, CheckCircle2, Archive, Eye, ThumbsUp } from "lucide-react";
-import type { ActivityRecord } from "@/data/noticesData";
+import type { ActivityRecord } from "@/api/types/notices";
 import { cn } from "@/lib/utils";
 
 const ICON_MAP = {
@@ -35,9 +35,9 @@ export function NoticeActivityTimeline({ activities }: { activities: ActivityRec
               <div className="flex-1 pt-1">
                 <p className="text-[12px] font-medium text-foreground leading-snug">{act.action}</p>
                 <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground">
-                  <span className="font-medium">{act.by}</span>
-                  <span>·</span>
-                  <span>{act.at}</span>
+                  {[act.by && <span key="by" className="font-medium">{act.by}</span>,
+                    act.at && <span key="at">{new Date(act.at).toLocaleString()}</span>]
+                    .filter(Boolean).flatMap((el, i) => (i ? [<span key={`dot-${i}`}>·</span>, el] : [el]))}
                 </div>
               </div>
             </div>

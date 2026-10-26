@@ -6,7 +6,8 @@ import { PremiumTableToolbar } from "@/components/ui/PremiumTableToolbar";
 import {
   NOTICE_CATEGORY_OPTIONS, NOTICE_PRIORITY_OPTIONS,
   NOTICE_STATUS_OPTIONS, NOTICE_AUDIENCE_OPTIONS,
-} from "@/data/noticesData";
+} from "@/api/types/notices";
+import { useAuth } from "@/lib/auth";
 
 export interface NoticeFilters {
   search:    string;
@@ -36,6 +37,7 @@ function hasFilter(f: NoticeFilters) {
 
 export function NoticeToolbar({ filters, onChange, onClear, total, filtered }: Props) {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
   const set = (k: keyof NoticeFilters, v: string) => onChange({ ...filters, [k]: v });
 
   return (
@@ -87,11 +89,11 @@ export function NoticeToolbar({ filters, onChange, onClear, total, filtered }: P
               className="h-11 rounded-xl border border-neutral-200 bg-white px-2.5 text-[12px] text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring dark:border-neutral-800 dark:bg-neutral-950" />
           </>
         }
-        trailing={
+        trailing={hasPermission("notice.manage") ? (
           <Button size="sm" className="h-9 gap-1.5 text-[12px]" onClick={() => navigate("/notices/new")}>
             <Plus className="h-3.5 w-3.5" />Create Notice
           </Button>
-        }
+        ) : undefined}
       />
 
       {/* Result count */}

@@ -118,6 +118,9 @@ def test_notification_inbox(api, tenant, principal):
     inbox.post(f"/api/v1/me/notifications/{nid}/archive/")
     assert inbox.get("/api/v1/me/notifications/").json()["count"] == 0
     assert inbox.get("/api/v1/me/notifications/", {"status": "archived"}).json()["count"] == 1
+    inbox.post(f"/api/v1/me/notifications/{nid}/unarchive/")
+    inbox.post(f"/api/v1/me/notifications/{nid}/unread/")
+    assert inbox.get("/api/v1/me/notifications/unread-count/").json() == {"unread": 1}
     # someone else's notification is invisible
     assert api(tenant.users["Teacher"]).post(f"/api/v1/me/notifications/{nid}/read/").status_code == 404
 
@@ -160,3 +163,32 @@ def test_inactive_students_excluded(principal, tenant):
     Student.objects.filter(pk=tenant.student.pk).update(status="left")
     n = create_notice(principal, audience="students")
     assert publish(principal, n).json()["notified"] == 0
+
+
+def test_notice_attachments_downloadable_by_audience_only(principal, tenant, parent_user, api):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    pdf = SimpleUploadedFile("circular.pdf", b"%PDF-1.4\n%fake but well-formed enough\n")
+    stored = principal.post("/api/v1/files/", {"file": pdf}, format="multipart").json()
+    notice = create_notice(principal, audience="parents", attachment_ids=[stored["id"]])
+    assert [a["id"] for a in notice["attachments"]] == [stored["id"]]
+    dad = api(parent_user)
+    teacher = api(tenant.users["Teacher"])
+    url = f"/api/v1/files/{stored['id']}/download/"
+    assert dad.get(url).status_code == 404  # not published yet
+    publish(principal, notice)
+    mine = dad.get(f"/api/v1/me/notices/{notice['id']}/").json()
+    assert mine["attachments"][0]["id"] == stored["id"]
+    assert dad.get(url).status_code == 200
+    assert teacher.get(url).status_code == 404  # parents-only notice
+
+
+def test_notice_list_counts_and_recipient_roles(principal, tenant, parent_user, api):
+    notice = create_notice(principal, audience="parents")
+    publish(principal, notice)
+    api(parent_user).get(f"/api/v1/me/notices/{notice['id']}/")
+    row = next(n for n in principal.get("/api/v1/notices/").json()["results"] if n["id"] == notice["id"])
+    assert row["read_count"] == 1 and row["acknowledged_count"] == 0
+    rec = principal.get(f"/api/v1/notices/{notice['id']}/recipients/").json()
+    dad = next(r for r in rec["results"] if r["email"] == "dad@x.test")
+    assert dad["role"] == "parent" and dad["read_at"]

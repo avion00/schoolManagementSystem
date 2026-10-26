@@ -2506,6 +2506,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/notifications/{id}/unarchive/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The current user's notifications. ?status=unread|read|archived (default: not archived). */
+        post: operations["v1_me_notifications_unarchive_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notifications/{id}/unread/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The current user's notifications. ?status=unread|read|archived (default: not archived). */
+        post: operations["v1_me_notifications_unread_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/notifications/read-all/": {
         parameters: {
             query?: never;
@@ -4778,6 +4812,7 @@ export interface components {
             summary?: string;
             body: string;
             instructions?: string;
+            readonly attachments: components["schemas"]["StoredFile"][];
             external_link?: string;
             /** Format: date-time */
             publish_at?: string | null;
@@ -4800,6 +4835,12 @@ export interface components {
             priority?: components["schemas"]["PriorityEnum"];
             readonly status: components["schemas"]["NoticeStatusEnum"];
             audience?: components["schemas"]["AudienceEnum"];
+            attachment_ids?: string[];
+            readonly attachments: components["schemas"]["StoredFile"][];
+            /** @default 0 */
+            readonly read_count: number;
+            /** @default 0 */
+            readonly acknowledged_count: number;
             target_class_levels?: string[];
             target_sections?: string[];
             summary?: string;
@@ -5996,6 +6037,12 @@ export interface components {
             priority?: components["schemas"]["PriorityEnum"];
             readonly status?: components["schemas"]["NoticeStatusEnum"];
             audience?: components["schemas"]["AudienceEnum"];
+            attachment_ids?: string[];
+            readonly attachments?: components["schemas"]["StoredFile"][];
+            /** @default 0 */
+            readonly read_count: number;
+            /** @default 0 */
+            readonly acknowledged_count: number;
             target_class_levels?: string[];
             target_sections?: string[];
             summary?: string;
@@ -14024,6 +14071,62 @@ export interface operations {
         };
     };
     v1_me_notifications_read_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this notification. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["Notification"];
+                "application/x-www-form-urlencoded": components["schemas"]["Notification"];
+                "multipart/form-data": components["schemas"]["Notification"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Notification"];
+                };
+            };
+        };
+    };
+    v1_me_notifications_unarchive_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this notification. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["Notification"];
+                "application/x-www-form-urlencoded": components["schemas"]["Notification"];
+                "multipart/form-data": components["schemas"]["Notification"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Notification"];
+                };
+            };
+        };
+    };
+    v1_me_notifications_unread_create: {
         parameters: {
             query?: never;
             header?: never;

@@ -198,3 +198,30 @@ run("contract: billing", () => {
     expect(fees.payment_methods).toHaveProperty("cheque");
   });
 });
+
+run("contract: notices and notifications", () => {
+  beforeAll(() => signIn());
+
+  it("maps notices, recipients and the inbox", async () => {
+    const { get, getAll, post, del } = await import("../http");
+    const { mapNotice, mapMyNotice } = await import("../notices");
+    const { mapNotification } = await import("../notifications");
+    const created = await post<never>("/notices/", { title: "Contract test", body: "Body", audience: "staff" });
+    const notice = mapNotice(created);
+    expect(notice.status).toBe("Draft");
+    expect(notice.audience).toBe("Staff");
+    const list = (await getAll<never>("/notices/")).map((n) => mapNotice(n));
+    expect(list.some((n) => n.id === notice.id)).toBe(true);
+    await del(`/notices/${notice.id}/`);
+    const published = (await getAll<{ id: string; status: string }>("/notices/")).find((n) => n.status === "published");
+    if (published) {
+      const r = await get<{ results: { role: string }[]; stats: { total: number } }>(`/notices/${published.id}/recipients/`);
+      expect(typeof r.stats.total).toBe("number");
+      for (const row of r.results) expect(["student", "parent", "teacher", "staff"]).toContain(row.role);
+    }
+    (await getAll<never>("/me/notices/")).map(mapMyNotice);
+    const inbox = (await getAll<never>("/me/notifications/")).map(mapNotification);
+    for (const n of inbox) expect(["unread", "read"]).toContain(n.status);
+    expect(typeof (await get<{ unread: number }>("/me/notifications/unread-count/")).unread).toBe("number");
+  });
+});

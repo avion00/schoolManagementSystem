@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 from apps.academics.models import ClassLevel, Section
 from apps.core.serializers import TenantPrimaryKeyRelatedField, merged_value
+from apps.files.serializers import FileIdsField, StoredFileSerializer
 
 from .models import Notice, Notification
 
@@ -14,11 +15,16 @@ class NoticeSerializer(serializers.ModelSerializer):
     target_sections = TenantPrimaryKeyRelatedField(queryset=Section.objects.all(), many=True, required=False)
     published_by_name = serializers.CharField(source="published_by.full_name", read_only=True, default=None)
     created_by_name = serializers.CharField(source="created_by.full_name", read_only=True, default=None)
+    attachment_ids = FileIdsField(many=True, required=False, write_only=True, source="attachments")
+    attachments = StoredFileSerializer(many=True, read_only=True)
+    read_count = serializers.IntegerField(read_only=True, default=0)
+    acknowledged_count = serializers.IntegerField(read_only=True, default=0)
 
     class Meta:
         model = Notice
         fields = [
-            "id", "code", "title", "category", "priority", "status", "audience",
+            "id", "code", "title", "category", "priority", "status", "audience", "attachment_ids", "attachments",
+            "read_count", "acknowledged_count",
             "target_class_levels", "target_sections", "summary", "body", "instructions",
             "external_link", "publish_at", "expires_on", "pinned", "requires_acknowledgement",
             "send_notification", "send_email", "send_sms", "published_by_name",
@@ -43,11 +49,12 @@ class MyNoticeSerializer(serializers.ModelSerializer):
     published_by_name = serializers.CharField(source="published_by.full_name", read_only=True, default=None)
     read_at = serializers.DateTimeField(read_only=True, default=None)
     acknowledged_at = serializers.DateTimeField(read_only=True, default=None)
+    attachments = StoredFileSerializer(many=True, read_only=True)
 
     class Meta:
         model = Notice
         fields = [
-            "id", "code", "title", "category", "priority", "summary", "body", "instructions",
+            "id", "code", "title", "category", "priority", "summary", "body", "instructions", "attachments",
             "external_link", "publish_at", "expires_on", "pinned", "requires_acknowledgement",
             "published_by_name", "read_at", "acknowledged_at",
         ]

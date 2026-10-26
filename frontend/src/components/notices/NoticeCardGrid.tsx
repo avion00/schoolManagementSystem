@@ -1,13 +1,16 @@
 import { useNavigate } from "react-router-dom";
-import { Eye, Pencil, Trash2, Printer, Copy, Paperclip, Pin, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, Pencil, Trash2, Copy, Paperclip, Pin, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PremiumCard } from "@/components/ui/PremiumCard";
 import { NoticeStatusBadge }   from "@/components/notices/NoticeStatusBadge";
 import { NoticePriorityBadge } from "@/components/notices/NoticePriorityBadge";
-import type { Notice, NoticeCategory } from "@/data/noticesData";
+import type { Notice, NoticeCategory } from "@/api/types/notices";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { useNoticeActions } from "@/api/notices";
+import { errorMessage } from "@/api/http";
+import { useAuth } from "@/lib/auth";
 
 const PAGE_SIZE = 9;
 
@@ -27,6 +30,9 @@ const CAT_COLORS: Record<NoticeCategory, string> = {
 
 function NoticeCard({ notice }: { notice: Notice }) {
   const navigate = useNavigate();
+  const actions = useNoticeActions();
+  const { hasPermission } = useAuth();
+  const canManage = hasPermission("notice.manage");
 
   return (
     <PremiumCard hoverable className={cn(
@@ -88,11 +94,10 @@ function NoticeCard({ notice }: { notice: Notice }) {
               <Paperclip className="h-3 w-3" />{notice.attachments.length}
             </span>
           )}
-          {notice.stats.totalRecipients > 0 && (
-            <span className="flex items-center gap-1">
+          {notice.status !== "Draft" && (
+            <span className="flex items-center gap-1" title="Readers who opened it">
               <Eye className="h-3 w-3" />
-              <span className="font-medium text-foreground">{notice.stats.read}</span>
-              <span>/{notice.stats.totalRecipients}</span>
+              <span className="font-medium text-foreground">{notice.stats.read}</span> read
             </span>
           )}
         </div>
@@ -103,21 +108,28 @@ function NoticeCard({ notice }: { notice: Notice }) {
             className="rounded p-1.5 hover:bg-muted" title="View">
             <Eye className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
+          {canManage && notice.status !== "Archived" && (
           <button onClick={() => navigate(`/notices/${notice.id}/edit`)}
             className="rounded p-1.5 hover:bg-muted" title="Edit">
             <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
-          <button className="rounded p-1.5 hover:bg-muted" title="Print" onClick={() => window.print()}>
-            <Printer className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-          <button className="rounded p-1.5 hover:bg-muted" title="Duplicate"
-            onClick={() => toast.info("Duplicate notice — coming soon")}>
+          )}
+          {canManage && (
+          <button className="rounded p-1.5 hover:bg-muted" title="Duplicate as draft" disabled={actions.pending}
+            onClick={() => actions.duplicate(notice.id)
+              .then((id) => { toast.success("Copied as a new draft."); navigate(`/notices/${id}/edit`); })
+              .catch((e) => toast.error(errorMessage(e)))}>
             <Copy className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
-          <button className="rounded p-1.5 hover:bg-rose-100" title="Delete"
-            onClick={() => toast.info("Delete notice — coming soon")}>
+          )}
+          {canManage && notice.status === "Draft" && (
+          <button className="rounded p-1.5 hover:bg-rose-100" title="Delete draft" disabled={actions.pending}
+            onClick={() => window.confirm(`Delete the draft "${notice.title}"?`) && actions.remove(notice.id)
+              .then(() => toast.success("Draft deleted."))
+              .catch((e) => toast.error(errorMessage(e)))}>
             <Trash2 className="h-3.5 w-3.5 text-rose-400" />
           </button>
+          )}
         </div>
       </div>
     </PremiumCard>

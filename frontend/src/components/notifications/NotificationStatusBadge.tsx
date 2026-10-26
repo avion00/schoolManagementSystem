@@ -1,4 +1,4 @@
-import type { NotificationStatus } from "@/data/notificationsData";
+import type { NotificationStatus } from "@/api/types/notifications";
 import { cn } from "@/lib/utils";
 
 const STYLES: Record<NotificationStatus, string> = {

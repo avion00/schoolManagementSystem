@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   FileText, AlignLeft, Users, Calendar, Paperclip, StickyNote,
-  Save, Send, Clock, X, RefreshCw,
+  Save, Send, Clock, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,12 @@ import { FormSection } from "@/components/ui/form-section";
 import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { NoticeAudienceSelector }   from "@/components/notices/forms/NoticeAudienceSelector";
 import { NoticeAttachmentUploader } from "@/components/notices/forms/NoticeAttachmentUploader";
-import {
-  NOTICES, NOTICE_CATEGORY_OPTIONS, NOTICE_PRIORITY_OPTIONS, NOTICE_STATUS_OPTIONS,
-} from "@/data/noticesData";
-import type { NoticeCategory, NoticePriority, NoticeStatus, NoticeAttachment } from "@/data/noticesData";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { NOTICE_CATEGORY_OPTIONS, NOTICE_PRIORITY_OPTIONS } from "@/api/types/notices";
+import type { AudienceType, NoticeCategory, NoticePriority, NoticeStatus, NoticeAttachment } from "@/api/types/notices";
+import { AUDIENCE_VALUE, mapNotice, useNoticeRecord, usePublishNotice, useSaveNotice } from "@/api/notices";
+import { errorMessage } from "@/api/http";
 import { cn } from "@/lib/utils";
 
 // ── Form state ────────────────────────────────────────────────────────────────
@@ -22,7 +24,6 @@ interface FormData {
   title:               string;
   category:            NoticeCategory | "";
   priority:            NoticePriority | "";
-  status:              NoticeStatus | "";
   summary:             string;
   body:                string;
   importantInstructions: string;
@@ -30,7 +31,6 @@ interface FormData {
   audience:            string;
   targetClasses:       string[];
   targetSections:      string[];
-  sendToAll:           boolean;
   publishDate:         string;
   publishTime:         string;
   expiryDate:          string;
@@ -39,19 +39,19 @@ interface FormData {
   sendEmail:           boolean;
   sendSms:             boolean;
   internalNotes:       string;
-  approvalRemarks:     string;
+  requiresAcknowledgement: boolean;
 }
 
 type Errors = Partial<Record<keyof FormData | "attachments", string>>;
 
 function defaultForm(): FormData {
   return {
-    title: "", category: "", priority: "Normal", status: "Draft",
+    title: "", category: "", priority: "Normal",
     summary: "", body: "", importantInstructions: "", externalLink: "",
-    audience: "All", targetClasses: [], targetSections: [], sendToAll: true,
+    audience: "All", targetClasses: [], targetSections: [],
     publishDate: "", publishTime: "", expiryDate: "",
-    pinned: false, sendNotification: false, sendEmail: false, sendSms: false,
-    internalNotes: "", approvalRemarks: "",
+    pinned: false, sendNotification: true, sendEmail: false, sendSms: false,
+    internalNotes: "", requiresAcknowledgement: false,
   };
 }
 
@@ -87,58 +87,54 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
 export function NoticeForm({ mode }: { mode: "create" | "edit" }) {
   const navigate = useNavigate();
   const { id }   = useParams<{ id: string }>();
-  const numId    = Number(id ?? 0);
-  const existing = mode === "edit" ? NOTICES.find((n) => n.id === numId) : undefined;
+  const record   = useNoticeRecord(mode === "edit" ? id : undefined);
+  const save     = useSaveNotice();
+  const publish  = usePublishNotice();
+  const existing = record.data ? mapNotice(record.data) : undefined;
 
-  const [form, setForm] = useState<FormData>(() => {
-    if (existing) {
-      return {
-        title:               existing.title,
-        category:            existing.category,
-        priority:            existing.priority,
-        status:              existing.status,
-        summary:             existing.summary,
-        body:                existing.body,
-        importantInstructions: existing.importantInstructions ?? "",
-        externalLink:        existing.externalLink ?? "",
-        audience:            existing.audience,
-        targetClasses:       existing.targetClasses,
-        targetSections:      existing.targetSections,
-        sendToAll:           true,
-        publishDate:         existing.publishDate,
-        publishTime:         existing.publishTime,
-        expiryDate:          existing.expiryDate ?? "",
-        pinned:              existing.pinned,
-        sendNotification:    existing.sendNotification,
-        sendEmail:           existing.sendEmail,
-        sendSms:             existing.sendSms,
-        internalNotes:       existing.internalNotes ?? "",
-        approvalRemarks:     existing.approvalRemarks ?? "",
-      };
-    }
-    return defaultForm();
-  });
-
-  const [attachments, setAttachments] = useState<NoticeAttachment[]>(existing?.attachments ?? []);
+  const [form, setForm] = useState<FormData>(defaultForm);
+  const [loaded, setLoaded] = useState(mode === "create");
+  const [attachments, setAttachments] = useState<NoticeAttachment[]>([]);
   const [errors,      setErrors]      = useState<Errors>({});
   const [saving,      setSaving]      = useState<"publish" | "draft" | "schedule" | null>(null);
+
+  useEffect(() => {
+    if (!existing || loaded) return;
+    const at = existing.publishAt ? new Date(existing.publishAt) : null;
+    const pad = (n: number) => String(n).padStart(2, "0");
+    setForm({
+      title: existing.title, category: existing.category, priority: existing.priority,
+      summary: existing.summary, body: existing.body, importantInstructions: existing.importantInstructions ?? "",
+      externalLink: existing.externalLink ?? "", audience: existing.audience,
+      targetClasses: existing.targetClassIds, targetSections: existing.targetSectionIds,
+      publishDate: at ? `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}` : "",
+      publishTime: at ? `${pad(at.getHours())}:${pad(at.getMinutes())}` : "",
+      expiryDate: existing.expiryDate ?? "", pinned: existing.pinned, sendNotification: existing.sendNotification,
+      sendEmail: existing.sendEmail, sendSms: false, internalNotes: existing.internalNotes ?? "",
+      requiresAcknowledgement: existing.requiresAcknowledgement,
+    });
+    setAttachments(existing.attachments);
+    setLoaded(true);
+  }, [existing, loaded]);
 
   function set<K extends keyof FormData>(key: K, value: FormData[K]) {
     setForm((f) => ({ ...f, [key]: value }));
     setErrors((e) => ({ ...e, [key]: undefined }));
   }
 
-  function validate(statusOverride?: NoticeStatus): boolean {
+  function validate(st: NoticeStatus): boolean {
     const e: Errors = {};
-    const st = statusOverride ?? (form.status as NoticeStatus);
     if (!form.title.trim())    e.title    = "Notice title is required.";
     if (!form.category)        e.category = "Category is required.";
     if (!form.priority)        e.priority = "Priority is required.";
     if (!form.audience)        e.audience = "Target audience is required.";
     if (!form.body.trim())     e.body     = "Notice body is required.";
-    if ((st === "Published" || st === "Scheduled") && !form.publishDate) {
-      e.publishDate = "Publish date is required for published/scheduled notices.";
+    if (st === "Scheduled") {
+      if (!form.publishDate) e.publishDate = "Pick the date to publish on.";
+      else if (publishAtIso() && new Date(publishAtIso()!) <= new Date()) e.publishDate = "A scheduled notice needs a future date and time.";
     }
+    if (form.expiryDate && form.publishDate && form.expiryDate < form.publishDate) e.expiryDate = "Expiry is before the publish date.";
+    if (form.externalLink && !/^https?:\/\//.test(form.externalLink)) e.externalLink = "Links must start with http:// or https://";
     setErrors(e);
     const firstKey = Object.keys(e)[0];
     if (firstKey) {
@@ -147,22 +143,51 @@ export function NoticeForm({ mode }: { mode: "create" | "edit" }) {
     return Object.keys(e).length === 0;
   }
 
-  async function handleSave(statusOverride?: NoticeStatus) {
-    const st = statusOverride ?? (form.status as NoticeStatus);
-    if (!validate(st)) return;
-    const saveType = statusOverride === "Published" ? "publish" : statusOverride === "Scheduled" ? "schedule" : "draft";
-    setSaving(saveType);
-    await new Promise((res) => setTimeout(res, 700));
-    setSaving(null);
-    console.log("Notice data:", { ...form, status: st, attachments });
-    const msg = st === "Published"  ? "Notice published successfully!" :
-                st === "Scheduled"  ? "Notice scheduled successfully!" :
-                                      "Draft saved!";
-    toast.success(msg);
-    navigate("/notices");
+  function publishAtIso(): string | null {
+    if (!form.publishDate) return null;
+    return new Date(`${form.publishDate}T${form.publishTime || "08:00"}`).toISOString();
   }
 
-  const noticeId = existing?.noticeId ?? `NOT-${new Date().getFullYear()}-${String(NOTICES.length + 1).padStart(4, "0")}`;
+  /** Draft: save only. Published: save, then publish now. Scheduled: save with a future time, then publish (the server schedules it). */
+  async function handleSave(target: NoticeStatus) {
+    if (!validate(target)) return;
+    setSaving(target === "Published" ? "publish" : target === "Scheduled" ? "schedule" : "draft");
+    try {
+      const body = {
+        title: form.title.trim(), category: (form.category as string).toLowerCase(),
+        priority: (form.priority as string).toLowerCase(), audience: AUDIENCE_VALUE[form.audience as AudienceType],
+        target_class_levels: form.audience === "Staff" ? [] : form.targetClasses,
+        target_sections: form.audience === "Staff" ? [] : form.targetSections,
+        summary: form.summary.trim(), body: form.body.trim(), instructions: form.importantInstructions.trim(),
+        external_link: form.externalLink.trim(),
+        publish_at: target === "Published" ? null : publishAtIso(),
+        expires_on: form.expiryDate || null, pinned: form.pinned,
+        requires_acknowledgement: form.requiresAcknowledgement, send_notification: form.sendNotification,
+        send_email: form.sendEmail, send_sms: false, internal_notes: form.internalNotes.trim(),
+        attachment_ids: attachments.map((a) => a.id),
+      };
+      const saved = await save.mutateAsync({ id: mode === "edit" ? id : undefined, body });
+      const alreadyLive = existing && existing.status !== "Draft";
+      if (target !== "Draft" && !alreadyLive) {
+        const r = await publish.mutateAsync(saved.id);
+        toast.success(r.status === "scheduled" ? "Notice scheduled." : `Notice published${r.notified ? ` and ${r.notified} people notified` : ""}.`);
+      } else {
+        toast.success(alreadyLive ? "Notice updated." : "Draft saved.");
+      }
+      navigate(`/notices/${saved.id}`);
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  if (mode === "edit" && record.isError) return <PremiumEmptyState title="Couldn't load this notice" description={errorMessage(record.error)} />;
+  if (!loaded) return <PremiumSkeleton className="mx-auto h-96 max-w-3xl rounded-2xl" />;
+  if (existing?.status === "Archived") {
+    return <PremiumEmptyState title="Archived notices can't be edited" description="Duplicate it from the notice board to reuse the content." />;
+  }
+  const live = !!existing && existing.status !== "Draft";
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
@@ -173,7 +198,7 @@ export function NoticeForm({ mode }: { mode: "create" | "edit" }) {
             {mode === "create" ? "Create New Notice" : "Edit Notice"}
           </h1>
           <p className="text-[12px] text-muted-foreground mt-0.5">
-            {mode === "create" ? `Notice ID: ${noticeId} (auto-generated)` : `Editing: ${existing?.noticeId}`}
+            {mode === "create" ? "The notice number is assigned when you save." : `Editing ${existing?.noticeId} · ${existing?.status}`}
           </p>
         </div>
         <div className="flex gap-2">
@@ -181,16 +206,12 @@ export function NoticeForm({ mode }: { mode: "create" | "edit" }) {
             onClick={() => navigate("/notices")}>
             <X className="h-3.5 w-3.5" />Back
           </Button>
-          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[12px]"
-            onClick={() => { setForm(defaultForm()); setAttachments([]); setErrors({}); }}>
-            <RefreshCw className="h-3.5 w-3.5" />Reset
-          </Button>
         </div>
       </div>
 
       {/* ── Section A: Basic Info ─────────────────────────────────────────── */}
       <FormSection icon={FileText} title="Basic Notice Information"
-        subtitle="Title, category, priority, and status" defaultOpen>
+        subtitle="Title, category and priority" defaultOpen>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field id="title" label="Notice Title" required error={errors.title}>
             <Input id="title" value={form.title} onChange={(e) => set("title", e.target.value)}
@@ -222,28 +243,6 @@ export function NoticeForm({ mode }: { mode: "create" | "edit" }) {
                     className={cn("h-8 rounded-lg border px-3 text-[12px] font-medium transition-colors", colors[p],
                       form.priority !== p && "bg-background text-muted-foreground hover:bg-muted")}>
                     {p}
-                  </button>
-                );
-              })}
-            </div>
-          </Field>
-
-          <Field id="status" label="Status" required error={errors.status}>
-            <div className="flex gap-2 flex-wrap">
-              {NOTICE_STATUS_OPTIONS.map((s) => {
-                const colors: Record<string, string> = {
-                  Draft:     "border-slate-300 data-[sel=true]:bg-slate-500 data-[sel=true]:text-white",
-                  Scheduled: "border-violet-300 data-[sel=true]:bg-violet-500 data-[sel=true]:text-white",
-                  Published: "border-emerald-400 data-[sel=true]:bg-emerald-500 data-[sel=true]:text-white",
-                  Archived:  "border-slate-300 data-[sel=true]:bg-slate-400 data-[sel=true]:text-white",
-                };
-                return (
-                  <button key={s} type="button"
-                    data-sel={String(form.status === s)}
-                    onClick={() => set("status", s)}
-                    className={cn("h-8 rounded-lg border px-3 text-[12px] font-medium transition-colors", colors[s],
-                      form.status !== s && "bg-background text-muted-foreground hover:bg-muted")}>
-                    {s}
                   </button>
                 );
               })}
@@ -289,7 +288,7 @@ export function NoticeForm({ mode }: { mode: "create" | "edit" }) {
             />
           </Field>
 
-          <Field id="externalLink" label="External Link (optional)">
+          <Field id="externalLink" label="External Link (optional)" error={errors.externalLink}>
             <Input id="externalLink" value={form.externalLink}
               onChange={(e) => set("externalLink", e.target.value)}
               placeholder="https://…" className="h-9 text-[12px]" />
@@ -304,11 +303,9 @@ export function NoticeForm({ mode }: { mode: "create" | "edit" }) {
           audience={form.audience}
           targetClasses={form.targetClasses}
           targetSections={form.targetSections}
-          sendToAll={form.sendToAll}
           onAudienceChange={(v)        => set("audience",        v)}
           onTargetClassesChange={(v)   => set("targetClasses",   v)}
           onTargetSectionsChange={(v)  => set("targetSections",  v)}
-          onSendToAllChange={(v)       => set("sendToAll",       v)}
           audienceError={errors.audience}
         />
       </FormSection>
@@ -317,16 +314,15 @@ export function NoticeForm({ mode }: { mode: "create" | "edit" }) {
       <FormSection icon={Calendar} title="Publishing Settings"
         subtitle="Schedule, notifications, and visibility options">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Field id="publishDate" label="Publish Date" error={errors.publishDate}
-            required={form.status === "Published" || form.status === "Scheduled"}>
+          <Field id="publishDate" label="Schedule Date (for Schedule)" error={errors.publishDate}>
             <Input id="publishDate" type="date" value={form.publishDate}
               onChange={(e) => set("publishDate", e.target.value)} className="h-9 text-[12px]" />
           </Field>
-          <Field id="publishTime" label="Publish Time">
+          <Field id="publishTime" label="Schedule Time">
             <Input id="publishTime" type="time" value={form.publishTime}
               onChange={(e) => set("publishTime", e.target.value)} className="h-9 text-[12px]" />
           </Field>
-          <Field id="expiryDate" label="Expiry Date">
+          <Field id="expiryDate" label="Expiry Date" error={errors.expiryDate}>
             <Input id="expiryDate" type="date" value={form.expiryDate}
               onChange={(e) => set("expiryDate", e.target.value)} className="h-9 text-[12px]" />
           </Field>
@@ -334,9 +330,10 @@ export function NoticeForm({ mode }: { mode: "create" | "edit" }) {
 
         <div className="mt-4 space-y-3">
           <Toggle label="Pin notice to top" value={form.pinned} onChange={(v) => set("pinned", v)} />
-          <Toggle label="Send in-app notification" value={form.sendNotification} onChange={(v) => set("sendNotification", v)} />
-          <Toggle label="Send email notification" value={form.sendEmail} onChange={(v) => set("sendEmail", v)} />
-          <Toggle label="Send SMS notification (coming soon)" value={form.sendSms} onChange={(v) => set("sendSms", v)} />
+          <Toggle label="Ask readers to acknowledge" value={form.requiresAcknowledgement} onChange={(v) => set("requiresAcknowledgement", v)} />
+          <Toggle label="Send in-app notification when published" value={form.sendNotification} onChange={(v) => set("sendNotification", v)} />
+          <Toggle label="Also email readers who have an email address" value={form.sendEmail} onChange={(v) => set("sendEmail", v)} />
+          <p className="text-[11px] text-muted-foreground">Notifications go out once, when the notice is published.</p>
         </div>
       </FormSection>
 
@@ -348,7 +345,7 @@ export function NoticeForm({ mode }: { mode: "create" | "edit" }) {
 
       {/* ── Section F: Admin Notes ────────────────────────────────────────── */}
       <FormSection icon={StickyNote} title="Admin Notes"
-        subtitle="Internal notes and approval remarks (not visible to recipients)">
+        subtitle="Internal notes (not visible to readers)">
         <div className="space-y-4">
           <Field id="internalNotes" label="Internal Notes">
             <textarea
@@ -357,16 +354,6 @@ export function NoticeForm({ mode }: { mode: "create" | "edit" }) {
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("internalNotes", e.target.value)}
               rows={3}
               placeholder="Notes for internal team only…"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-[12px] text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring resize-y"
-            />
-          </Field>
-          <Field id="approvalRemarks" label="Approval Remarks">
-            <textarea
-              id="approvalRemarks"
-              value={form.approvalRemarks}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("approvalRemarks", e.target.value)}
-              rows={2}
-              placeholder="Remarks by approving authority…"
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-[12px] text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring resize-y"
             />
           </Field>
@@ -381,6 +368,12 @@ export function NoticeForm({ mode }: { mode: "create" | "edit" }) {
         </Button>
 
         <div className="flex flex-wrap gap-2">
+          {live ? (
+            <Button size="sm" className="h-9 gap-1.5 text-[12px]" disabled={!!saving} onClick={() => handleSave("Draft")}>
+              <Save className="h-3.5 w-3.5" />
+              {saving ? "Saving…" : "Save Changes"}
+            </Button>
+          ) : (<>
           <Button variant="outline" size="sm" className="h-9 gap-1.5 text-[12px]"
             disabled={!!saving} onClick={() => handleSave("Draft")}>
             <Save className="h-3.5 w-3.5" />
@@ -394,8 +387,9 @@ export function NoticeForm({ mode }: { mode: "create" | "edit" }) {
           <Button size="sm" className="h-9 gap-1.5 text-[12px]"
             disabled={!!saving} onClick={() => handleSave("Published")}>
             <Send className="h-3.5 w-3.5" />
-            {saving === "publish" ? "Publishing…" : "Publish Notice"}
+            {saving === "publish" ? "Publishing…" : "Publish Now"}
           </Button>
+          </>)}
         </div>
       </div>
     </div>

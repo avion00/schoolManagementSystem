@@ -1,5 +1,5 @@
 from django.db import transaction
-from django.db.models import OuterRef, Subquery
+from django.db.models import Count, OuterRef, Q, Subquery
 from django.utils import timezone
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
@@ -33,8 +33,11 @@ class NoticeViewSet(TenantModelViewSet):
     """Staff-side notice management. Readers use /me/notices/."""
 
     queryset = Notice.objects.select_related("published_by", "created_by").prefetch_related(
-        "target_class_levels", "target_sections"
-    )
+        "target_class_levels", "target_sections", "attachments"
+    ).annotate(
+        read_count=Count("receipts", distinct=True),
+        acknowledged_count=Count("receipts", filter=Q(receipts__acknowledged_at__isnull=False), distinct=True),
+    ).order_by("-pinned", "-created_at")
     serializer_class = NoticeSerializer
     audit_label = "notice"
     permission_required = _MANAGE
@@ -85,7 +88,9 @@ class NoticeViewSet(TenantModelViewSet):
         """Audience with read / acknowledged state, plus totals."""
         notice = self.get_object()
         receipts = NoticeReceipt.objects.filter(notice=notice, user=OuterRef("pk"))
-        users = services.audience_users(notice).annotate(
+        users = services.audience_users(notice).select_related(
+            "student_profile__class_level", "student_profile__section", "teacher_profile", "guardian_profile",
+        ).annotate(
             read_at=Subquery(receipts.values("read_at")[:1]),
             acknowledged_at=Subquery(receipts.values("acknowledged_at")[:1]),
         ).order_by("full_name", "email")
@@ -95,12 +100,26 @@ class NoticeViewSet(TenantModelViewSet):
         paginator = DefaultPagination()
         page = paginator.paginate_queryset(users, request, view=self)
         response = paginator.get_paginated_response([
-            {"user": str(u.id), "name": u.full_name or u.email, "email": u.email,
+            {"user": str(u.id), "name": u.full_name or u.email, "email": u.email, **_role(u),
              "read_at": u.read_at, "acknowledged_at": u.acknowledged_at}
             for u in page
         ])
         response.data["stats"] = {"total": total, "read": read, "unread": total - read, "acknowledged": acked}
         return response
+
+
+def _role(user):
+    """Reader's role and (for students) class, for the recipients list."""
+    student = getattr(user, "student_profile", None) if hasattr(user, "student_profile") else None
+    if student:
+        cls = " ".join(filter(None, [student.class_level.name if student.class_level_id else "",
+                                     student.section.name if student.section_id else ""]))
+        return {"role": "student", "class_section": cls}
+    if hasattr(user, "guardian_profile"):
+        return {"role": "parent", "class_section": ""}
+    if hasattr(user, "teacher_profile"):
+        return {"role": "teacher", "class_section": ""}
+    return {"role": "staff", "class_section": ""}
 
 
 class MyNoticeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -116,7 +135,7 @@ class MyNoticeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
             return Notice.objects.none()
         user = self.request.user
         mine = NoticeReceipt.objects.filter(notice=OuterRef("pk"), user=user)
-        qs = services.visible_notices(user).select_related("published_by").annotate(
+        qs = services.visible_notices(user).select_related("published_by").prefetch_related("attachments").annotate(
             read_at=Subquery(mine.values("read_at")[:1]),
             acknowledged_at=Subquery(mine.values("acknowledged_at")[:1]),
         )
@@ -179,6 +198,20 @@ class NotificationViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         if n.read_at is None:
             n.read_at = timezone.now()
             n.save(update_fields=["read_at", "updated_at"])
+        return Response(NotificationSerializer(n).data)
+
+    @action(detail=True, methods=["post"])
+    def unread(self, request, pk=None):
+        n = self._mine(pk)
+        n.read_at = None
+        n.save(update_fields=["read_at", "updated_at"])
+        return Response(NotificationSerializer(n).data)
+
+    @action(detail=True, methods=["post"])
+    def unarchive(self, request, pk=None):
+        n = self._mine(pk)
+        n.archived_at = None
+        n.save(update_fields=["archived_at", "updated_at"])
         return Response(NotificationSerializer(n).data)
 
     @action(detail=False, methods=["post"], url_path="read-all")

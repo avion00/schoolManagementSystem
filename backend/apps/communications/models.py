@@ -69,6 +69,7 @@ class Notice(TenantBaseModel):
     )
     notified_at = models.DateTimeField(null=True, blank=True)
     internal_notes = models.TextField(blank=True)
+    attachments = models.ManyToManyField("files.StoredFile", blank=True, related_name="notices")
 
     class Meta:
         ordering = ["-pinned", "-publish_at", "-created_at"]
