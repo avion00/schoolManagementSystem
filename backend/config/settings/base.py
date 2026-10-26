@@ -55,6 +55,8 @@ LOCAL_APPS = [
     "apps.timetable",
     "apps.communications",
     "apps.messaging",
+    "apps.files",
+    "apps.lms",
     "apps.reports",
     "apps.portal",
 ]
@@ -138,6 +140,12 @@ USE_TZ = True
 # ---------------------------------------------------------------------------
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Uploads are private: never add MEDIA_URL to urls.py — files are served only
+# through the permission-checked /api/v1/files/<id>/download/ endpoint.
+MEDIA_ROOT = Path(env("MEDIA_ROOT", default=str(BASE_DIR / "media")))
+FILE_UPLOAD_MAX_MB = env.int("FILE_UPLOAD_MAX_MB", default=10)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ---------------------------------------------------------------------------

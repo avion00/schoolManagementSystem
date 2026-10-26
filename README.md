@@ -81,6 +81,7 @@ Scheduled jobs (cron for now; Celery beat in Phase 3):
 ```bash
 python manage.py mark_overdue_invoices        # daily: unpaid invoices past due -> overdue
 python manage.py dispatch_scheduled_notices   # every few minutes: publish due notices + notify
+python manage.py purge_orphan_files           # daily: remove uploads never attached to anything
 ```
 
 ### Tests and lint

@@ -29,6 +29,8 @@ api_v1 = [
     path("timetable/", include("apps.timetable.urls")),
     path("", include("apps.communications.urls")),
     path("messaging/", include("apps.messaging.urls")),
+    path("files/", include("apps.files.urls")),
+    path("lms/", include("apps.lms.urls")),
 ]
 
 urlpatterns = [

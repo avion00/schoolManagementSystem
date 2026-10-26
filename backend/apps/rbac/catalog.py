@@ -50,6 +50,9 @@ PERMISSIONS = [
     ("message.moderate", "Moderate messages (reports, delete, lock)", "messaging"),
     ("message.view_all", "Open any conversation (audited)", "messaging"),
     ("message.export", "Export conversations (audited)", "messaging"),
+    ("lms.manage", "Create assignments / materials / lesson plans for own classes", "lms"),
+    ("lms.manage.all", "Manage any class's assignments and materials", "lms"),
+    ("lms.review", "Review lesson plans", "lms"),
     ("timetable.view", "View class routines", "timetable"),
     ("timetable.manage", "Manage class routines and period slots", "timetable"),
     ("attendance.manage.all", "Mark / edit any class's attendance, any past date", "attendance"),
@@ -63,7 +66,7 @@ ROLE_PERMISSIONS = {
         "student.view.class", "attendance.take",
         "attendance.update", "attendance.report", "exam.marks.enter",
         "report.view", "academics.view", "guardian.view", "teacher.view",
-        "exam.view", "timetable.view",
+        "exam.view", "timetable.view", "lms.manage",
     ],
     "Accountant": [
         "fee.view", "fee.create", "fee.collect", "fee.refund",

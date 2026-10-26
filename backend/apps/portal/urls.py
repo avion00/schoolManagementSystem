@@ -1,5 +1,7 @@
 from django.urls import path
 
+from apps.lms.portal import MyAssignmentsView, MyChildAssignmentsView, MyMaterialsView, MySubmitView
+
 from .views import (
     MyAttendanceSummaryView,
     MyAttendanceView,
@@ -38,6 +40,9 @@ urlpatterns = [
     path("fees/", MyFeesView.as_view(), name="my-fees"),
     path("timetable/", MyTimetableView.as_view(), name="my-timetable"),
     path("today/", MyTodayView.as_view(), name="my-today"),
+    path("assignments/", MyAssignmentsView.as_view(), name="my-assignments"),
+    path("assignments/<uuid:assignment_id>/submit/", MySubmitView.as_view(), name="my-assignment-submit"),
+    path("materials/", MyMaterialsView.as_view(), name="my-materials"),
     # Parent portal
     path("children/", MyChildrenView.as_view(), name="my-children"),
     path("children/<uuid:student_id>/", MyChildDashboardView.as_view(), name="my-child"),
@@ -47,6 +52,8 @@ urlpatterns = [
          name="my-child-attendance-summary"),
     path("children/<uuid:student_id>/results/", MyChildResultsView.as_view(), name="my-child-results"),
     path("children/<uuid:student_id>/fees/", MyChildFeesView.as_view(), name="my-child-fees"),
+    path("children/<uuid:student_id>/assignments/", MyChildAssignmentsView.as_view(),
+         name="my-child-assignments"),
     path("children/<uuid:student_id>/timetable/", MyChildTimetableView.as_view(), name="my-child-timetable"),
     # Teacher portal
     path("teacher/", MyTeacherProfileView.as_view(), name="my-teacher-profile"),
