@@ -20,6 +20,7 @@ from apps.fees.models import Invoice, InvoiceItem
 from apps.rbac.catalog import PERMISSIONS, ROLE_PERMISSIONS
 from apps.rbac.models import Permission, Role, RolePermission, UserRole
 from apps.students.models import Student
+from apps.teachers.models import Teacher, TeacherAssignment
 
 PASSWORD = "Passw0rd!2024"
 
@@ -39,6 +40,7 @@ class Tenant:
     invoice: Invoice
     exam: Exam
     exam_subject: ExamSubject
+    teacher: Teacher
     extra: dict = field(default_factory=dict)
 
 
@@ -107,7 +109,17 @@ def make_tenant(db, permissions):
             organization=org, exam=exam, class_level=grade, subject=subject,
             full_marks=100, pass_marks=40,
         )
+        # The Teacher user is class teacher of grade/section and teaches the subject.
+        teacher = Teacher.objects.create(
+            organization=org, full_name=f"{slug} Teacher", employee_id="EMP-1",
+            user=users["Teacher"],
+        )
+        TeacherAssignment.objects.create(
+            organization=org, teacher=teacher, academic_year=year, class_level=grade,
+            section=section, subject=subject, is_class_teacher=True,
+        )
         return Tenant(
+            teacher=teacher,
             org=org, school=school, roles=roles, users=users, year=year, grade=grade,
             section=section, other_grade=other_grade, subject=subject, student=student,
             invoice=invoice, exam=exam, exam_subject=exam_subject,

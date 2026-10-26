@@ -13,7 +13,8 @@ from apps.audit.services import record_audit
 from apps.core.sequences import next_document_number
 from apps.core.viewsets import TenantModelViewSet
 from apps.guardians.models import StudentGuardian
-from apps.rbac.services import user_permission_codes
+from apps.rbac.services import user_has_permission, user_permission_codes
+from apps.teachers.services import student_scope_q
 
 from . import services
 from .models import Student, StudentHistory
@@ -48,6 +49,10 @@ def _csv_safe(value):
     return "'" + value if value[:1] in ("=", "+", "-", "@") else value
 
 
+# Seeing students: everyone (`.all`) or only those you teach (`.class`).
+_VIEW = ("student.view.all", "student.view.class")
+
+
 class StudentViewSet(TenantModelViewSet):
     queryset = Student.objects.select_related(
         "academic_year", "class_level", "section", "user"
@@ -60,10 +65,10 @@ class StudentViewSet(TenantModelViewSet):
     serializer_class = StudentSerializer
     audit_label = "student"
     permission_required = {
-        "list": "student.view.all",
-        "retrieve": "student.view.all",
-        "overview": "student.view.all",
-        "history": "student.view.all",
+        "list": _VIEW,
+        "retrieve": _VIEW,
+        "overview": _VIEW,
+        "history": _VIEW,
         "create": "student.create",
         "update": "student.update",
         "partial_update": "student.update",
@@ -79,6 +84,13 @@ class StudentViewSet(TenantModelViewSet):
         "registration_number", "roll_number", "phone", "email",
     ]
     ordering_fields = ["first_name", "last_name", "admission_number", "roll_number", "created_at"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if user.is_superuser or user.is_platform_admin or user_has_permission(user, "student.view.all"):
+            return qs
+        return qs.filter(student_scope_q(user))
 
     def get_serializer_class(self):
         return StudentListSerializer if self.action == "list" else StudentSerializer

@@ -57,3 +57,12 @@ class HasGuardianProfile(BasePermission):
 
     def has_permission(self, request, view):
         return get_guardian(request.user) is not None
+
+
+class HasTeacherProfile(BasePermission):
+    message = "This area is only available to teacher accounts."
+
+    def has_permission(self, request, view):
+        from apps.teachers.services import get_teacher
+
+        return get_teacher(request.user) is not None

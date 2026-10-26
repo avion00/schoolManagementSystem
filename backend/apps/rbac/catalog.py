@@ -43,12 +43,14 @@ PERMISSIONS = [
     ("result.view.own", "View own results", "exam"),
     ("fee.view.own", "View own fees", "fee"),
     ("student.promote", "Promote / change student status", "student"),
+    ("staff_attendance.view", "View staff attendance", "teacher"),
+    ("staff_attendance.manage", "Take / edit staff attendance", "teacher"),
 ]
 
 ROLE_PERMISSIONS = {
     "Principal": [code for code, _, _ in PERMISSIONS],  # everything
     "Teacher": [
-        "student.view.class", "student.view.all", "attendance.take",
+        "student.view.class", "attendance.take",
         "attendance.update", "attendance.report", "exam.marks.enter",
         "report.view", "academics.view", "guardian.view", "teacher.view",
         "exam.view",

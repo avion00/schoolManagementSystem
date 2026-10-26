@@ -17,12 +17,13 @@ class UserSerializer(serializers.ModelSerializer):
     permissions = serializers.SerializerMethodField()
     is_student = serializers.SerializerMethodField()
     is_guardian = serializers.SerializerMethodField()
+    is_teacher = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             "id", "email", "full_name", "is_platform_admin", "is_superuser",
-            "must_change_password", "is_student", "is_guardian", "organization", "roles", "permissions",
+            "must_change_password", "is_student", "is_guardian", "is_teacher", "organization", "roles", "permissions",
         ]
 
     def get_roles(self, obj):
@@ -34,6 +35,12 @@ class UserSerializer(serializers.ModelSerializer):
     def get_is_student(self, obj):
         try:
             return obj.student_profile is not None
+        except Exception:
+            return False
+
+    def get_is_teacher(self, obj):
+        try:
+            return obj.teacher_profile is not None
         except Exception:
             return False
 

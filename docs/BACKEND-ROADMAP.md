@@ -41,7 +41,7 @@ Plan for completing the Django/DRF backend. Status is kept up to date as work la
 | Module | Scope | Status |
 |---|---|---|
 | Students and guardians | Several guardians per student (`StudentGuardian`, existing data migrated), extra guardian and student fields, server-assigned guardian codes and registration numbers, parent logins, **parent portal** (`/me/children/...`), status-change and promotion history, staff overview endpoint, CSV export. Document uploads move to the uploads work in Phase 2 | ✅ |
-| Teachers | Extra employment fields (gender, type, salary), teacher logins, **teacher portal** ("my classes"), enforce `student.view.class` scope, staff attendance | ⬜ |
+| Teachers | Profile and employment fields, teacher logins, `student.view.class` enforced (teachers see only their sections), one class teacher per section, staff attendance (bulk register, monthly sheet, summary), **teacher portal** (`/me/teacher/...`: dashboard, classes with attendance/marks progress, class roster, own attendance). Salary goes to the Payroll module | ✅ |
 | Academics | Class metadata (medium, shift, capacity, room, class teacher), subject type and category, class-subject mapping | ⬜ |
 | Attendance | Holiday calendar, lock on past days, teacher limited to assigned sections, monthly sheet, student/class/teacher reports, analytics | ⬜ |
 | Exams | Exam schedule (rooms, invigilators, conflict detection), bulk marks entry, computed grade/GPA/rank, report cards, admit cards | ⬜ |

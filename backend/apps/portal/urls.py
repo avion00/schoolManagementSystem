@@ -9,10 +9,16 @@ from .views import (
     MyChildFeesView,
     MyChildrenView,
     MyChildResultsView,
+    MyClassesView,
+    MyClassStudentsView,
     MyDashboardView,
     MyFeesView,
     MyProfileView,
     MyResultsView,
+    MyStaffAttendanceSummaryView,
+    MyStaffAttendanceView,
+    MyTeacherDashboardView,
+    MyTeacherProfileView,
 )
 
 app_name = "portal"
@@ -34,4 +40,13 @@ urlpatterns = [
          name="my-child-attendance-summary"),
     path("children/<uuid:student_id>/results/", MyChildResultsView.as_view(), name="my-child-results"),
     path("children/<uuid:student_id>/fees/", MyChildFeesView.as_view(), name="my-child-fees"),
+    # Teacher portal
+    path("teacher/", MyTeacherProfileView.as_view(), name="my-teacher-profile"),
+    path("teacher/dashboard/", MyTeacherDashboardView.as_view(), name="my-teacher-dashboard"),
+    path("teacher/classes/", MyClassesView.as_view(), name="my-classes"),
+    path("teacher/classes/<uuid:assignment_id>/students/", MyClassStudentsView.as_view(),
+         name="my-class-students"),
+    path("teacher/attendance/", MyStaffAttendanceView.as_view(), name="my-staff-attendance"),
+    path("teacher/attendance/summary/", MyStaffAttendanceSummaryView.as_view(),
+         name="my-staff-attendance-summary"),
 ]
