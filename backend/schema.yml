@@ -1583,6 +1583,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/Attendance'
           description: ''
+  /api/v1/attendance/student-summary/:
+    get:
+      operationId: v1_attendance_student_summary_retrieve
+      description: |-
+        Per-student totals over a date range (reports: rankings, low attendance).
+        Only students with at least one record in the range are listed.
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attendance'
+          description: ''
   /api/v1/audit/logs/:
     get:
       operationId: v1_audit_logs_list

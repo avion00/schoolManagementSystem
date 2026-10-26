@@ -3,10 +3,10 @@ import { Reveal } from "@/components/motion";
 import { KPITrendCard } from "@/components/ui/KPITrendCard";
 import { METRIC_TONES } from "@/components/ui/MetricCard";
 import { CATEGORICAL_COLORS, STATUS_COLORS } from "@/components/charts/palette";
-import { ATTENDANCE_STATS } from "@/data/attendanceData";
+import type { AttendanceStats } from "@/api/types/attendance";
 
 
-const CARDS = [
+function cards(ATTENDANCE_STATS: AttendanceStats) { return [
   {
     label: "Present Today", value: ATTENDANCE_STATS.todayPresent, icon: UserCheck, tone: METRIC_TONES.green,
     sparkColor: STATUS_COLORS.good,
@@ -22,19 +22,20 @@ const CARDS = [
   {
     label: "On Leave", value: ATTENDANCE_STATS.todayLeave, icon: CalendarOff, tone: METRIC_TONES.purple,
     sparkColor: CATEGORICAL_COLORS[4],
-    trend: { value: "0.0%", up: true, compareLabel: `half-day: ${ATTENDANCE_STATS.todayHalfDay}` },
   },
   {
-    label: "Monthly Rate", value: `${ATTENDANCE_STATS.monthlyRate}%`, icon: TrendingUp, tone: METRIC_TONES.cyan,
+    label: "Monthly Rate", value: ATTENDANCE_STATS.monthlyRate === null ? "—" : `${ATTENDANCE_STATS.monthlyRate}%`, icon: TrendingUp, tone: METRIC_TONES.cyan,
     sparkColor: CATEGORICAL_COLORS[5],
   },
   {
-    label: "Total Students", value: 26, icon: Users, tone: METRIC_TONES.blue,
+    label: "Half Day", value: ATTENDANCE_STATS.todayHalfDay, icon: Users, tone: METRIC_TONES.blue,
     sparkColor: CATEGORICAL_COLORS[0],
   },
 ];
+}
 
-export function AttendanceSummaryCards() {
+export function AttendanceSummaryCards({ stats }: { stats: AttendanceStats }) {
+  const CARDS = cards(stats);
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       {CARDS.map((c, i) => (

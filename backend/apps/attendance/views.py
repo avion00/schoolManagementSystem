@@ -286,6 +286,50 @@ class AttendanceViewSet(TenantModelViewSet):
             ],
         })
 
+    @action(detail=False, methods=["get"], url_path="student-summary")
+    def student_summary(self, request):
+        """Per-student totals over a date range (reports: rankings, low attendance).
+        Only students with at least one record in the range are listed."""
+        today = timezone.localdate()
+        start = _param_date(request, "date_from", today.replace(day=1))
+        end = _param_date(request, "date_to", today)
+        in_range = Q(attendances__date__range=(start, end), attendances__is_active=True)
+
+        def count(*statuses):
+            return Count("attendances", filter=in_range & Q(attendances__status__in=statuses))
+
+        rows = (
+            self._students_in_scope().filter(status=Student.Status.ACTIVE)
+            .annotate(
+                marked=Count("attendances", filter=in_range),
+                present=count(*services.PRESENT_LIKE),
+                absent=count("absent"), late=count("late"),
+            )
+            .filter(marked__gt=0)
+            .select_related("class_level", "section")
+            .order_by("class_level__order", "section__name", "roll_number")
+        )
+        by_status = dict(
+            Attendance.objects.filter(
+                student__in=self._students_in_scope(), date__range=(start, end),
+            ).values_list("status").annotate(n=Count("id"))
+        )
+        return Response({
+            "date_from": str(start), "date_to": str(end),
+            "by_status": by_status,
+            "rows": [
+                {
+                    "student": str(s.id), "name": s.full_name, "admission_no": s.admission_number,
+                    "roll_number": s.roll_number,
+                    "class_level_name": s.class_level.name if s.class_level_id else "",
+                    "section_name": s.section.name if s.section_id else "",
+                    "marked": s.marked, "present": s.present, "absent": s.absent, "late": s.late,
+                    "rate": round(s.present / s.marked * 100, 1),
+                }
+                for s in rows
+            ],
+        })
+
     @action(detail=False, methods=["get"])
     def stats(self, request):
         """Dashboard cards: today's counts, this month's rate, week-on-week change,

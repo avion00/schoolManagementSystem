@@ -127,6 +127,9 @@ def test_student_and_class_reports(principal, tenant):
     cls = principal.get("/api/v1/attendance/class-report/", {"date_from": "2026-09-01", "date_to": "2026-09-30"}).json()
     row = next(r for r in cls["rows"] if r["section_name"] == "A")
     assert row["students"] == 1 and row["rate"] == 75.0
+    summary = principal.get("/api/v1/attendance/student-summary/", {"date_from": "2026-09-01", "date_to": "2026-09-30"}).json()
+    assert [(r["marked"], r["present"], r["absent"], r["rate"]) for r in summary["rows"]] == [(4, 3, 1, 75.0)]
+    assert sum(summary["by_status"].values()) == 4
 
 
 def test_stats(principal, tenant):

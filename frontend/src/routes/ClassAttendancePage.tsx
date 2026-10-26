@@ -6,7 +6,11 @@ import { PremiumDataTable, type PremiumDataTableColumn } from "@/components/ui/P
 import { KPITrendCard } from "@/components/ui/KPITrendCard";
 import { METRIC_TONES } from "@/components/ui/MetricCard";
 import { CATEGORICAL_COLORS, STATUS_COLORS } from "@/components/charts/palette";
-import { CLASS_COMPARISON, MONTHLY_TREND, type ClassComparison } from "@/data/attendanceData";
+import { useAttendanceStats, useClassComparison } from "@/api/attendance";
+import type { ClassComparison as ApiRow } from "@/api/types/attendance";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+
+type ClassComparison = ApiRow & { rate: number };
 import { cn } from "@/lib/utils";
 
 
@@ -44,9 +48,17 @@ function classDetailColumns(avg: number): PremiumDataTableColumn<ClassComparison
 }
 
 export function ClassAttendancePage() {
+  const comparison = useClassComparison();
+  const statsQuery = useAttendanceStats();
+  const MONTHLY_TREND = statsQuery.data?.trend ?? [];
+  const monthLabel = new Date().toLocaleDateString("en", { month: "long", year: "numeric" });
+  const CLASS_COMPARISON = (comparison.data ?? []).filter((c): c is ClassComparison => c.rate !== null);
+  if (!comparison.isLoading && CLASS_COMPARISON.length === 0) {
+    return <PremiumEmptyState title="No attendance recorded this month yet" description="Class rates appear once registers are taken." />;
+  }
   const best  = [...CLASS_COMPARISON].sort((a, b) => b.rate - a.rate)[0];
   const worst = [...CLASS_COMPARISON].sort((a, b) => a.rate - b.rate)[0];
-  const avg   = Math.round(CLASS_COMPARISON.reduce((s, c) => s + c.rate, 0) / CLASS_COMPARISON.length);
+  const avg   = CLASS_COMPARISON.length ? Math.round(CLASS_COMPARISON.reduce((s, c) => s + c.rate, 0) / CLASS_COMPARISON.length) : 0;
 
   return (
     <div className="space-y-5">
@@ -63,27 +75,24 @@ export function ClassAttendancePage() {
             value={`${avg}%`}
             icon={BarChart3}
             iconCls={METRIC_TONES.blue}
-            trend={{ value: "+0.8%", up: true, compareLabel: `Across ${CLASS_COMPARISON.length} classes · July 2026` }}
             sparklineColor={CATEGORICAL_COLORS[0]}
           />
         </Reveal>
         <Reveal delay={40}>
           <KPITrendCard
-            label="Best Class"
+            label={`Best: ${best?.className ?? ""} ${best?.section ?? ""}`}
             value={`${best?.rate}%`}
             icon={TrendingUp}
             iconCls={METRIC_TONES.green}
-            trend={{ value: "+2.1%", up: true, compareLabel: `${best?.className} ${best?.section} · ${best?.students} students` }}
             sparklineColor={STATUS_COLORS.good}
           />
         </Reveal>
         <Reveal delay={80}>
           <KPITrendCard
-            label="Needs Attention"
+            label={`Needs attention: ${worst?.className ?? ""} ${worst?.section ?? ""}`}
             value={`${worst?.rate}%`}
             icon={TrendingDown}
             iconCls={METRIC_TONES.red}
-            trend={{ value: "-3.4%", up: false, compareLabel: `${worst?.className} ${worst?.section} · ${worst?.students} students` }}
             sparklineColor={STATUS_COLORS.critical}
           />
         </Reveal>
@@ -94,7 +103,7 @@ export function ClassAttendancePage() {
       <PremiumCard className="p-5">
         <div className="flex items-center gap-2 mb-4">
           <Layers className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-[14px] font-semibold text-foreground">Attendance Rate by Class · July 2026</h2>
+          <h2 className="text-[14px] font-semibold text-foreground">Attendance Rate by Class · {monthLabel}</h2>
         </div>
         <div className="space-y-4">
           {[...CLASS_COMPARISON].sort((a, b) => b.rate - a.rate).map((c) => (
@@ -136,11 +145,11 @@ export function ClassAttendancePage() {
         <h2 className="text-[14px] font-semibold text-foreground mb-4">School-wide Monthly Trend</h2>
         <div className="flex items-end gap-4 h-28">
           {MONTHLY_TREND.map((pt) => {
-            const height = `${pt.presentRate}%`;
-            const isCurrent = pt.month.startsWith("Jul");
+            const height = `${pt.presentRate ?? 0}%`;
+            const isCurrent = pt === MONTHLY_TREND[MONTHLY_TREND.length - 1];
             return (
               <div key={pt.month} className="flex-1 flex flex-col items-center gap-1">
-                <span className="text-[10px] font-semibold text-foreground">{pt.presentRate}%</span>
+                <span className="text-[10px] font-semibold text-foreground">{pt.presentRate === null ? "—" : `${pt.presentRate}%`}</span>
                 <div className="w-full flex items-end" style={{ height: "72px" }}>
                   <div
                     className={cn("w-full rounded-t-md", isCurrent ? "bg-indigo-500" : "bg-indigo-200 dark:bg-indigo-800")}

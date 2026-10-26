@@ -2,8 +2,9 @@ import { Printer, Download } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { AttendanceGridCell } from "@/components/attendance/AttendanceStatusBadge";
-import type { StudentRef, MonthlyAttendance, AttendanceStatus } from "@/data/attendanceData";
-import { countStatuses, isWorkingDay, HOLIDAYS } from "@/data/attendanceData";
+import type { StudentRef, MonthlyAttendance, AttendanceStatus } from "@/api/types/attendance";
+import { countStatuses, type Holiday } from "@/api/types/attendance";
+import { isWorkingDay } from "@/api/attendance";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -13,6 +14,8 @@ interface Props {
   month:       number; // 1-based
   className?:  string;
   section?:    string;
+  holidays?:   Holiday[];
+  weekendDays?: string[];
 }
 
 function getDaysInMonth(year: number, month: number) {
@@ -25,13 +28,36 @@ function getDayOfWeek(year: number, month: number, day: number) {
 
 const DAY_ABBR = ["Su","Mo","Tu","We","Th","Fr","Sa"];
 
-function dayHeaderCls(dow: number, isHoliday: boolean) {
+function dayHeaderCls(isWeekend: boolean, isHoliday: boolean) {
   if (isHoliday) return "bg-violet-100 text-violet-600 dark:bg-violet-950/30";
-  if (dow === 0 || dow === 6) return "bg-rose-50 text-rose-400 dark:bg-rose-950/20";
+  if (isWeekend) return "bg-rose-50 text-rose-400 dark:bg-rose-950/20";
   return "bg-muted/40 text-muted-foreground";
 }
 
-export function MonthlyAttendanceGrid({ students, attendance, year, month, className, section }: Props) {
+export function MonthlyAttendanceGrid({ students, attendance, year, month, className, section, holidays = [], weekendDays = ["saturday"] }: Props) {
+  const HOLIDAYS = holidays;
+
+  function exportCsv() {
+    const days = Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1);
+    const header = ["Roll", "Student", ...days.map(String), "Present", "Absent"];
+    const lines = students.map((st) => {
+      const recs = attendance.find((a) => a.studentId === st.id)?.records ?? {};
+      const c = countStatuses(recs);
+      const cell = (v: string) => (/^[=+\-@]/.test(v) ? `'${v}` : v);
+      return [st.rollNo, cell(st.name), ...days.map((d) => recs[d] ?? ""), String(c.present + c.late + c["half-day"]), String(c.absent)]
+        .map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
+    });
+    const blob = new Blob([[header.join(","), ...lines].join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `attendance-${className ?? ""}-${section ?? ""}-${year}-${String(month).padStart(2, "0")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Sheet exported");
+  }
+  const DOW = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const isWeekendDow = (dow: number) => weekendDays.includes(DOW[dow]);
   const daysInMonth = getDaysInMonth(year, month);
   const monthName   = new Date(year, month - 1, 1).toLocaleString("en", { month: "long" });
 
@@ -41,7 +67,7 @@ export function MonthlyAttendanceGrid({ students, attendance, year, month, class
   // Working days for totals column
   let totalWorkingDays = 0;
   for (let d = 1; d <= daysInMonth; d++) {
-    if (isWorkingDay(year, month, d)) totalWorkingDays++;
+    if (isWorkingDay(year, month, d, holidays, weekendDays)) totalWorkingDays++;
   }
 
   // Holiday lookup
@@ -68,7 +94,7 @@ export function MonthlyAttendanceGrid({ students, attendance, year, month, class
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[12px]"
-            onClick={() => toast.info("Exporting CSV…")}>
+            onClick={exportCsv}>
             <Download className="h-3.5 w-3.5" />Export
           </Button>
           <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[12px]"
@@ -112,12 +138,12 @@ export function MonthlyAttendanceGrid({ students, attendance, year, month, class
               {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => {
                 const dow = getDayOfWeek(year, month, d);
                 const isHoliday = holidayDays.has(d);
-                const isNonWorking = dow === 0 || dow === 6 || isHoliday;
+                const isNonWorking = isWeekendDow(dow) || isHoliday;
                 return (
                   <th key={d}
                     className={cn(
                       "border-b border-r border-border/40 px-1 py-1 text-center font-semibold w-8",
-                      dayHeaderCls(dow, isHoliday),
+                      dayHeaderCls(isWeekendDow(dow), isHoliday),
                     )}>
                     <div className="text-[11px]">{d}</div>
                     <div className={cn("text-[9px] font-normal", isNonWorking ? "" : "text-muted-foreground")}>
@@ -155,7 +181,7 @@ export function MonthlyAttendanceGrid({ students, attendance, year, month, class
                   </td>
                   {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => {
                     const dow = getDayOfWeek(year, month, d);
-                    const isWeekend = dow === 0 || dow === 6;
+                    const isWeekend = isWeekendDow(dow);
                     const isHoliday = holidayDays.has(d);
                     const status = records[d];
 

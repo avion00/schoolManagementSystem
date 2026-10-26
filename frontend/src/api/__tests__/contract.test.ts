@@ -124,3 +124,24 @@ run("contract: class routine", () => {
     expect(["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]).toContain(entries[0].day);
   });
 });
+
+run("contract: attendance", () => {
+  beforeAll(() => signIn());
+
+  it("serves the shapes the attendance hooks read", async () => {
+    const { get, getAll } = await import("../http");
+    const { toStatus } = await import("../attendance");
+    const stats = await get<{ today: Record<string, number>; monthly_trend: { month: string; rate: number | null }[] }>("/attendance/stats/");
+    expect(stats.monthly_trend).toHaveLength(6);
+    expect(typeof stats.today.present).toBe("number");
+    const classes = await get<{ rows: { class_level_name: string; students: number }[] }>("/attendance/class-report/");
+    expect(classes.rows.length).toBeGreaterThan(0);
+    const summary = await get<{ by_status: Record<string, number>; rows: { marked: number; rate: number }[] }>(
+      "/attendance/student-summary/", { date_from: "2020-01-01" });
+    for (const r of summary.rows) expect(r.marked).toBeGreaterThan(0);
+    for (const k of Object.keys(summary.by_status)) expect(toStatus(k)).toBeDefined();
+    const staff = await get<{ days: number; rows: unknown[] }>("/staff-attendance/monthly/", { year: 2026, month: 10 });
+    expect(staff.days).toBe(31);
+    await getAll("/holidays/", { start_date__lte: "2026-12-31", end_date__gte: "2026-01-01" });
+  });
+});

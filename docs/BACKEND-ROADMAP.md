@@ -76,8 +76,8 @@ type-checker shows anything still using fake data.
 | Teachers: list (salary shown only with payroll access), details (schedule, attendance, exam duties, payroll and payslips), add/edit with class/subject **assignment editor**, salary structure, career fields | ✅ |
 | Classes: list, details (sections with attendance, students with fee status, teachers, timetable, performance from the latest exam, fees, exam papers), add/edit with sections and curriculum | ✅ |
 | Subjects (list, details with mappings/teachers/syllabus/performance, form with class mappings) and class routine (list, weekly grid with real breaks, conflict flags from the server, print view, add/edit by section·day·period with clash messages, bell-schedule manager) | ✅ |
-| Attendance | 🚧 |
-| Exams (schedule, grades, marks entry, results, report and admit cards) | ⬜ |
+| Attendance: dashboard (today's sections, staff today, 6-month trend, holidays), daily student register and staff register with real saves, monthly sheet (holidays and weekends from settings, CSV export), class comparison, student history over any range, reports (per-student summary via new `attendance/student-summary/`, low-attendance list, status split) | ✅ |
+| Exams (schedule, grades, marks entry, results, report and admit cards) | 🚧 |
 | Billing (fees, invoices, payments, expenses, payroll, vendors, reports) | ⬜ |
 | Notices and notifications | ⬜ |
 | Messages (REST + WebSocket) | ⬜ |

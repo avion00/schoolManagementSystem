@@ -367,6 +367,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/attendance/student-summary/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Per-student totals over a date range (reports: rankings, low attendance).
+         *     Only students with at least one record in the range are listed.
+         */
+        get: operations["v1_attendance_student_summary_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit/logs/": {
         parameters: {
             query?: never;
@@ -8462,6 +8482,25 @@ export interface operations {
         };
     };
     v1_attendance_student_report_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Attendance"];
+                };
+            };
+        };
+    };
+    v1_attendance_student_summary_retrieve: {
         parameters: {
             query?: never;
             header?: never;
