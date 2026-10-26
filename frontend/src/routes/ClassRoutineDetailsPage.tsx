@@ -7,7 +7,8 @@ import { Button }                     from "@/components/ui/button";
 import { DetailCard }                 from "@/components/ui/DetailCard";
 import { PremiumCard }                from "@/components/ui/PremiumCard";
 import { ClassRoutineStatusBadge }    from "@/components/classRoutine/ClassRoutineStatusBadge";
-import { ROUTINES, CONFLICT_IDS }     from "@/data/classRoutineData";
+import { useRoutineData } from "@/api/routine";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
 import type { LucideIcon } from "lucide-react";
 
 const DAY_GRAD: Record<string, string> = {
@@ -43,7 +44,11 @@ export function ClassRoutineDetailsPage() {
   const { id }   = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const entry = ROUTINES.find((r) => r.id === Number(id));
+  const { routine, isLoading } = useRoutineData();
+  const ROUTINES = routine.entries;
+  const CONFLICT_IDS = routine.conflictIds;
+  if (isLoading) return <PremiumSkeleton className="h-96 w-full rounded-2xl" />;
+  const entry = ROUTINES.find((r) => r.id === id);
 
   if (!entry) {
     return (

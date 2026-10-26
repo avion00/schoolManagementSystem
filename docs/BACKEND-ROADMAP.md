@@ -75,8 +75,8 @@ type-checker shows anything still using fake data.
 | Parents / guardians: list, details (children, attendance, results, fee records), add/edit with a real student picker and staff notes | ✅ |
 | Teachers: list (salary shown only with payroll access), details (schedule, attendance, exam duties, payroll and payslips), add/edit with class/subject **assignment editor**, salary structure, career fields | ✅ |
 | Classes: list, details (sections with attendance, students with fee status, teachers, timetable, performance from the latest exam, fees, exam papers), add/edit with sections and curriculum | ✅ |
-| Subjects, class routine | 🚧 |
-| Attendance | ⬜ |
+| Subjects (list, details with mappings/teachers/syllabus/performance, form with class mappings) and class routine (list, weekly grid with real breaks, conflict flags from the server, print view, add/edit by section·day·period with clash messages, bell-schedule manager) | ✅ |
+| Attendance | 🚧 |
 | Exams (schedule, grades, marks entry, results, report and admit cards) | ⬜ |
 | Billing (fees, invoices, payments, expenses, payroll, vendors, reports) | ⬜ |
 | Notices and notifications | ⬜ |

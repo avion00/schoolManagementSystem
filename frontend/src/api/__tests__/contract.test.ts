@@ -109,3 +109,18 @@ run("contract: subjects", () => {
     expect(Array.isArray(d.classMappings)).toBe(true);
   });
 });
+
+run("contract: class routine", () => {
+  beforeAll(() => signIn());
+
+  it("maps timetable entries and period slots", async () => {
+    const { getAll } = await import("../http");
+    const { mapEntry, mapSlot } = await import("../routine");
+    const entries = (await getAll<never>("/timetable/entries/")).map(mapEntry);
+    const slots = (await getAll<never>("/timetable/periods/")).map(mapSlot);
+    expect(entries.length).toBeGreaterThan(0);
+    expect(slots.some((s) => s.isBreak)).toBe(true);
+    expect(entries[0].startTime).toMatch(/^\d\d:\d\d$/);
+    expect(["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]).toContain(entries[0].day);
+  });
+});

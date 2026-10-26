@@ -5,7 +5,8 @@ import { ClassRoutineSummaryCards }   from "@/components/classRoutine/ClassRouti
 import { ClassRoutineToolbar, type RoutineFilters } from "@/components/classRoutine/ClassRoutineToolbar";
 import { ClassRoutineTable }          from "@/components/classRoutine/ClassRoutineTable";
 import { ClassRoutineGrid }           from "@/components/classRoutine/ClassRoutineGrid";
-import { ROUTINES, ROUTINE_STATS }    from "@/data/classRoutineData";
+import { routineStats, useRoutineData } from "@/api/routine";
+import { PeriodSlotsCard } from "@/components/classRoutine/PeriodSlotsCard";
 
 const VIEWS: SlidingTabOption[] = [
   { value: "table", label: "Table View"   },
@@ -21,6 +22,9 @@ export function ClassRoutinePage() {
   const navigate = useNavigate();
   const [view,    setView]    = useState<"table" | "grid">("table");
   const [filters, setFilters] = useState<RoutineFilters>(EMPTY_FILTERS);
+  const { routine } = useRoutineData();
+  const ROUTINES = routine.entries;
+  const ROUTINE_STATS = routineStats(ROUTINES, routine.conflictIds);
 
   const handleChange = useCallback((key: keyof RoutineFilters, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -40,10 +44,9 @@ export function ClassRoutinePage() {
       if (filters.subject   && r.subject   !== filters.subject)   return false;
       if (filters.shift     && r.shift     !== filters.shift)     return false;
       if (filters.status    && r.status    !== filters.status)    return false;
-      if (filters.year      && r.academicYear !== filters.year)   return false;
       return true;
     });
-  }, [filters]);
+  }, [filters, ROUTINES]);
 
   return (
     <div className="space-y-5 pb-12">
@@ -71,7 +74,10 @@ export function ClassRoutinePage() {
           onEdit={(id) => navigate(`/class-routine/${id}/edit`)}
         />
       ) : (
-        <ClassRoutineGrid />
+        <>
+          <ClassRoutineGrid />
+          <PeriodSlotsCard />
+        </>
       )}
     </div>
   );
