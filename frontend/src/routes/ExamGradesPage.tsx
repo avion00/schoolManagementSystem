@@ -11,11 +11,6 @@ import { GradeBadge }     from "@/components/exams/GradeBadge";
 import { GRADE_SCALE }    from "@/data/examsData";
 import { cn } from "@/lib/utils";
 
-const SPARK = {
-  up: [{ value: 5 }, { value: 5 }, { value: 6 }, { value: 6 }, { value: 6 }, { value: 7 }, { value: 7 }],
-  upSlow: [{ value: 4 }, { value: 4 }, { value: 5 }, { value: 5 }, { value: 5 }, { value: 5 }, { value: 5 }],
-  down: [{ value: 3 }, { value: 3 }, { value: 2 }, { value: 2 }, { value: 2 }, { value: 1 }, { value: 1 }],
-};
 
 const COLOR_BG: Record<string, string> = {
   emerald: "bg-emerald-500", green: "bg-green-500", teal: "bg-teal-500",
@@ -53,7 +48,6 @@ export function ExamGradesPage() {
             icon={Award}
             iconCls={METRIC_TONES.blue}
             trend={{ value: "+1.0%", up: true, compareLabel: "vs last term" }}
-            sparklineData={SPARK.up}
             sparklineColor={CATEGORICAL_COLORS[0]}
           />
         </Reveal>
@@ -64,7 +58,6 @@ export function ExamGradesPage() {
             icon={CheckCircle2}
             iconCls={METRIC_TONES.green}
             trend={{ value: "0.0%", up: true, compareLabel: "vs last term" }}
-            sparklineData={SPARK.upSlow}
             sparklineColor={STATUS_COLORS.good}
           />
         </Reveal>
@@ -75,7 +68,6 @@ export function ExamGradesPage() {
             icon={TrendingUp}
             iconCls={METRIC_TONES.green}
             trend={{ value: "+2.5%", up: true, compareLabel: "vs last term" }}
-            sparklineData={SPARK.up}
             sparklineColor={STATUS_COLORS.good}
           />
         </Reveal>
@@ -86,7 +78,6 @@ export function ExamGradesPage() {
             icon={TrendingDown}
             iconCls={METRIC_TONES.red}
             trend={{ value: "-3.0%", up: false, compareLabel: "vs last term" }}
-            sparklineData={SPARK.down}
             sparklineColor={STATUS_COLORS.critical}
           />
         </Reveal>

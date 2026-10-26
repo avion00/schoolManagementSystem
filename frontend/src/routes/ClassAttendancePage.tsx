@@ -9,11 +9,6 @@ import { CATEGORICAL_COLORS, STATUS_COLORS } from "@/components/charts/palette";
 import { CLASS_COMPARISON, MONTHLY_TREND, type ClassComparison } from "@/data/attendanceData";
 import { cn } from "@/lib/utils";
 
-const SPARK = {
-  avg:   [{ value: 86 }, { value: 87 }, { value: 88 }, { value: 87 }, { value: 89 }, { value: 88 }, { value: 89 }],
-  best:  [{ value: 90 }, { value: 91 }, { value: 92 }, { value: 93 }, { value: 92 }, { value: 94 }, { value: 95 }],
-  worst: [{ value: 78 }, { value: 76 }, { value: 74 }, { value: 75 }, { value: 73 }, { value: 72 }, { value: 71 }],
-};
 
 function classDetailColumns(avg: number): PremiumDataTableColumn<ClassComparison>[] {
   return [
@@ -69,7 +64,6 @@ export function ClassAttendancePage() {
             icon={BarChart3}
             iconCls={METRIC_TONES.blue}
             trend={{ value: "+0.8%", up: true, compareLabel: `Across ${CLASS_COMPARISON.length} classes · July 2026` }}
-            sparklineData={SPARK.avg}
             sparklineColor={CATEGORICAL_COLORS[0]}
           />
         </Reveal>
@@ -80,7 +74,6 @@ export function ClassAttendancePage() {
             icon={TrendingUp}
             iconCls={METRIC_TONES.green}
             trend={{ value: "+2.1%", up: true, compareLabel: `${best?.className} ${best?.section} · ${best?.students} students` }}
-            sparklineData={SPARK.best}
             sparklineColor={STATUS_COLORS.good}
           />
         </Reveal>
@@ -91,7 +84,6 @@ export function ClassAttendancePage() {
             icon={TrendingDown}
             iconCls={METRIC_TONES.red}
             trend={{ value: "-3.4%", up: false, compareLabel: `${worst?.className} ${worst?.section} · ${worst?.students} students` }}
-            sparklineData={SPARK.worst}
             sparklineColor={STATUS_COLORS.critical}
           />
         </Reveal>

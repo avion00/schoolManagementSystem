@@ -16,8 +16,12 @@ import { ClassDocumentsCard }      from "@/components/classes/details/ClassDocum
 import { ClassActivityTimeline }   from "@/components/classes/details/ClassActivityTimeline";
 import { Button }                  from "@/components/ui/button";
 import { PremiumTabs, type PremiumTabOption } from "@/components/ui/PremiumTabs";
-import { CLASSES }                 from "@/data/classesData";
-import { CLASS_DETAIL_MOCK }       from "@/data/classDetailData";
+import { useClassDetail } from "@/api/classes";
+import { errorMessage } from "@/api/http";
+import { PremiumCard } from "@/components/ui/PremiumCard";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { useAuth } from "@/lib/auth";
 
 const TABS: PremiumTabOption[] = [
   { value: "overview",   label: "Overview"   },
@@ -34,9 +38,18 @@ export function ClassDetailsPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState("overview");
 
-  const cls = CLASSES.find((c) => c.id === Number(id));
+  const { hasPermission } = useAuth();
+  const detail = useClassDetail(id, hasPermission("fee.view"));
+  if (detail.isLoading) return <PremiumSkeleton className="h-96 w-full rounded-2xl" />;
+  const notFound = (detail.error as { response?: { status?: number } } | null)?.response?.status === 404;
+  if (detail.isError && !notFound) {
+    return <PremiumEmptyState title="Couldn't load this class" description={errorMessage(detail.error)}
+      action={<Button size="sm" variant="outline" onClick={() => detail.refetch()}>Try again</Button>} />;
+  }
+  const mock = detail.data;
+  const cls = mock?.cls;
 
-  if (!cls) {
+  if (!cls || !mock) {
     return (
       <div className="flex flex-col items-center justify-center py-32 text-muted-foreground">
         <p className="text-lg font-medium">Class not found.</p>
@@ -46,8 +59,6 @@ export function ClassDetailsPage() {
       </div>
     );
   }
-
-  const mock = CLASS_DETAIL_MOCK;
 
   return (
     <div className="space-y-6 pb-12">
@@ -84,14 +95,22 @@ export function ClassDetailsPage() {
       {tab === "reports" && (
         <div className="grid gap-6 lg:grid-cols-2">
           <ClassAttendanceCard attendance={mock.attendance} />
-          <ClassPerformanceCard perf={mock.performance} />
+          {mock.performance ? <ClassPerformanceCard perf={mock.performance} /> : (
+            <PremiumCard className="p-5">
+              <PremiumEmptyState title="No exam results yet" description="Performance appears once a class exam has marks." className="py-6" />
+            </PremiumCard>
+          )}
         </div>
       )}
 
       {/* Finance */}
       {tab === "finance" && (
         <div className="space-y-6">
-          <ClassFeesCard fees={mock.fees} />
+          {mock.fees ? <ClassFeesCard fees={mock.fees} /> : (
+            <PremiumCard className="p-5">
+              <PremiumEmptyState title="Fee details are restricted" description="You need fee access to see class fees." className="py-6" />
+            </PremiumCard>
+          )}
           <ClassExamsCard exams={mock.exams} />
         </div>
       )}

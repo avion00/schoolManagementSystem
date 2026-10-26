@@ -20,23 +20,19 @@ export function MessageModerationPage() {
   const stats = [
     {
       label: "Open", value: reports.filter((r) => r.status === "open").length, icon: AlertCircle, tone: METRIC_TONES.amber,
-      sparkColor: STATUS_COLORS.warning, sparkData: [{ value: 2 }, { value: 3 }, { value: 2 }, { value: 3 }, { value: 4 }, { value: 3 }, { value: 4 }],
-      trend: { value: "+1.0%", up: true, compareLabel: "vs last week" },
+      sparkColor: STATUS_COLORS.warning,
     },
     {
       label: "Reviewed", value: reports.filter((r) => r.status === "reviewed").length, icon: Eye, tone: METRIC_TONES.blue,
-      sparkColor: CATEGORICAL_COLORS[0], sparkData: [{ value: 1 }, { value: 1 }, { value: 2 }, { value: 2 }, { value: 2 }, { value: 3 }, { value: 3 }],
-      trend: { value: "+2.0%", up: true, compareLabel: "vs last week" },
+      sparkColor: CATEGORICAL_COLORS[0],
     },
     {
       label: "Dismissed", value: reports.filter((r) => r.status === "dismissed").length, icon: XCircle, tone: METRIC_TONES.red,
-      sparkColor: STATUS_COLORS.critical, sparkData: [{ value: 2 }, { value: 2 }, { value: 1 }, { value: 2 }, { value: 1 }, { value: 1 }, { value: 1 }],
-      trend: { value: "-1.0%", up: false, compareLabel: "vs last week" },
+      sparkColor: STATUS_COLORS.critical,
     },
     {
       label: "Actioned", value: reports.filter((r) => r.status === "actioned").length, icon: CheckCheck, tone: METRIC_TONES.green,
-      sparkColor: STATUS_COLORS.good, sparkData: [{ value: 0 }, { value: 1 }, { value: 1 }, { value: 1 }, { value: 2 }, { value: 2 }, { value: 2 }],
-      trend: { value: "+2.0%", up: true, compareLabel: "vs last week" },
+      sparkColor: STATUS_COLORS.good,
     },
   ];
 
@@ -73,8 +69,6 @@ export function MessageModerationPage() {
               value={s.value}
               icon={s.icon}
               iconCls={s.tone}
-              trend={s.trend}
-              sparklineData={s.sparkData}
               sparklineColor={s.sparkColor}
             />
           </Reveal>

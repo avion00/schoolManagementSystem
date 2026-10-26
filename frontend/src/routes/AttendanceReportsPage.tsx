@@ -117,17 +117,14 @@ export function AttendanceReportsPage() {
     {
       label: "Overall Rate", value: `${ATTENDANCE_STATS.monthlyRate}%`, icon: Percent, tone: METRIC_TONES.blue,
       sparkColor: CATEGORICAL_COLORS[0], sparkData: REPORT_SPARK.rate,
-      trend: { value: "+1.4%", up: true, compareLabel: "July 2026" },
     },
     {
       label: "Total Students", value: "18", icon: GraduationCap, tone: METRIC_TONES.green,
       sparkColor: PALETTE_STATUS_COLORS.good, sparkData: REPORT_SPARK.students,
-      trend: { value: "0.0%", up: true, compareLabel: "2 classes" },
     },
     {
       label: "Total Teachers", value: "8", icon: Users, tone: METRIC_TONES.purple,
       sparkColor: CATEGORICAL_COLORS[4], sparkData: REPORT_SPARK.teachers,
-      trend: { value: "0.0%", up: true, compareLabel: "Teaching staff" },
     },
     {
       label: "Low Attendance", value: lowAttStudents.length, icon: AlertTriangle,
@@ -154,8 +151,6 @@ export function AttendanceReportsPage() {
               value={k.value}
               icon={k.icon}
               iconCls={k.tone}
-              trend={k.trend}
-              sparklineData={k.sparkData}
               sparklineColor={k.sparkColor}
             />
           </Reveal>

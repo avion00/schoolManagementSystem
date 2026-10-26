@@ -79,3 +79,20 @@ run("contract: teachers", () => {
     expect(d.assignments.length).toBeGreaterThan(0);
   });
 });
+
+run("contract: classes", () => {
+  beforeAll(() => signIn());
+
+  it("lists classes with sections/curriculum and builds a class detail view", async () => {
+    const { getAll } = await import("../http");
+    const { fetchClassDetail } = await import("../classes");
+    const classes = await getAll<{ id: string; name: string }>("/academics/class-levels/");
+    const grade8 = classes.find((c) => c.name === "Grade 8") ?? classes[0];
+    const d = await fetchClassDetail(grade8.id, true);
+    expect(d.cls.className).toBe(grade8.name);
+    expect(d.cls.sections.length).toBeGreaterThan(0);
+    expect(d.students.length).toBe(d.cls.totalStudents);
+    expect(d.fees).not.toBeNull();
+    expect(Array.isArray(d.timetable)).toBe(true);
+  });
+});

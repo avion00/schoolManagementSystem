@@ -6,13 +6,6 @@ import { KPITrendCard } from "@/components/ui/KPITrendCard";
 import { METRIC_TONES } from "@/components/ui/MetricCard";
 import type { Teacher } from "@/api/types/teachers";
 
-const SPARK = {
-  up: [{ value: 24 }, { value: 26 }, { value: 25 }, { value: 27 }, { value: 26 }, { value: 29 }, { value: 30 }],
-  upSlow: [{ value: 22 }, { value: 23 }, { value: 24 }, { value: 23 }, { value: 25 }, { value: 26 }, { value: 26 }],
-  flat: [{ value: 2 }, { value: 3 }, { value: 2 }, { value: 2 }, { value: 3 }, { value: 2 }, { value: 2 }],
-  down: [{ value: 4 }, { value: 3 }, { value: 3 }, { value: 2 }, { value: 3 }, { value: 2 }, { value: 2 }],
-  downFlat: [{ value: 3 }, { value: 2 }, { value: 3 }, { value: 2 }, { value: 2 }, { value: 1 }, { value: 2 }],
-};
 
 export function TeachersSummaryCards({ teachers }: { teachers: Teacher[] }) {
   const active = teachers.filter((t) => t.status === "active").length;
@@ -23,28 +16,23 @@ export function TeachersSummaryCards({ teachers }: { teachers: Teacher[] }) {
   const stats = [
     {
       label: "Total Teachers", value: teachers.length, icon: Users, tone: METRIC_TONES.blue,
-      sparkColor: CATEGORICAL_COLORS[0], sparkData: SPARK.up,
-      trend: { value: "+4.1%", up: true, compareLabel: "vs last month" },
+      sparkColor: CATEGORICAL_COLORS[0],
     },
     {
       label: "Active", value: active, icon: CheckCircle2, tone: METRIC_TONES.green,
-      sparkColor: STATUS_COLORS.good, sparkData: SPARK.upSlow,
-      trend: { value: "+1.8%", up: true, compareLabel: "vs last month" },
+      sparkColor: STATUS_COLORS.good,
     },
     {
       label: "On Leave", value: onLeave, icon: CalendarClock, tone: METRIC_TONES.amber,
-      sparkColor: STATUS_COLORS.warning, sparkData: SPARK.flat,
-      trend: { value: "0.0%", up: true, compareLabel: "vs last month" },
+      sparkColor: STATUS_COLORS.warning,
     },
     {
       label: "Inactive", value: inactive, icon: UserX, tone: METRIC_TONES.red,
-      sparkColor: STATUS_COLORS.critical, sparkData: SPARK.down,
-      trend: { value: "-2.0%", up: false, compareLabel: "vs last month" },
+      sparkColor: STATUS_COLORS.critical,
     },
     {
       label: "Resigned", value: resigned, icon: UserMinus, tone: METRIC_TONES.purple,
-      sparkColor: CATEGORICAL_COLORS[4], sparkData: SPARK.downFlat,
-      trend: { value: "-1.0%", up: false, compareLabel: "vs last term" },
+      sparkColor: CATEGORICAL_COLORS[4],
     },
   ];
 
@@ -57,8 +45,6 @@ export function TeachersSummaryCards({ teachers }: { teachers: Teacher[] }) {
             value={s.value}
             icon={s.icon}
             iconCls={s.tone}
-            trend={s.trend}
-            sparklineData={s.sparkData}
             sparklineColor={s.sparkColor}
           />
         </Reveal>

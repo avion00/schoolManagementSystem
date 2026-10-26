@@ -27,7 +27,7 @@ interface SummaryMeta {
   tone: string;
   sparkColor: string;
   sparkData: Record<string, number>[];
-  trend: KPITrend;
+  trend?: KPITrend;
 }
 
 const moneyUp = (base: number): Record<string, number>[] => [0.88, 0.91, 0.94, 0.96, 0.98, 0.99, 1].map((f) => ({ value: Math.round(base * f) }));
@@ -39,32 +39,32 @@ const countDown = (base: number): Record<string, number>[] => [1.2, 1.15, 1.1, 1
  * label strings `buildReport()` emits across its 9 report types. A generic
  * fallback covers any label not explicitly listed. */
 const SUMMARY_META: Record<string, SummaryMeta> = {
-  "Total Collected": { icon: DollarSign, tone: METRIC_TONES.green, sparkColor: STATUS_COLORS.good, sparkData: moneyUp(180000), trend: { value: "+6.2%", up: true, compareLabel: "vs prior period" } },
-  "Payments": { icon: Receipt, tone: METRIC_TONES.blue, sparkColor: CATEGORICAL_COLORS[0], sparkData: countUp(120), trend: { value: "+4.5%", up: true, compareLabel: "vs prior period" } },
-  "Avg. Payment": { icon: TrendingUp, tone: METRIC_TONES.purple, sparkColor: CATEGORICAL_COLORS[4], sparkData: moneyUp(1500), trend: { value: "+1.8%", up: true, compareLabel: "vs prior period" } },
-  "Students with Dues": { icon: Users, tone: METRIC_TONES.amber, sparkColor: STATUS_COLORS.warning, sparkData: countDown(45), trend: { value: "-3.0%", up: false, compareLabel: "vs prior period" } },
-  "Total Outstanding": { icon: Wallet, tone: METRIC_TONES.red, sparkColor: STATUS_COLORS.critical, sparkData: moneyDown(85000), trend: { value: "-2.4%", up: false, compareLabel: "vs prior period" } },
-  "Total Expenses": { icon: TrendingDown, tone: METRIC_TONES.red, sparkColor: STATUS_COLORS.critical, sparkData: moneyUp(372000), trend: { value: "+5.6%", up: true, compareLabel: "vs prior period" } },
-  "Entries": { icon: ListChecks, tone: METRIC_TONES.blue, sparkColor: CATEGORICAL_COLORS[0], sparkData: countUp(35), trend: { value: "+3.1%", up: true, compareLabel: "vs prior period" } },
-  "Total Payroll": { icon: Wallet, tone: METRIC_TONES.purple, sparkColor: CATEGORICAL_COLORS[4], sparkData: moneyUp(604000), trend: { value: "+3.8%", up: true, compareLabel: "vs prior period" } },
-  "Staff": { icon: Users, tone: METRIC_TONES.blue, sparkColor: CATEGORICAL_COLORS[0], sparkData: countUp(15), trend: { value: "+1.0%", up: true, compareLabel: "vs prior period" } },
-  "Pending": { icon: Clock, tone: METRIC_TONES.amber, sparkColor: STATUS_COLORS.warning, sparkData: countDown(6), trend: { value: "-4.5%", up: false, compareLabel: "vs prior period" } },
-  "Income": { icon: TrendingUp, tone: METRIC_TONES.green, sparkColor: STATUS_COLORS.good, sparkData: moneyUp(210000), trend: { value: "+6.2%", up: true, compareLabel: "vs prior period" } },
-  "Expenses": { icon: TrendingDown, tone: METRIC_TONES.red, sparkColor: STATUS_COLORS.critical, sparkData: moneyUp(372000), trend: { value: "+5.6%", up: true, compareLabel: "vs prior period" } },
-  "Net Profit": { icon: Banknote, tone: METRIC_TONES.green, sparkColor: STATUS_COLORS.good, sparkData: moneyUp(60000), trend: { value: "+2.9%", up: true, compareLabel: "vs prior period" } },
-  "Students": { icon: GraduationCap, tone: METRIC_TONES.blue, sparkColor: CATEGORICAL_COLORS[0], sparkData: countUp(320), trend: { value: "+2.3%", up: true, compareLabel: "vs prior period" } },
-  "Total Fee": { icon: Wallet, tone: METRIC_TONES.purple, sparkColor: CATEGORICAL_COLORS[4], sparkData: moneyUp(950000), trend: { value: "+2.0%", up: true, compareLabel: "vs prior period" } },
-  "Total Paid": { icon: CheckCircle2, tone: METRIC_TONES.green, sparkColor: STATUS_COLORS.good, sparkData: moneyUp(720000), trend: { value: "+4.1%", up: true, compareLabel: "vs prior period" } },
-  "Vendors": { icon: Building2, tone: METRIC_TONES.cyan, sparkColor: CATEGORICAL_COLORS[5], sparkData: countUp(10), trend: { value: "+2.0%", up: true, compareLabel: "vs prior period" } },
-  "Total Purchases": { icon: ShoppingCart, tone: METRIC_TONES.purple, sparkColor: CATEGORICAL_COLORS[4], sparkData: moneyUp(1954000), trend: { value: "+6.4%", up: true, compareLabel: "vs prior period" } },
-  "Outstanding": { icon: Clock, tone: METRIC_TONES.amber, sparkColor: STATUS_COLORS.warning, sparkData: moneyDown(96000), trend: { value: "-3.6%", up: false, compareLabel: "vs prior period" } },
-  "Refunds": { icon: RotateCcw, tone: METRIC_TONES.red, sparkColor: STATUS_COLORS.critical, sparkData: countDown(5), trend: { value: "-1.0%", up: false, compareLabel: "vs prior period" } },
-  "Total Refunded": { icon: Banknote, tone: METRIC_TONES.red, sparkColor: STATUS_COLORS.critical, sparkData: moneyDown(8000), trend: { value: "-2.2%", up: false, compareLabel: "vs prior period" } },
+  "Total Collected": { icon: DollarSign, tone: METRIC_TONES.green, sparkColor: STATUS_COLORS.good, sparkData: moneyUp(180000), },
+  "Payments": { icon: Receipt, tone: METRIC_TONES.blue, sparkColor: CATEGORICAL_COLORS[0], sparkData: countUp(120), },
+  "Avg. Payment": { icon: TrendingUp, tone: METRIC_TONES.purple, sparkColor: CATEGORICAL_COLORS[4], sparkData: moneyUp(1500), },
+  "Students with Dues": { icon: Users, tone: METRIC_TONES.amber, sparkColor: STATUS_COLORS.warning, sparkData: countDown(45), },
+  "Total Outstanding": { icon: Wallet, tone: METRIC_TONES.red, sparkColor: STATUS_COLORS.critical, sparkData: moneyDown(85000), },
+  "Total Expenses": { icon: TrendingDown, tone: METRIC_TONES.red, sparkColor: STATUS_COLORS.critical, sparkData: moneyUp(372000), },
+  "Entries": { icon: ListChecks, tone: METRIC_TONES.blue, sparkColor: CATEGORICAL_COLORS[0], sparkData: countUp(35), },
+  "Total Payroll": { icon: Wallet, tone: METRIC_TONES.purple, sparkColor: CATEGORICAL_COLORS[4], sparkData: moneyUp(604000), },
+  "Staff": { icon: Users, tone: METRIC_TONES.blue, sparkColor: CATEGORICAL_COLORS[0], sparkData: countUp(15), },
+  "Pending": { icon: Clock, tone: METRIC_TONES.amber, sparkColor: STATUS_COLORS.warning, sparkData: countDown(6), },
+  "Income": { icon: TrendingUp, tone: METRIC_TONES.green, sparkColor: STATUS_COLORS.good, sparkData: moneyUp(210000), },
+  "Expenses": { icon: TrendingDown, tone: METRIC_TONES.red, sparkColor: STATUS_COLORS.critical, sparkData: moneyUp(372000), },
+  "Net Profit": { icon: Banknote, tone: METRIC_TONES.green, sparkColor: STATUS_COLORS.good, sparkData: moneyUp(60000), },
+  "Students": { icon: GraduationCap, tone: METRIC_TONES.blue, sparkColor: CATEGORICAL_COLORS[0], sparkData: countUp(320), },
+  "Total Fee": { icon: Wallet, tone: METRIC_TONES.purple, sparkColor: CATEGORICAL_COLORS[4], sparkData: moneyUp(950000), },
+  "Total Paid": { icon: CheckCircle2, tone: METRIC_TONES.green, sparkColor: STATUS_COLORS.good, sparkData: moneyUp(720000), },
+  "Vendors": { icon: Building2, tone: METRIC_TONES.cyan, sparkColor: CATEGORICAL_COLORS[5], sparkData: countUp(10), },
+  "Total Purchases": { icon: ShoppingCart, tone: METRIC_TONES.purple, sparkColor: CATEGORICAL_COLORS[4], sparkData: moneyUp(1954000), },
+  "Outstanding": { icon: Clock, tone: METRIC_TONES.amber, sparkColor: STATUS_COLORS.warning, sparkData: moneyDown(96000), },
+  "Refunds": { icon: RotateCcw, tone: METRIC_TONES.red, sparkColor: STATUS_COLORS.critical, sparkData: countDown(5), },
+  "Total Refunded": { icon: Banknote, tone: METRIC_TONES.red, sparkColor: STATUS_COLORS.critical, sparkData: moneyDown(8000), },
 };
 
 const DEFAULT_SUMMARY_META: SummaryMeta = {
   icon: BarChart3, tone: METRIC_TONES.neutral, sparkColor: CATEGORICAL_COLORS[0],
-  sparkData: countUp(10), trend: { value: "0.0%", up: true, compareLabel: "vs prior period" },
+  sparkData: countUp(10),
 };
 
 type ReportRow = Record<string, string | number>;
@@ -282,8 +282,6 @@ export function ReportGenerator() {
                     value={s.value}
                     icon={meta.icon}
                     iconCls={meta.tone}
-                    trend={meta.trend}
-                    sparklineData={meta.sparkData}
                     sparklineColor={meta.sparkColor}
                   />
                 </Reveal>

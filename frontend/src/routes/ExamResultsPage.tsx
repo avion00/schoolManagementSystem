@@ -15,11 +15,6 @@ type SortField = "rank" | "studentName" | "roll" | "totalMarks" | "percentage" |
 type SortDir = "asc" | "desc";
 const PAGE_SIZE = 15;
 
-const SPARK = {
-  up: [{ value: 28 }, { value: 29 }, { value: 30 }, { value: 31 }, { value: 32 }, { value: 33 }, { value: 34 }],
-  upSlow: [{ value: 70 }, { value: 71 }, { value: 72 }, { value: 71 }, { value: 73 }, { value: 74 }, { value: 75 }],
-  flat: [{ value: 3 }, { value: 3 }, { value: 3 }, { value: 3 }, { value: 3 }, { value: 3 }, { value: 3 }],
-};
 
 // Grade distribution
 function gradeDistribution(results: typeof EXAM_RESULTS) {
@@ -117,7 +112,6 @@ export function ExamResultsPage() {
           icon={Users}
           iconCls={METRIC_TONES.blue}
           trend={{ value: "+4.2%", up: true, compareLabel: "vs last term" }}
-          sparklineData={SPARK.up}
           sparklineColor={CATEGORICAL_COLORS[0]}
         />
         <KPITrendCard
@@ -130,7 +124,6 @@ export function ExamResultsPage() {
             up: passCount >= failCount,
             compareLabel: "pass rate vs last term",
           }}
-          sparklineData={SPARK.flat}
           sparklineColor={CATEGORICAL_COLORS[4]}
         />
         <KPITrendCard
@@ -139,7 +132,6 @@ export function ExamResultsPage() {
           icon={Percent}
           iconCls={METRIC_TONES.amber}
           trend={{ value: "+1.6%", up: true, compareLabel: "vs last term" }}
-          sparklineData={SPARK.upSlow}
           sparklineColor={STATUS_COLORS.warning}
         />
         <KPITrendCard
@@ -148,7 +140,6 @@ export function ExamResultsPage() {
           icon={Award}
           iconCls={METRIC_TONES.cyan}
           trend={{ value: "+0.8%", up: true, compareLabel: "vs last term" }}
-          sparklineData={SPARK.upSlow}
           sparklineColor={CATEGORICAL_COLORS[5]}
         />
       </div>

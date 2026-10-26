@@ -74,7 +74,8 @@ type-checker shows anything still using fake data.
 | Students: list, details, add/edit form with guardians, photo, documents (upload/verify), status changes, CSV export | ✅ |
 | Parents / guardians: list, details (children, attendance, results, fee records), add/edit with a real student picker and staff notes | ✅ |
 | Teachers: list (salary shown only with payroll access), details (schedule, attendance, exam duties, payroll and payslips), add/edit with class/subject **assignment editor**, salary structure, career fields | ✅ |
-| Classes, subjects, class routine | 🚧 |
+| Classes: list, details (sections with attendance, students with fee status, teachers, timetable, performance from the latest exam, fees, exam papers), add/edit with sections and curriculum | ✅ |
+| Subjects, class routine | 🚧 |
 | Attendance | ⬜ |
 | Exams (schedule, grades, marks entry, results, report and admit cards) | ⬜ |
 | Billing (fees, invoices, payments, expenses, payroll, vendors, reports) | ⬜ |
@@ -97,6 +98,11 @@ type-checker shows anything still using fake data.
 | Structured logging, Sentry, readiness checks | ⬜ |
 | Backups | ⬜ |
 | SaaS billing, entitlements and admissions CRM (`BLUEPRINT-PREMIUM.md`) | ⬜ |
+
+### App-wide clean-ups
+- Summary cards across 24 pages showed hard-coded "+8.2% vs last month" trends and sparklines;
+  the shared KPI card now renders trends/sparklines only from real series, and the invented
+  ones are removed.
 
 ### Known gaps (no backend yet, shown honestly in the UI)
 - Student CSV **import**, transport and hostel, awards, teacher remarks.

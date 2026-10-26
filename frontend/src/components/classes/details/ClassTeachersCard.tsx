@@ -1,6 +1,7 @@
 import { Phone, Users } from "lucide-react";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { DetailTeacher } from "@/data/classDetailData";
+import type { DetailTeacher } from "@/api/types/classes";
 
 const ROLE_CFG = {
   "Class Teacher":     "bg-violet-50 text-violet-700 ring-violet-500/30 dark:bg-violet-950/40 dark:text-violet-400",
@@ -14,6 +15,13 @@ function initials(name: string) {
 }
 
 export function ClassTeachersCard({ teachers }: { teachers: DetailTeacher[] }) {
+  if (teachers.length === 0) {
+    return (
+      <DetailCard icon={Users} title="Assigned Teachers">
+        <PremiumEmptyState title="No teachers assigned to this class yet." className="py-6" />
+      </DetailCard>
+    );
+  }
   return (
     <DetailCard icon={Users} title="Assigned Teachers">
         <div className="overflow-x-auto">

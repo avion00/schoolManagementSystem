@@ -12,12 +12,6 @@ import { TEACHERS_REF, TEACHER_JULY_ATT, isWorkingDay } from "@/data/attendanceD
 // Working days in July 2026 through day 6: 1(W), 2(Th), 3(F), 6(M)
 const WORKING_DAYS_SO_FAR = [1, 2, 3, 6].filter((d) => isWorkingDay(2026, 7, d)).length;
 
-const SPARK = {
-  present:  [{ value: 6 }, { value: 7 }, { value: 6 }, { value: 7 }, { value: 8 }, { value: 7 }, { value: 8 }],
-  absent:   [{ value: 2 }, { value: 1 }, { value: 2 }, { value: 1 }, { value: 1 }, { value: 0 }, { value: 1 }],
-  late:     [{ value: 1 }, { value: 2 }, { value: 1 }, { value: 1 }, { value: 2 }, { value: 1 }, { value: 1 }],
-  halfDay:  [{ value: 1 }, { value: 1 }, { value: 0 }, { value: 1 }, { value: 1 }, { value: 1 }, { value: 1 }],
-};
 
 export function TeacherAttendancePage() {
   const stats = useMemo(() => {
@@ -35,23 +29,19 @@ export function TeacherAttendancePage() {
   const summaryCards = [
     {
       label: "Present Today", value: stats.present, icon: UserCheck, tone: METRIC_TONES.green,
-      sparkColor: STATUS_COLORS.good, sparkData: SPARK.present,
-      trend: { value: "+4.1%", up: true, compareLabel: "vs yesterday" },
+      sparkColor: STATUS_COLORS.good,
     },
     {
       label: "Absent Today", value: stats.absent, icon: UserX, tone: METRIC_TONES.red,
-      sparkColor: STATUS_COLORS.critical, sparkData: SPARK.absent,
-      trend: { value: "-2.0%", up: false, compareLabel: "vs yesterday" },
+      sparkColor: STATUS_COLORS.critical,
     },
     {
       label: "Late Today", value: stats.late, icon: Clock, tone: METRIC_TONES.amber,
-      sparkColor: STATUS_COLORS.warning, sparkData: SPARK.late,
-      trend: { value: "+1.0%", up: true, compareLabel: "vs yesterday" },
+      sparkColor: STATUS_COLORS.warning,
     },
     {
       label: "Half Day Today", value: stats.halfDay, icon: Clock3, tone: METRIC_TONES.blue,
-      sparkColor: CATEGORICAL_COLORS[0], sparkData: SPARK.halfDay,
-      trend: { value: "0.0%", up: true, compareLabel: "vs yesterday" },
+      sparkColor: CATEGORICAL_COLORS[0],
     },
   ];
 
@@ -71,8 +61,6 @@ export function TeacherAttendancePage() {
               value={s.value}
               icon={s.icon}
               iconCls={s.tone}
-              trend={s.trend}
-              sparklineData={s.sparkData}
               sparklineColor={s.sparkColor}
             />
           </Reveal>

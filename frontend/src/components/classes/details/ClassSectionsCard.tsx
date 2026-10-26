@@ -2,7 +2,7 @@ import { Eye, Layers, Pencil, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { ClassSection } from "@/data/classesData";
+import type { ClassSection } from "@/api/types/classes";
 
 const SECTION_COLORS = [
   "border-l-violet-500", "border-l-blue-500", "border-l-emerald-500",
@@ -80,11 +80,11 @@ export function ClassSectionsCard({ sections }: { sections: ClassSection[] }) {
                 <div className="mt-2">
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="text-muted-foreground">Attendance</span>
-                    <span className={`font-medium ${section.attendanceAverage >= 90 ? "text-emerald-600" : section.attendanceAverage >= 75 ? "text-amber-600" : "text-rose-600"}`}>
-                      {section.attendanceAverage}%
+                    <span className={`font-medium ${(section.attendanceAverage ?? 0) >= 90 ? "text-emerald-600" : (section.attendanceAverage ?? 0) >= 75 ? "text-amber-600" : "text-rose-600"}`}>
+                      {section.attendanceAverage === null ? "—" : `${section.attendanceAverage}%`}
                     </span>
                   </div>
-                  {pctBar(section.attendanceAverage)}
+                  {pctBar(section.attendanceAverage ?? 0)}
                 </div>
 
                 {/* Actions */}
