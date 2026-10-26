@@ -53,6 +53,11 @@ PERMISSIONS = [
     ("lms.manage", "Create assignments / materials / lesson plans for own classes", "lms"),
     ("lms.manage.all", "Manage any class's assignments and materials", "lms"),
     ("lms.review", "Review lesson plans", "lms"),
+    ("finance.view", "View expenses, vendors and finance reports", "finance"),
+    ("finance.expense.manage", "Record expenses and vendors", "finance"),
+    ("finance.expense.approve", "Approve / reject expenses", "finance"),
+    ("payroll.manage", "Manage salaries and prepare payroll", "finance"),
+    ("payroll.approve", "Approve and release payroll", "finance"),
     ("timetable.view", "View class routines", "timetable"),
     ("timetable.manage", "Manage class routines and period slots", "timetable"),
     ("attendance.manage.all", "Mark / edit any class's attendance, any past date", "attendance"),
@@ -71,6 +76,7 @@ ROLE_PERMISSIONS = {
     "Accountant": [
         "fee.view", "fee.create", "fee.collect", "fee.refund",
         "fee.discount.approve", "report.view",
+        "finance.view", "finance.expense.manage", "payroll.manage",
     ],
     "Parent": [
         "student.view.own", "attendance.view.own", "result.view.own", "fee.view.own",

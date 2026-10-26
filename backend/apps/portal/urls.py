@@ -1,5 +1,6 @@
 from django.urls import path
 
+from apps.finance.views import MyPayslipsView
 from apps.lms.portal import MyAssignmentsView, MyChildAssignmentsView, MyMaterialsView, MySubmitView
 
 from .views import (
@@ -61,6 +62,7 @@ urlpatterns = [
     path("teacher/classes/", MyClassesView.as_view(), name="my-classes"),
     path("teacher/classes/<uuid:assignment_id>/students/", MyClassStudentsView.as_view(),
          name="my-class-students"),
+    path("teacher/payslips/", MyPayslipsView.as_view(), name="my-payslips"),
     path("teacher/timetable/", MyTeacherTimetableView.as_view(), name="my-teacher-timetable"),
     path("teacher/today/", MyTeacherTodayView.as_view(), name="my-teacher-today"),
     path("teacher/attendance/", MyStaffAttendanceView.as_view(), name="my-staff-attendance"),

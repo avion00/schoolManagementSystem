@@ -57,6 +57,7 @@ LOCAL_APPS = [
     "apps.messaging",
     "apps.files",
     "apps.lms",
+    "apps.finance",
     "apps.reports",
     "apps.portal",
 ]
