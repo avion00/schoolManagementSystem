@@ -32,6 +32,7 @@ api_v1 = [
     path("files/", include("apps.files.urls")),
     path("lms/", include("apps.lms.urls")),
     path("finance/", include("apps.finance.urls")),
+    path("helpdesk/", include("apps.helpdesk.urls")),
 ]
 
 urlpatterns = [

@@ -58,6 +58,7 @@ PERMISSIONS = [
     ("finance.expense.approve", "Approve / reject expenses", "finance"),
     ("payroll.manage", "Manage salaries and prepare payroll", "finance"),
     ("payroll.approve", "Approve and release payroll", "finance"),
+    ("helpdesk.manage", "Work the help desk (all tickets, assign, internal notes)", "helpdesk"),
     ("timetable.view", "View class routines", "timetable"),
     ("timetable.manage", "Manage class routines and period slots", "timetable"),
     ("attendance.manage.all", "Mark / edit any class's attendance, any past date", "attendance"),

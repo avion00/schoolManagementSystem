@@ -58,6 +58,7 @@ LOCAL_APPS = [
     "apps.files",
     "apps.lms",
     "apps.finance",
+    "apps.helpdesk",
     "apps.reports",
     "apps.portal",
 ]
@@ -217,6 +218,15 @@ SPECTACULAR_SETTINGS = {
         "NoticeCategoryEnum": "apps.communications.models.Notice.Category",
         "NotificationCategoryEnum": "apps.communications.models.Notification.Category",
         "SubjectCategoryEnum": "apps.academics.models.Subject.Category",
+        "TicketStatusEnum": "apps.helpdesk.models.Ticket.Status",
+        "TicketCategoryEnum": "apps.helpdesk.models.Ticket.Category",
+        "ExpenseStatusEnum": "apps.finance.models.Expense.Status",
+        "ExpenseCategoryEnum": "apps.finance.models.Expense.Category",
+        "VendorCategoryEnum": "apps.finance.models.Vendor.Category",
+        "PayrollRunStatusEnum": "apps.finance.models.PayrollRun.Status",
+        "AssignmentStatusEnum": "apps.lms.models.Assignment.Status",
+        "SubmissionStatusEnum": "apps.lms.models.Submission.Status",
+        "LessonPlanStatusEnum": "apps.lms.models.LessonPlan.Status",
     },
 }
 
