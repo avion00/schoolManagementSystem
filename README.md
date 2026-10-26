@@ -29,6 +29,7 @@ and the core `school.md` spec.
 |---|---|
 | Backend | Django 5.2 + Django REST Framework |
 | Auth | SimpleJWT in HttpOnly cookies, refresh rotation + blacklist, Argon2 hashing |
+| Realtime | Django Channels + Daphne (in-memory layer in dev; Redis via `REDIS_URL` in production) |
 | DB | SQLite by default (dev); PostgreSQL-ready via `DATABASE_URL` |
 | API docs | drf-spectacular (OpenAPI 3 + Swagger UI) |
 | Frontend | React 18 + Vite + TypeScript (TSX), React Router, TanStack Query |
@@ -91,6 +92,7 @@ python manage.py spectacular --validate --fail-on-warn --file /dev/null   # Open
 ```
 
 API base: `http://127.0.0.1:8000/api/v1/` · Swagger: `http://127.0.0.1:8000/api/docs/`
+· Messaging WebSocket: `ws://127.0.0.1:8000/ws/messaging/` (`runserver` serves ASGI via Daphne)
 · Django admin: `http://127.0.0.1:8000/admin/`
 
 ### Use PostgreSQL instead of SQLite

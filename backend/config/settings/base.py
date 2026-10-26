@@ -24,6 +24,7 @@ DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
 DJANGO_APPS = [
+    "daphne",  # ASGI runserver (HTTP + WebSockets); must precede staticfiles
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -53,6 +54,7 @@ LOCAL_APPS = [
     "apps.fees",
     "apps.timetable",
     "apps.communications",
+    "apps.messaging",
     "apps.reports",
     "apps.portal",
 ]
@@ -226,3 +228,17 @@ CSRF_TRUSTED_ORIGINS = env.list(
 # Users without attendance.manage.all may only enter/edit attendance this many
 # days back (school.md §7.8: past attendance is locked).
 ATTENDANCE_EDIT_WINDOW_DAYS = env.int("ATTENDANCE_EDIT_WINDOW_DAYS", default=7)
+
+# ---------------------------------------------------------------------------
+# Channels (WebSockets). In-memory layer works for a single dev process; set
+# REDIS_URL in production so events reach sockets on every worker.
+# ---------------------------------------------------------------------------
+if env("REDIS_URL", default=""):
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {"hosts": [env("REDIS_URL")]},
+        }
+    }
+else:
+    CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}

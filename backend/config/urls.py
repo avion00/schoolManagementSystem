@@ -28,6 +28,7 @@ api_v1 = [
     path("fees/", include("apps.fees.urls")),
     path("timetable/", include("apps.timetable.urls")),
     path("", include("apps.communications.urls")),
+    path("messaging/", include("apps.messaging.urls")),
 ]
 
 urlpatterns = [

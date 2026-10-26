@@ -69,21 +69,29 @@ def visible_notices(user):
 
 def audience_users(notice):
     """Active users in the notice's organization who can see it."""
-    classes = list(notice.target_class_levels.values_list("pk", flat=True))
-    sections = list(notice.target_sections.values_list("pk", flat=True))
-    targeted = bool(classes or sections)
+    return resolve_audience(
+        notice.organization_id, notice.audience,
+        list(notice.target_class_levels.values_list("pk", flat=True)),
+        list(notice.target_sections.values_list("pk", flat=True)),
+    )
+
+
+def resolve_audience(organization_id, audience, class_ids=(), section_ids=()):
+    """Active users of an audience group, optionally narrowed to classes/sections.
+    Shared by notices and message broadcasts."""
+    targeted = bool(class_ids or section_ids)
 
     def scoped(prefix_class, prefix_section):
         if not targeted:
             return Q()
-        return Q(**{f"{prefix_class}__in": classes}) | Q(**{f"{prefix_section}__in": sections})
+        return Q(**{f"{prefix_class}__in": class_ids}) | Q(**{f"{prefix_section}__in": section_ids})
 
     q = Q(pk__in=[])
-    if notice.audience in STUDENT_AUDIENCES:
+    if audience in STUDENT_AUDIENCES:
         q |= Q(student_profile__is_active=True, student_profile__status="active") & scoped(
             "student_profile__class_level", "student_profile__section"
         )
-    if notice.audience in PARENT_AUDIENCES:
+    if audience in PARENT_AUDIENCES:
         q |= Q(
             guardian_profile__is_active=True, guardian_profile__status="active",
             guardian_profile__student_links__is_active=True,
@@ -92,13 +100,13 @@ def audience_users(notice):
             "guardian_profile__student_links__student__class_level",
             "guardian_profile__student_links__student__section",
         )
-    if notice.audience in TEACHER_AUDIENCES:
+    if audience in TEACHER_AUDIENCES:
         q |= Q(teacher_profile__is_active=True) & scoped(
             "teacher_profile__assignments__class_level", "teacher_profile__assignments__section"
         )
-    if notice.audience in STAFF_AUDIENCES:
+    if audience in STAFF_AUDIENCES:
         q |= Q(student_profile__isnull=True, guardian_profile__isnull=True, teacher_profile__isnull=True)
-    return User.objects.filter(q, organization_id=notice.organization_id, is_active=True).distinct()
+    return User.objects.filter(q, organization_id=organization_id, is_active=True).distinct()
 
 
 def notify(users, *, title, body="", category=Notification.Category.SYSTEM,
