@@ -196,3 +196,10 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = env.list(
     "CSRF_TRUSTED_ORIGINS", default=["http://localhost:5173", "http://127.0.0.1:5173"]
 )
+
+# ---------------------------------------------------------------------------
+# Domain rules
+# ---------------------------------------------------------------------------
+# Users without attendance.manage.all may only enter/edit attendance this many
+# days back (school.md §7.8: past attendance is locked).
+ATTENDANCE_EDIT_WINDOW_DAYS = env.int("ATTENDANCE_EDIT_WINDOW_DAYS", default=7)
