@@ -14204,6 +14204,9 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        is_late_fee:
+          type: boolean
+          readOnly: true
         is_active:
           type: boolean
           readOnly: true
@@ -14213,6 +14216,7 @@ components:
       - id
       - invoice
       - is_active
+      - is_late_fee
     InvoiceStatusEnum:
       enum:
       - unpaid
@@ -16696,6 +16700,9 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        is_late_fee:
+          type: boolean
+          readOnly: true
         is_active:
           type: boolean
           readOnly: true

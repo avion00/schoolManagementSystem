@@ -4,7 +4,7 @@ import { CATEGORICAL_COLORS, STATUS_COLORS } from "@/components/charts/palette";
 import { Reveal } from "@/components/motion";
 import { KPITrendCard } from "@/components/ui/KPITrendCard";
 import { METRIC_TONES } from "@/components/ui/MetricCard";
-import type { StudentFee } from "@/data/billingData";
+import type { StudentFee } from "@/api/types/billing";
 
 
 export function StudentFeesSummaryCards({ studentFees }: { studentFees: StudentFee[] }) {

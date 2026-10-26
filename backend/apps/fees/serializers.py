@@ -49,9 +49,9 @@ class InvoiceItemSerializer(serializers.ModelSerializer):
         model = InvoiceItem
         fields = [
             "id", "invoice", "category", "category_name", "description",
-            "quantity", "unit_price", "amount", "is_active",
+            "quantity", "unit_price", "amount", "is_late_fee", "is_active",
         ]
-        read_only_fields = ["is_active"]
+        read_only_fields = ["is_late_fee", "is_active"]
         extra_kwargs = {"amount": {"required": False}}
 
     def validate(self, attrs):

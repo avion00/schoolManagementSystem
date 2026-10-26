@@ -3,9 +3,11 @@ import { FileText, FileWarning, ReceiptText, Wallet } from "lucide-react";
 import { CATEGORICAL_COLORS, STATUS_COLORS } from "@/components/charts/palette";
 import { Reveal } from "@/components/motion";
 import { KPITrendCard } from "@/components/ui/KPITrendCard";
-import type { Invoice } from "@/data/billingData";
+import type { Invoice } from "@/api/types/billing";
+import { useMoney } from "@/api/billing";
 
 export function InvoicesSummaryCards({ invoices }: { invoices: Invoice[] }) {
+  const money = useMoney();
   const totalAmount = invoices.reduce((s, i) => s + i.amount, 0);
   const totalPaid = invoices.reduce((s, i) => s + i.paid, 0);
   const totalBalance = invoices.reduce((s, i) => s + i.balance, 0);
@@ -17,15 +19,15 @@ export function InvoicesSummaryCards({ invoices }: { invoices: Invoice[] }) {
       sparkColor: CATEGORICAL_COLORS[0],
     },
     {
-      label: "Total Billed", value: `$${totalAmount.toLocaleString()}`, icon: ReceiptText, cls: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+      label: "Total Billed", value: `${money(totalAmount)}`, icon: ReceiptText, cls: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
       sparkColor: CATEGORICAL_COLORS[4],
     },
     {
-      label: "Total Collected", value: `$${totalPaid.toLocaleString()}`, icon: Wallet, cls: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+      label: "Total Collected", value: `${money(totalPaid)}`, icon: Wallet, cls: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
       sparkColor: STATUS_COLORS.good,
     },
     {
-      label: "Outstanding Balance", value: `$${totalBalance.toLocaleString()}`, icon: FileWarning, cls: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+      label: "Outstanding Balance", value: `${money(totalBalance)}`, icon: FileWarning, cls: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
       sparkColor: STATUS_COLORS.critical,
     },
   ];

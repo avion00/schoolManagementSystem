@@ -1,6 +1,6 @@
 import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { PremiumTableToolbar } from "@/components/ui/PremiumTableToolbar";
-import { VENDOR_CATEGORY_OPTIONS } from "@/data/billingData";
+import { VENDOR_CATEGORY_OPTIONS } from "@/api/types/billing";
 
 export interface VendorsFilters {
   search: string;

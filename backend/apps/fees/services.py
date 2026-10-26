@@ -1,5 +1,6 @@
 """Fee operations: bulk billing, overdue marking, the student ledger and the
 per-student fee roster."""
+from datetime import timedelta
 from decimal import Decimal
 
 from django.db import transaction
@@ -70,6 +71,49 @@ def mark_overdue(organization_id=None):
     if organization_id:
         qs = qs.filter(organization_id=organization_id)
     return qs.update(status=Invoice.Status.OVERDUE, updated_at=timezone.now())
+
+
+def apply_late_fees(organization_id=None):
+    """Add the school's late fee (Settings → Fees) once to each open invoice that is
+    past its due date by more than the grace period. Returns how many were charged.
+
+    A fixed fee adds `late_fee_amount`; a percentage fee charges that percent of
+    the balance outstanding at the time.
+    """
+    from apps.orgsettings.services import org_settings
+
+    today = timezone.localdate()
+    orgs = Invoice.objects.filter(status__in=OPEN, due_date__isnull=False)
+    if organization_id:
+        orgs = orgs.filter(organization_id=organization_id)
+    charged = 0
+    for org_id in orgs.values_list("organization_id", flat=True).distinct():
+        cfg = org_settings(org_id)["fees"]
+        amount = Decimal(str(cfg["late_fee_amount"] or 0))
+        if not cfg["late_fee_enabled"] or amount <= 0:
+            continue
+        cutoff = today - timedelta(days=int(cfg["grace_period_days"] or 0))
+        due = Invoice.objects.filter(
+            organization_id=org_id, status__in=OPEN, due_date__lt=cutoff,
+        ).exclude(items__is_late_fee=True, items__is_active=True)
+        for inv in due:
+            with transaction.atomic():
+                inv = Invoice.objects.select_for_update().get(pk=inv.pk)
+                inv.recalculate(commit=False)
+                if inv.balance <= 0 or inv.items.filter(is_late_fee=True, is_active=True).exists():
+                    continue
+                fee = amount if cfg["late_fee_type"] == "fixed" else (inv.balance * amount / 100).quantize(Decimal("0.01"))
+                if fee <= 0:
+                    continue
+                InvoiceItem.objects.create(
+                    organization_id=org_id, invoice=inv, description=f"Late fee (due {inv.due_date})",
+                    quantity=1, unit_price=fee, amount=fee, is_late_fee=True,
+                )
+                inv.total_amount = inv.items.filter(is_active=True).aggregate(t=Sum("amount"))["t"] or ZERO
+                inv.recalculate(commit=False)
+                inv.save(update_fields=["total_amount", "discount_amount", "paid_amount", "status", "updated_at"])
+                charged += 1
+    return charged
 
 
 def ledger(student):

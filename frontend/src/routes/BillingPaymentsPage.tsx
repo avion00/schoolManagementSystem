@@ -6,7 +6,13 @@ import { PaymentsSummaryCards } from "@/components/billing/PaymentsSummaryCards"
 import { PaymentsTable, type PaymentAction } from "@/components/billing/PaymentsTable";
 import { PaymentsToolbar, type PaymentsFilters } from "@/components/billing/PaymentsToolbar";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { PAYMENTS, type Payment } from "@/data/billingData";
+import { Button } from "@/components/ui/button";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { usePayments, useReversePayment } from "@/api/billing";
+import { errorMessage } from "@/api/http";
+import type { Payment } from "@/api/types/billing";
+import { useAuth } from "@/lib/auth";
 
 const PAGE_SIZE = 10;
 type SortField = "paymentId" | "studentName" | "amount" | "paymentDate" | "status";
@@ -16,7 +22,10 @@ const EMPTY_FILTERS: PaymentsFilters = { search: "", method: "all", status: "all
 
 export function BillingPaymentsPage() {
   const navigate = useNavigate();
-  const [payments, setPayments] = useState<Payment[]>(PAYMENTS);
+  const query = usePayments();
+  const payments = useMemo(() => query.data ?? [], [query.data]);
+  const reverse = useReversePayment();
+  const { hasPermission } = useAuth();
   const [filters, setFilters] = useState<PaymentsFilters>(EMPTY_FILTERS);
   const [sortField, setSortField] = useState<SortField>("paymentDate");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -45,7 +54,7 @@ export function BillingPaymentsPage() {
     return payments.filter((p) => {
       if (filters.method !== "all" && p.method !== filters.method) return false;
       if (filters.status !== "all" && p.status !== filters.status) return false;
-      if (q && !`${p.paymentId} ${p.invoiceNo} ${p.studentName} ${p.parentName}`.toLowerCase().includes(q)) return false;
+      if (q && !`${p.paymentId} ${p.invoiceNo} ${p.studentName} ${p.transactionId}`.toLowerCase().includes(q)) return false;
       return true;
     });
   }, [payments, filters]);
@@ -66,17 +75,16 @@ export function BillingPaymentsPage() {
   function handleAction(p: Payment, action: PaymentAction) {
     switch (action) {
       case "view-receipt": navigate(`/billing/receipts/${p.id}`); break;
-      case "print-receipt": navigate(`/billing/receipts/${p.id}`); break;
-      case "verify":
-        setPayments((prev) => prev.map((row) => (row.id === p.id ? { ...row, status: "Completed" } : row)));
-        console.log("Verified payment:", p.paymentId);
-        toast.success(`${p.paymentId} verified.`);
+      case "view-invoice": navigate(`/billing/invoices/${p.invoiceId}`); break;
+      case "reverse": {
+        const reason = window.prompt(`Reverse ${p.paymentId}? The invoice balance goes back up. Give a reason.`);
+        if (!reason?.trim()) return;
+        reverse.mutate({ id: p.id, reason: reason.trim() }, {
+          onSuccess: () => toast.success(`${p.paymentId} reversed.`),
+          onError: (e) => toast.error(errorMessage(e)),
+        });
         break;
-      case "refund":
-        setPayments((prev) => prev.map((row) => (row.id === p.id ? { ...row, status: "Refunded" } : row)));
-        console.log("Refunded payment:", p.paymentId);
-        toast.success(`${p.paymentId} refunded.`);
-        break;
+      }
     }
   }
 
@@ -91,8 +99,15 @@ export function BillingPaymentsPage() {
             )}
           </>
         }
-        description="Track received payments, receipts, and refunds."
+        description="Track received payments, receipts, and reversals."
       />
+
+      {query.isError && (
+        <PremiumEmptyState title="Couldn't load payments" description={errorMessage(query.error)}
+          action={<Button size="sm" variant="outline" onClick={() => query.refetch()}>Try again</Button>} />
+      )}
+      {query.isLoading && <PremiumSkeleton className="h-72 w-full rounded-2xl" />}
+      {query.isSuccess && (<>
 
       <PaymentsSummaryCards payments={payments} />
 
@@ -109,7 +124,9 @@ export function BillingPaymentsPage() {
         pagination={{ page: safePage, pageSize: PAGE_SIZE, total: sorted.length, onPage: (p) => { setPage(p); setSelected(new Set()); }, itemLabel: "payments" }}
         hasActiveFilter={hasActiveFilter}
         onResetFilters={resetFilters}
+        canReverse={hasPermission("fee.refund")}
       />
+      </>)}
     </div>
   );
 }

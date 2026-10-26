@@ -4,7 +4,8 @@ import { CATEGORICAL_COLORS, STATUS_COLORS } from "@/components/charts/palette";
 import { Reveal } from "@/components/motion";
 import { KPITrendCard, type KPITrend } from "@/components/ui/KPITrendCard";
 import { METRIC_TONES } from "@/components/ui/MetricCard";
-import type { Expense } from "@/data/billingData";
+import type { Expense } from "@/api/types/billing";
+import { useMoney } from "@/api/billing";
 
 const BUCKETS: Record<string, string[]> = {
   "Staff Salary": ["Teacher Salary", "Staff Salary"],
@@ -48,6 +49,7 @@ const META: Record<string, CardMeta> = {
 };
 
 export function ExpensesSummaryCards({ expenses }: { expenses: Expense[] }) {
+  const money = useMoney();
   const bucketTotals: Record<string, number> = { "Staff Salary": 0, Materials: 0, Utilities: 0, Maintenance: 0, Transport: 0, Other: 0 };
   expenses.forEach((e) => {
     const bucket = Object.entries(BUCKETS).find(([, cats]) => cats.includes(e.category))?.[0];
@@ -68,7 +70,7 @@ export function ExpensesSummaryCards({ expenses }: { expenses: Expense[] }) {
           <Reveal key={c.label} delay={i * 40}>
             <KPITrendCard
               label={c.label}
-              value={`$${c.value.toLocaleString()}`}
+              value={`${money(c.value)}`}
               icon={meta.icon}
               iconCls={meta.tone}
               sparklineColor={meta.sparkColor}

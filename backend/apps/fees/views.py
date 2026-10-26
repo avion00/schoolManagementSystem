@@ -21,6 +21,7 @@ from apps.core.pagination import DefaultPagination
 from apps.core.permissions import HasPermission
 from apps.core.sequences import next_document_number
 from apps.core.viewsets import TenantModelViewSet
+from apps.orgsettings.services import get_setting
 from apps.students.models import Student
 
 from . import services
@@ -229,6 +230,9 @@ class PaymentViewSet(TenantModelViewSet):
         if invoice.status == Invoice.Status.CANCELLED:
             raise ValidationError("Cannot record a payment on a cancelled invoice.")
         invoice.recalculate(commit=False)
+        method = serializer.validated_data.get("method") or Payment.Method.CASH
+        if not get_setting(invoice.organization_id, "fees", "payment_methods").get(method, True):
+            raise ValidationError({"method": "This payment method is turned off in Settings → Fees."})
         amount = serializer.validated_data["amount"]
         if amount > invoice.balance:
             raise ValidationError(

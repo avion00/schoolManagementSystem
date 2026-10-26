@@ -75,6 +75,7 @@ python manage.py migrate
 python manage.py seed_demo      # demo org, roles, users
 python manage.py seed_rich      # optional: ~60 students, invoices, attendance, marks
 python manage.py seed_exams     # optional: grade scale, exam rooms, paper timetable
+python manage.py seed_finance   # optional: fee structures, vendors, expenses, payroll
 python manage.py runserver 127.0.0.1:8000
 ```
 

@@ -12,7 +12,7 @@ export function RevenueExpenseChart({
   data,
   title = "Revenue vs. Expenses",
   subtitle,
-  valueFormatter = (v) => `$${(v / 1000).toFixed(0)}k`,
+  valueFormatter = (v) => `${(v / 1000).toFixed(0)}k`,
 }: {
   data: RevenueExpensePoint[];
   title?: string;

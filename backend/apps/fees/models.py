@@ -137,6 +137,8 @@ class InvoiceItem(TenantBaseModel):
     quantity = models.PositiveIntegerField(default=1)
     unit_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     amount = models.DecimalField(max_digits=12, decimal_places=2)  # quantity × unit price
+    # Added automatically by `apply_late_fees`; at most one per invoice.
+    is_late_fee = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["created_at"]

@@ -170,3 +170,31 @@ run("contract: exams", () => {
     await get(`/exams/exam-subjects/conflicts/`, { exam: paper.examRecordId });
   });
 });
+
+run("contract: billing", () => {
+  beforeAll(() => signIn());
+
+  it("maps invoices, payments, fee roster, structures, expenses, vendors and payroll", async () => {
+    const { get, getAll } = await import("../http");
+    const b = await import("../billing");
+    const invoices = (await getAll<never>("/fees/invoices/")).map(b.mapInvoice);
+    expect(invoices.length).toBeGreaterThan(0);
+    expect(invoices.every((i) => Math.abs(i.amount - i.discount - i.paid - i.balance) < 0.01)).toBe(true);
+    const payments = (await getAll<never>("/fees/payments/")).map(b.mapPayment);
+    expect(payments.every((p) => p.paymentId && p.method)).toBe(true);
+    const roster = await get<{ results: { status: string }[] }>("/fees/student-fees/", { page_size: 5 });
+    for (const r of roster.results) expect(["paid", "partial", "due", "overdue", "waived", "no_fees"]).toContain(r.status);
+    expect((await getAll<never>("/fees/fee-structures/")).map(b.mapStructure).length).toBeGreaterThan(0);
+    const summary = await get<{ collected_by_method: object; outstanding: number }>("/fees/reports/summary/");
+    expect(typeof summary.outstanding).toBe("number");
+    const finance = await get<{ trend: unknown[]; payroll_due: number }>("/finance/summary/", { months: 6 });
+    expect(finance.trend).toHaveLength(6);
+    expect((await getAll<never>("/finance/expenses/")).map(b.mapExpense).length).toBeGreaterThan(0);
+    expect((await getAll<never>("/finance/vendors/")).map(b.mapVendor).length).toBeGreaterThan(0);
+    const runs = (await getAll<never>("/finance/payroll-runs/")).map(b.mapRun);
+    const slips = await get<{ payslips: never[] }>(`/finance/payroll-runs/${runs[0].id}/payslips/`);
+    expect(slips.payslips.map(b.mapPayslip).every((p) => p.netSalary >= 0)).toBe(true);
+    const fees = await get<{ currency_symbol: string; payment_methods: Record<string, boolean> }>("/settings/fees/");
+    expect(fees.payment_methods).toHaveProperty("cheque");
+  });
+});

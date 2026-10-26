@@ -3,51 +3,27 @@ import {
   AlertTriangle, Banknote, Clock, FileText, PiggyBank, TrendingDown, TrendingUp, Wallet,
 } from "lucide-react";
 
-import { CATEGORICAL_COLORS, STATUS_COLORS } from "@/components/charts/palette";
 import { Reveal } from "@/components/motion";
 import { KPITrendCard } from "@/components/ui/KPITrendCard";
 import { METRIC_TONES } from "@/components/ui/MetricCard";
-import { billingSummary } from "@/data/billingData";
+import { useMoney, type FeeSummary, type FinanceSummary } from "@/api/billing";
 
-function money(n: number) { return `$${Math.round(n).toLocaleString()}`; }
 
-export function BillingSummaryCards() {
-  const netBalance = billingSummary.totalRevenue - billingSummary.expensesThisMonth - billingSummary.payrollDue;
+/** This month's fee and finance figures (finance cards show "—" without finance access). */
+export function BillingSummaryCards({ fees, finance }: { fees: FeeSummary | undefined; finance: FinanceSummary | undefined }) {
+  const money = useMoney();
+  const net = fees && finance ? fees.collected - finance.paidThisMonth : null;
 
   const stats = useMemo(() => [
-    {
-      label: "Total Revenue", value: money(billingSummary.totalRevenue), icon: TrendingUp, tone: METRIC_TONES.green,
-      sparkColor: STATUS_COLORS.good,
-    },
-    {
-      label: "Fees Collected", value: money(billingSummary.feesCollected), icon: Banknote, tone: METRIC_TONES.green,
-      sparkColor: CATEGORICAL_COLORS[1],
-    },
-    {
-      label: "Outstanding Dues", value: money(billingSummary.outstandingDues), icon: Clock, tone: METRIC_TONES.amber,
-      sparkColor: STATUS_COLORS.warning,
-    },
-    {
-      label: "Expenses This Month", value: money(billingSummary.expensesThisMonth), icon: TrendingDown, tone: METRIC_TONES.red,
-      sparkColor: STATUS_COLORS.critical,
-    },
-    {
-      label: "Payroll Due", value: money(billingSummary.payrollDue), icon: Wallet, tone: METRIC_TONES.purple,
-      sparkColor: CATEGORICAL_COLORS[4],
-    },
-    {
-      label: "Net Balance", value: money(netBalance), icon: PiggyBank, tone: netBalance >= 0 ? METRIC_TONES.green : METRIC_TONES.red,
-      sparkColor: netBalance >= 0 ? STATUS_COLORS.good : STATUS_COLORS.critical,
-    },
-    {
-      label: "Pending Invoices", value: String(billingSummary.pendingInvoices), icon: FileText, tone: METRIC_TONES.blue,
-      sparkColor: CATEGORICAL_COLORS[0],
-    },
-    {
-      label: "Overdue Payments", value: String(billingSummary.overduePayments), icon: AlertTriangle, tone: METRIC_TONES.red,
-      sparkColor: STATUS_COLORS.critical,
-    },
-  ], [netBalance]);
+    { label: "Billed This Month", value: money(fees ? fees.billed - fees.discounts : null), icon: TrendingUp, tone: METRIC_TONES.green },
+    { label: "Collected This Month", value: money(fees?.collected), icon: Banknote, tone: METRIC_TONES.green },
+    { label: "Outstanding Dues", value: money(fees?.outstanding), icon: Clock, tone: METRIC_TONES.amber },
+    { label: "Expenses Paid This Month", value: money(finance?.paidThisMonth), icon: TrendingDown, tone: METRIC_TONES.red },
+    { label: "Payroll Due", value: money(finance?.payrollDue), icon: Wallet, tone: METRIC_TONES.purple },
+    { label: "Net This Month", value: money(net), icon: PiggyBank, tone: (net ?? 0) >= 0 ? METRIC_TONES.green : METRIC_TONES.red },
+    { label: "Open Invoices", value: fees ? String(fees.openInvoices) : "—", icon: FileText, tone: METRIC_TONES.blue },
+    { label: "Overdue Invoices", value: fees ? String(fees.overdueInvoices) : "—", icon: AlertTriangle, tone: METRIC_TONES.red },
+  ], [fees, finance, net, money]);
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -58,7 +34,6 @@ export function BillingSummaryCards() {
             value={stat.value}
             icon={stat.icon}
             iconCls={stat.tone}
-            sparklineColor={stat.sparkColor}
           />
         </Reveal>
       ))}

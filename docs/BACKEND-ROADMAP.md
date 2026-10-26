@@ -78,7 +78,7 @@ type-checker shows anything still using fake data.
 | Subjects (list, details with mappings/teachers/syllabus/performance, form with class mappings) and class routine (list, weekly grid with real breaks, conflict flags from the server, print view, add/edit by section·day·period with clash messages, bell-schedule manager) | ✅ |
 | Attendance: dashboard (today's sections, staff today, 6-month trend, holidays), daily student register and staff register with real saves, monthly sheet (holidays and weekends from settings, CSV export), class comparison, student history over any range, reports (per-student summary via new `attendance/student-summary/`, low-attendance list, status split) | ✅ |
 | Exams: dashboard (upcoming papers, papers awaiting marks, class performance and top results from the latest published exam), paper schedule with server clash flags and CSV export, paper form (pick or create the exam; marks split; room and invigilators; server clash messages), grade scales and bands, marks entry (component or single-total papers, absent, bulk save, read-only when locked), results with **lock → publish** workflow (missing-marks prompt), report cards (attendance, class size) and admit cards (symbol numbers). `seed_exams` adds a demo grade scale, rooms and paper timetable | ✅ |
-| Billing (fees, invoices, payments, expenses, payroll, vendors, reports) | ⬜ |
+| Billing: overview (this month's figures, collections by method, dues, open payroll, alerts, activity), student fee roster with statement/invoice/payment actions, fee structures, invoices (single with line items, **bill a class** from structures), invoice page (payments, reversals, discount request/approval, cancel), receipts, expenses (record with bill upload, approve/reject by someone else, mark paid), vendors, **payroll runs** (generate, adjust payslips, approve, pay, printable payslips), reports with real CSV export, billing settings. All amounts use the school's currency. Backend: late fees are now applied by the daily overdue job and turned-off payment methods are refused. `seed_finance` adds demo finance data | ✅ |
 | Notices and notifications | ⬜ |
 | Messages (REST + WebSocket) | ⬜ |
 | Help desk | ⬜ |
@@ -88,16 +88,22 @@ type-checker shows anything still using fake data.
 | Teacher portal | ⬜ |
 | Parent portal (new pages) | ⬜ |
 
-## Phase 4: Production readiness
+## Phase 4: Production readiness (customer go-live)
+
+Decided 2026-10-26: no module goes live on mock data, so Phase 3 finishes first. Target is a
+single Linux VPS running Docker Compose.
 
 | Item | Status |
 |---|---|
-| Docker Compose with PostgreSQL, Redis and Celery | ⬜ |
-| PostgreSQL row-level security as a second tenant-isolation layer | ⬜ |
-| MFA (login lockout is done, in settings/account) | ⬜ |
-| Structured logging, Sentry, readiness checks | ⬜ |
-| Backups | ⬜ |
-| SaaS billing, entitlements and admissions CRM (`BLUEPRINT-PREMIUM.md`) | ⬜ |
+| Production settings: env-only secrets, `DEBUG` off, HTTPS/HSTS, secure cookies, allowed hosts/CORS/CSRF from env, `check --deploy` clean | ⬜ |
+| PostgreSQL (with `DATABASE_URL`), Redis for Channels/cache, Celery worker + beat for scheduled jobs | ⬜ |
+| Docker images (backend on Daphne, frontend built and served by Nginx), Compose stack, Nginx with TLS (Let's Encrypt) and WebSocket proxying | ⬜ |
+| Health/readiness endpoints, structured JSON logs, optional Sentry | ⬜ |
+| Static/media storage, upload limits, private files served only through the API | ⬜ |
+| Nightly Postgres backups with retention, plus a tested restore procedure | ⬜ |
+| First-customer bootstrap command (organization, school, admin user) without demo data | ⬜ |
+| Deploy runbook: server prep, first deploy, updates, rollback, backups | ⬜ |
+| Later: row-level security, MFA, SaaS billing/entitlements (`BLUEPRINT-PREMIUM.md`) | ⬜ |
 
 ### App-wide clean-ups
 - Summary cards across 24 pages showed hard-coded "+8.2% vs last month" trends and sparklines;

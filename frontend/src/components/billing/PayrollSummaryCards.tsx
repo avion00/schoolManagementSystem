@@ -4,36 +4,38 @@ import { CATEGORICAL_COLORS, STATUS_COLORS } from "@/components/charts/palette";
 import { Reveal } from "@/components/motion";
 import { KPITrendCard } from "@/components/ui/KPITrendCard";
 import { METRIC_TONES } from "@/components/ui/MetricCard";
-import type { Payroll } from "@/data/billingData";
+import type { Payroll } from "@/api/types/billing";
+import { useMoney } from "@/api/billing";
 
 
 export function PayrollSummaryCards({ payroll }: { payroll: Payroll[] }) {
+  const money = useMoney();
   const paid = payroll.filter((p) => p.status === "Paid");
-  const pending = payroll.filter((p) => p.status === "Pending");
+  const pending = payroll.filter((p) => p.status !== "Paid");
 
   const cards = [
     {
-      label: "Total Staff", value: String(payroll.length), icon: Users, tone: METRIC_TONES.blue,
+      label: "Staff in Run", value: String(payroll.length), icon: Users, tone: METRIC_TONES.blue,
       sparkColor: CATEGORICAL_COLORS[0],
     },
     {
-      label: "Payroll This Month", value: `$${payroll.reduce((s, p) => s + p.netSalary, 0).toLocaleString()}`, icon: Wallet, tone: METRIC_TONES.purple,
+      label: "Net Payroll", value: `${money(payroll.reduce((s, p) => s + p.netSalary, 0))}`, icon: Wallet, tone: METRIC_TONES.purple,
       sparkColor: CATEGORICAL_COLORS[4],
     },
     {
-      label: "Paid Salary", value: `$${paid.reduce((s, p) => s + p.netSalary, 0).toLocaleString()}`, icon: CheckCircle2, tone: METRIC_TONES.green,
+      label: "Paid Salary", value: `${money(paid.reduce((s, p) => s + p.netSalary, 0))}`, icon: CheckCircle2, tone: METRIC_TONES.green,
       sparkColor: STATUS_COLORS.good,
     },
     {
-      label: "Pending Salary", value: `$${pending.reduce((s, p) => s + p.netSalary, 0).toLocaleString()}`, icon: Clock, tone: METRIC_TONES.amber,
+      label: "Pending Salary", value: `${money(pending.reduce((s, p) => s + p.netSalary, 0))}`, icon: Clock, tone: METRIC_TONES.amber,
       sparkColor: STATUS_COLORS.warning,
     },
     {
-      label: "Deductions", value: `$${payroll.reduce((s, p) => s + p.deduction, 0).toLocaleString()}`, icon: MinusCircle, tone: METRIC_TONES.red,
+      label: "Deductions", value: `${money(payroll.reduce((s, p) => s + p.deduction, 0))}`, icon: MinusCircle, tone: METRIC_TONES.red,
       sparkColor: STATUS_COLORS.critical,
     },
     {
-      label: "Bonuses", value: `$${payroll.reduce((s, p) => s + (p.bonus ?? 0), 0).toLocaleString()}`, icon: Gift, tone: METRIC_TONES.cyan,
+      label: "Bonuses", value: `${money(payroll.reduce((s, p) => s + (p.bonus ?? 0), 0))}`, icon: Gift, tone: METRIC_TONES.cyan,
       sparkColor: CATEGORICAL_COLORS[5],
     },
   ];

@@ -321,3 +321,13 @@ export function useSchools() {
     staleTime: 10 * 60_000,
   });
 }
+
+/** School name and contact lines for printed documents (invoices, receipts, payslips, notices). */
+export function useLetterhead() {
+  const s = useSchools().data;
+  return {
+    name: s?.name ?? "",
+    address: [s?.address, s?.city, s?.country].filter(Boolean).join(", "),
+    contact: [s?.phone ? `Tel: ${s.phone}` : "", s?.email ?? "", s?.website ?? ""].filter(Boolean).join(" · "),
+  };
+}

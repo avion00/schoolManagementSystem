@@ -1,17 +1,23 @@
 import { useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { Layers, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-import { InvoiceForm, type InvoiceFormData } from "@/components/billing/forms/InvoiceForm";
-import { PaymentForm, type PaymentFormData } from "@/components/billing/forms/PaymentForm";
+import { GenerateInvoicesForm } from "@/components/billing/forms/GenerateInvoicesForm";
+import { InvoiceForm } from "@/components/billing/forms/InvoiceForm";
+import { PaymentForm } from "@/components/billing/forms/PaymentForm";
 import { InvoicesSummaryCards } from "@/components/billing/InvoicesSummaryCards";
 import { InvoicesTable, type InvoiceAction } from "@/components/billing/InvoicesTable";
 import { InvoicesToolbar, type InvoicesFilters } from "@/components/billing/InvoicesToolbar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { INVOICES, type Invoice } from "@/data/billingData";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import type { Invoice } from "@/api/types/billing";
+import { useCancelInvoice, useInvoices, useMoney } from "@/api/billing";
+import { errorMessage } from "@/api/http";
+import { useAuth } from "@/lib/auth";
 
 const PAGE_SIZE = 10;
 type SortField = "invoiceNo" | "studentName" | "issueDate" | "dueDate" | "amount" | "balance" | "status";
@@ -20,8 +26,14 @@ type SortDir = "asc" | "desc";
 const EMPTY_FILTERS: InvoicesFilters = { search: "", status: "all", className: "all" };
 
 export function BillingInvoicesPage() {
+  const money = useMoney();
   const navigate = useNavigate();
-  const [invoices, setInvoices] = useState<Invoice[]>(INVOICES);
+  const query = useInvoices();
+  const invoices = useMemo(() => query.data ?? [], [query.data]);
+  const cancel = useCancelInvoice();
+  const { hasPermission } = useAuth();
+  const [generateOpen, setGenerateOpen] = useState(false);
+  const classes = useMemo(() => Array.from(new Set(invoices.map((i) => i.className))), [invoices]);
   const [filters, setFilters] = useState<InvoicesFilters>(EMPTY_FILTERS);
   const [sortField, setSortField] = useState<SortField>("issueDate");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -52,7 +64,7 @@ export function BillingInvoicesPage() {
     return invoices.filter((inv) => {
       if (filters.status !== "all" && inv.status !== filters.status) return false;
       if (filters.className !== "all" && inv.className !== filters.className) return false;
-      if (q && !`${inv.invoiceNo} ${inv.studentName} ${inv.parentName}`.toLowerCase().includes(q)) return false;
+      if (q && !`${inv.invoiceNo} ${inv.studentName} ${inv.admissionNo}`.toLowerCase().includes(q)) return false;
       return true;
     });
   }, [invoices, filters]);
@@ -72,37 +84,18 @@ export function BillingInvoicesPage() {
 
   function handleAction(inv: Invoice, action: InvoiceAction) {
     switch (action) {
-      case "view": navigate(`/billing/invoices/${inv.id}`); break;
-      case "edit": toast.info(`Editing ${inv.invoiceNo} — coming soon.`); break;
+      case "view": case "print": navigate(`/billing/invoices/${inv.id}`); break;
       case "record-payment": setPaymentInvoice(inv); break;
-      case "print": navigate(`/billing/invoices/${inv.id}`); break;
-      case "download": toast.success(`Downloaded ${inv.invoiceNo}.`); break;
-      case "cancel":
-        setInvoices((prev) => prev.map((i) => (i.id === inv.id ? { ...i, status: "Cancelled" } : i)));
-        console.log("Cancelled invoice:", inv.invoiceNo);
-        toast.success(`${inv.invoiceNo} cancelled.`);
+      case "cancel": {
+        const reason = window.prompt(`Cancel ${inv.invoiceNo}? Give a reason (invoices with payments must have them reversed first).`);
+        if (!reason?.trim()) return;
+        cancel.mutate({ id: inv.id, reason: reason.trim() }, {
+          onSuccess: () => toast.success(`${inv.invoiceNo} cancelled.`),
+          onError: (e) => toast.error(errorMessage(e)),
+        });
         break;
+      }
     }
-  }
-
-  function handleCreate(data: InvoiceFormData) {
-    console.log("Created invoice:", data);
-    toast.success("Invoice created successfully.");
-    setCreateOpen(false);
-  }
-
-  function handleRecordPayment(data: PaymentFormData) {
-    console.log("Recorded payment:", data);
-    if (paymentInvoice) {
-      setInvoices((prev) => prev.map((i) => {
-        if (i.id !== paymentInvoice.id) return i;
-        const paid = i.paid + Number(data.amount);
-        const balance = Math.max(0, i.amount - i.discount - paid);
-        return { ...i, paid, balance, status: balance === 0 ? "Paid" : "Partially Paid", paymentMethod: data.method || i.paymentMethod };
-      }));
-    }
-    toast.success("Payment recorded successfully.");
-    setPaymentInvoice(null);
   }
 
   return (
@@ -118,15 +111,26 @@ export function BillingInvoicesPage() {
         }
         description="Manage fee invoices, payments, and balances."
         actions={
-          <Button size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4" /> Create Invoice
-          </Button>
+          hasPermission("fee.create") ? (<>
+            <Button size="sm" variant="outline" className="h-9 gap-1.5 rounded-xl" onClick={() => setGenerateOpen(true)}>
+              <Layers className="h-4 w-4" /> Bill a Class
+            </Button>
+            <Button size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4" /> Create Invoice
+            </Button>
+          </>) : undefined
         }
       />
 
+      {query.isError && (
+        <PremiumEmptyState title="Couldn't load invoices" description={errorMessage(query.error)}
+          action={<Button size="sm" variant="outline" onClick={() => query.refetch()}>Try again</Button>} />
+      )}
+      {query.isLoading && <PremiumSkeleton className="h-72 w-full rounded-2xl" />}
+      {query.isSuccess && (<>
       <InvoicesSummaryCards invoices={invoices} />
 
-      <InvoicesToolbar filters={filters} onFiltersChange={updateFilters} hasActiveFilter={hasActiveFilter} onReset={resetFilters} />
+      <InvoicesToolbar filters={filters} onFiltersChange={updateFilters} hasActiveFilter={hasActiveFilter} onReset={resetFilters} classes={classes} />
 
       <InvoicesTable
         invoices={paginated}
@@ -139,15 +143,28 @@ export function BillingInvoicesPage() {
         pagination={{ page: safePage, pageSize: PAGE_SIZE, total: sorted.length, onPage: (p) => { setPage(p); setSelected(new Set()); }, itemLabel: "invoices" }}
         hasActiveFilter={hasActiveFilter}
         onResetFilters={resetFilters}
+        canCollect={hasPermission("fee.collect")}
+        canCancel={hasPermission("fee.create")}
       />
+      </>)}
+
+      <Dialog open={generateOpen} onOpenChange={setGenerateOpen}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Bill a Class</DialogTitle>
+            <DialogDescription>Create invoices for every active student from the fee structures.</DialogDescription>
+          </DialogHeader>
+          <GenerateInvoicesForm onCancel={() => setGenerateOpen(false)} onSaved={() => setGenerateOpen(false)} />
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Invoice</DialogTitle>
-            <DialogDescription>Generate a new fee invoice for a student.</DialogDescription>
+            <DialogDescription>A one-off invoice for a single student.</DialogDescription>
           </DialogHeader>
-          <InvoiceForm onCancel={() => setCreateOpen(false)} onSubmit={handleCreate} />
+          <InvoiceForm onCancel={() => setCreateOpen(false)} onSaved={(id) => { setCreateOpen(false); navigate(`/billing/invoices/${id}`); }} />
         </DialogContent>
       </Dialog>
 
@@ -155,10 +172,11 @@ export function BillingInvoicesPage() {
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Record Payment</DialogTitle>
-            <DialogDescription>{paymentInvoice && `${paymentInvoice.invoiceNo} — balance $${paymentInvoice.balance.toLocaleString()}`}</DialogDescription>
+            <DialogDescription>{paymentInvoice && `${paymentInvoice.invoiceNo} — balance ${money(paymentInvoice.balance)}`}</DialogDescription>
           </DialogHeader>
           {paymentInvoice && (
-            <PaymentForm defaultInvoiceId={paymentInvoice.id} onCancel={() => setPaymentInvoice(null)} onSubmit={handleRecordPayment} />
+            <PaymentForm defaultInvoiceId={paymentInvoice.id} onCancel={() => setPaymentInvoice(null)}
+              onSaved={(id) => { setPaymentInvoice(null); navigate(`/billing/receipts/${id}`); }} />
           )}
         </DialogContent>
       </Dialog>

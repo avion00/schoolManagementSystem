@@ -4,10 +4,12 @@ import { CATEGORICAL_COLORS, STATUS_COLORS } from "@/components/charts/palette";
 import { Reveal } from "@/components/motion";
 import { KPITrendCard } from "@/components/ui/KPITrendCard";
 import { METRIC_TONES } from "@/components/ui/MetricCard";
-import type { Vendor } from "@/data/billingData";
+import type { Vendor } from "@/api/types/billing";
+import { useMoney } from "@/api/billing";
 
 
 export function VendorsSummaryCards({ vendors }: { vendors: Vendor[] }) {
+  const money = useMoney();
   const stats = [
     {
       label: "Total Vendors", value: vendors.length, icon: Building2, tone: METRIC_TONES.blue,
@@ -18,11 +20,11 @@ export function VendorsSummaryCards({ vendors }: { vendors: Vendor[] }) {
       sparkColor: STATUS_COLORS.good,
     },
     {
-      label: "Total Purchases", value: `$${vendors.reduce((s, v) => s + v.totalPurchases, 0).toLocaleString()}`, icon: ShoppingCart, tone: METRIC_TONES.purple,
+      label: "Total Purchases", value: `${money(vendors.reduce((s, v) => s + v.totalPurchases, 0))}`, icon: ShoppingCart, tone: METRIC_TONES.purple,
       sparkColor: CATEGORICAL_COLORS[4],
     },
     {
-      label: "Outstanding Balance", value: `$${vendors.reduce((s, v) => s + v.outstandingBalance, 0).toLocaleString()}`, icon: Wallet, tone: METRIC_TONES.red,
+      label: "Outstanding Balance", value: `${money(vendors.reduce((s, v) => s + v.outstandingBalance, 0))}`, icon: Wallet, tone: METRIC_TONES.red,
       sparkColor: STATUS_COLORS.critical,
     },
   ];

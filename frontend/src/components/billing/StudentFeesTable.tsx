@@ -4,7 +4,8 @@ import { BillingStatusBadge } from "@/components/billing/BillingStatusBadge";
 import { Button } from "@/components/ui/button";
 import { PremiumDataTable, type PremiumDataTableColumn, type PremiumDataTablePagination } from "@/components/ui/PremiumDataTable";
 import { PremiumDropdownMenu, type PremiumMenuEntry } from "@/components/ui/PremiumDropdownMenu";
-import type { StudentFee } from "@/data/billingData";
+import type { StudentFee } from "@/api/types/billing";
+import { useMoney } from "@/api/billing";
 
 export type StudentFeeAction = "view" | "generate-invoice" | "record-payment" | "print-statement";
 
@@ -31,17 +32,17 @@ export function StudentFeesTable({
   hasActiveFilter: boolean;
   onResetFilters: () => void;
 }) {
+  const money = useMoney();
   const columns: PremiumDataTableColumn<StudentFee>[] = [
     { key: "studentName", header: "Student", width: "w-[160px]", sortable: true, render: (s) => <span className="text-[12.5px] font-medium text-foreground">{s.studentName}</span> },
     { key: "admissionNo", header: "Admission No", width: "w-[120px]", render: (s) => <span className="font-mono text-[11.5px] text-muted-foreground">{s.admissionNo}</span> },
     { key: "registrationNo", header: "Registration No", width: "w-[130px]", render: (s) => <span className="font-mono text-[11.5px] text-muted-foreground">{s.registrationNo}</span> },
     { key: "className", header: "Class", width: "w-[90px]", sortable: true, render: (s) => <span className="text-[12px] text-muted-foreground">{s.className}</span> },
     { key: "section", header: "Section", width: "w-[80px]", render: (s) => <span className="text-[12px] text-muted-foreground">{s.section}</span> },
-    { key: "feePlan", header: "Fee Plan", width: "w-[140px]", render: (s) => <span className="text-[12px] text-muted-foreground">{s.feePlan}</span> },
-    { key: "totalFee", header: "Total Fee", width: "w-[100px]", sortable: true, render: (s) => <span className="text-[12.5px] tabular-nums text-foreground">${s.totalFee.toLocaleString()}</span> },
-    { key: "paid", header: "Paid", width: "w-[100px]", sortable: true, render: (s) => <span className="text-[12.5px] tabular-nums text-emerald-600 dark:text-emerald-400">${s.paid.toLocaleString()}</span> },
-    { key: "due", header: "Due", width: "w-[100px]", sortable: true, render: (s) => <span className="text-[12.5px] font-medium tabular-nums text-rose-600 dark:text-rose-400">${s.due.toLocaleString()}</span> },
-    { key: "discount", header: "Discount", width: "w-[90px]", render: (s) => <span className="text-[12px] tabular-nums text-muted-foreground">${s.discount.toLocaleString()}</span> },
+    { key: "totalFee", header: "Total Fee", width: "w-[100px]", sortable: true, render: (s) => <span className="text-[12.5px] tabular-nums text-foreground">{money(s.totalFee)}</span> },
+    { key: "paid", header: "Paid", width: "w-[100px]", sortable: true, render: (s) => <span className="text-[12.5px] tabular-nums text-emerald-600 dark:text-emerald-400">{money(s.paid)}</span> },
+    { key: "due", header: "Due", width: "w-[100px]", sortable: true, render: (s) => <span className="text-[12.5px] font-medium tabular-nums text-rose-600 dark:text-rose-400">{money(s.due)}</span> },
+    { key: "discount", header: "Discount", width: "w-[90px]", render: (s) => <span className="text-[12px] tabular-nums text-muted-foreground">{money(s.discount)}</span> },
     { key: "status", header: "Status", width: "w-[100px]", sortable: true, render: (s) => <BillingStatusBadge status={s.status} /> },
     { key: "nextDueDate", header: "Next Due Date", width: "w-[110px]", sortable: true, render: (s) => <span className="whitespace-nowrap text-[12px] text-muted-foreground">{s.nextDueDate ?? "—"}</span> },
   ];

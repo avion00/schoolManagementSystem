@@ -13,7 +13,10 @@ DEFAULTS = {
     "fees": {
         "currency": "NPR", "currency_symbol": "Rs.", "late_fee_enabled": False, "late_fee_amount": 0,
         "late_fee_type": "fixed", "grace_period_days": 0,
-        "payment_methods": {"cash": True, "bank": True, "card": False, "online": False},
+        "payment_methods": {
+            "cash": True, "bank": True, "card": True, "online": True, "wallet": True,
+            "mobile_banking": True, "cheque": True,
+        },
     },
     "attendance": {
         "attendance_type": "daily", "allow_late_marking": True, "late_threshold_minutes": 10,

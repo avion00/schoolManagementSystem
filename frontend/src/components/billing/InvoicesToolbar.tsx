@@ -1,6 +1,6 @@
 import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { PremiumTableToolbar } from "@/components/ui/PremiumTableToolbar";
-import { CLASS_OPTIONS, INVOICE_STATUS_OPTIONS } from "@/data/billingData";
+import { INVOICE_STATUS_OPTIONS } from "@/api/types/billing";
 
 export interface InvoicesFilters {
   search: string;
@@ -13,11 +13,13 @@ export function InvoicesToolbar({
   onFiltersChange,
   hasActiveFilter,
   onReset,
+  classes,
 }: {
   filters: InvoicesFilters;
   onFiltersChange: (next: Partial<InvoicesFilters>) => void;
   hasActiveFilter: boolean;
   onReset: () => void;
+  classes: string[];
 }) {
   return (
     <PremiumTableToolbar
@@ -38,7 +40,7 @@ export function InvoicesToolbar({
             value={filters.className}
             onChange={(v) => onFiltersChange({ className: v })}
             className="w-40"
-            options={[{ value: "all", label: "All classes" }, ...CLASS_OPTIONS.map((c) => ({ value: c, label: c }))]}
+            options={[{ value: "all", label: "All classes" }, ...classes.map((c) => ({ value: c, label: c }))]}
           />
         </>
       }

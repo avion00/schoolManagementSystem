@@ -148,3 +148,46 @@ def test_reports_need_fee_permission(api, tenant):
 def test_reports_are_tenant_scoped(api, tenant, other_tenant):
     body = api(other_tenant.users["Accountant"]).get("/api/v1/fees/ledger/", {"student": str(tenant.student.id)})
     assert body.status_code == 400
+
+
+def _set_fees(org, **values):
+    from apps.orgsettings.models import OrganizationSettings
+    row, _ = OrganizationSettings.objects.get_or_create(organization=org)
+    row.data = {**row.data, "fees": {**(row.data.get("fees") or {}), **values}}
+    row.save()
+
+
+def test_late_fee_applied_once_after_grace_period(tenant):
+    inv = tenant.invoice
+    Invoice.objects.filter(pk=inv.pk).update(due_date=timezone.localdate() - datetime.timedelta(days=5))
+    _set_fees(tenant.org, late_fee_enabled=True, late_fee_amount=50, late_fee_type="fixed", grace_period_days=10)
+    call_command("mark_overdue_invoices", stdout=open("/dev/null", "w"))
+    inv.refresh_from_db()
+    assert inv.status == "overdue" and inv.total_amount == Decimal("1000.00")  # still within grace
+
+    _set_fees(tenant.org, grace_period_days=2)
+    call_command("mark_overdue_invoices", stdout=open("/dev/null", "w"))
+    call_command("mark_overdue_invoices", stdout=open("/dev/null", "w"))  # idempotent
+    inv.refresh_from_db()
+    assert inv.total_amount == Decimal("1050.00")
+    assert inv.items.filter(is_late_fee=True).count() == 1
+
+
+def test_percentage_late_fee_and_disabled(tenant):
+    Invoice.objects.filter(pk=tenant.invoice.pk).update(due_date=timezone.localdate() - datetime.timedelta(days=30))
+    _set_fees(tenant.org, late_fee_enabled=False, late_fee_amount=10, late_fee_type="percentage")
+    call_command("mark_overdue_invoices", stdout=open("/dev/null", "w"))
+    tenant.invoice.refresh_from_db()
+    assert tenant.invoice.total_amount == Decimal("1000.00")
+    _set_fees(tenant.org, late_fee_enabled=True)
+    call_command("mark_overdue_invoices", stdout=open("/dev/null", "w"))
+    tenant.invoice.refresh_from_db()
+    assert tenant.invoice.total_amount == Decimal("1100.00")  # 10% of the 1000 balance
+
+
+def test_disabled_payment_method_is_refused(accountant, tenant):
+    _set_fees(tenant.org, payment_methods={"cheque": False})
+    res = accountant.post("/api/v1/fees/payments/", {"invoice": str(tenant.invoice.id), "amount": "100", "method": "cheque"}, format="json")
+    assert res.status_code == 400 and "method" in res.json()
+    ok = accountant.post("/api/v1/fees/payments/", {"invoice": str(tenant.invoice.id), "amount": "100", "method": "cash"}, format="json")
+    assert ok.status_code == 201

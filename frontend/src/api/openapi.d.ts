@@ -4622,6 +4622,7 @@ export interface components {
             unit_price?: string | null;
             /** Format: decimal */
             amount?: string;
+            readonly is_late_fee: boolean;
             readonly is_active: boolean;
         };
         /**
@@ -5912,6 +5913,7 @@ export interface components {
             unit_price?: string | null;
             /** Format: decimal */
             amount?: string;
+            readonly is_late_fee?: boolean;
             readonly is_active?: boolean;
         };
         PatchedLessonPlan: {
