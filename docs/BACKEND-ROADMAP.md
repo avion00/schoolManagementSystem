@@ -72,8 +72,8 @@ type-checker shows anything still using fake data.
 |---|---|
 | Foundation (generated types, HTTP helpers, Vitest, dev env) | ✅ |
 | Students: list, details, add/edit form with guardians, photo, documents (upload/verify), status changes, CSV export | ✅ |
-| Parents / guardians | 🚧 |
-| Teachers | ⬜ |
+| Parents / guardians: list, details (children, attendance, results, fee records), add/edit with a real student picker and staff notes | ✅ |
+| Teachers | 🚧 |
 | Classes, subjects, class routine | ⬜ |
 | Attendance | ⬜ |
 | Exams (schedule, grades, marks entry, results, report and admit cards) | ⬜ |

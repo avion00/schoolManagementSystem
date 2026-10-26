@@ -1,7 +1,7 @@
-import { useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  User, Phone, Users, FileText, StickyNote,
+  User, Phone, Users, StickyNote,
   Check, X, Plus, Trash2
 } from "lucide-react";
 import { toast } from "sonner";
@@ -10,11 +10,10 @@ import { FormSection } from "@/components/ui/form-section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PARENTS } from "@/data/parentsData";
-import {
-  OCCUPATION_OPTIONS, RELATION_OPTIONS, STATUS_OPTIONS,
-  CLASS_OPTIONS, SECTION_OPTIONS,
-} from "@/data/parentsData";
+import { errorMessage, label, type Schemas } from "@/api/http";
+import { useParentRecord, useSaveParent } from "@/api/parents";
+import { fromGender, toGender, useStudents } from "@/api/students";
+import { RELATION_OPTIONS, STATUS_OPTIONS } from "@/api/types/parents";
 
 interface ParentFormData {
   name: string;
@@ -33,13 +32,7 @@ interface ParentFormData {
   permanentAddress: string;
   sameAddress: boolean;
   linkedChildren: LinkedChildDraft[];
-  hasCitizenshipCertificate: boolean;
-  hasGuardianPhoto: boolean;
-  hasAddressProof: boolean;
-  hasRelationshipProof: boolean;
-  hasEmergencyForm: boolean;
   adminNotes: string;
-  specialInstructions: string;
 }
 
 interface LinkedChildDraft {
@@ -50,14 +43,6 @@ interface LinkedChildDraft {
   section: string;
   roll: string;
 }
-
-const DOCUMENT_FIELDS: { key: keyof Pick<ParentFormData, "hasCitizenshipCertificate" | "hasGuardianPhoto" | "hasAddressProof" | "hasRelationshipProof" | "hasEmergencyForm">; label: string }[] = [
-  { key: "hasCitizenshipCertificate", label: "Parent Citizenship Certificate" },
-  { key: "hasGuardianPhoto",          label: "Guardian Photo"                  },
-  { key: "hasAddressProof",           label: "Address Proof"                   },
-  { key: "hasRelationshipProof",      label: "Relationship Proof"              },
-  { key: "hasEmergencyForm",          label: "Emergency Contact Form"          },
-];
 
 function Field({ label, required, error, children }: {
   label: string; required?: boolean; error?: string; children: React.ReactNode;
@@ -94,12 +79,28 @@ const EMPTY: ParentFormData = {
   email: "", phone: "", alternatePhone: "", emergencyContact: "", emergencyRelation: "",
   presentAddress: "", permanentAddress: "", sameAddress: false,
   linkedChildren: [],
-  hasCitizenshipCertificate: false, hasGuardianPhoto: false, hasAddressProof: false,
-  hasRelationshipProof: false, hasEmergencyForm: false,
-  adminNotes: "", specialInstructions: "",
+  adminNotes: "",
 };
 
 type Errors = Partial<Record<string, string>>;
+
+function recordToForm(g: Schemas["Guardian"]): ParentFormData {
+  return {
+    ...EMPTY,
+    name: g.full_name, gender: toGender(g.gender), relation: label(g.relation),
+    occupation: g.occupation ?? "", parentId: g.guardian_code, guardianCode: g.guardian_code,
+    status: g.status ?? "active", email: g.email ?? "", phone: g.phone ?? "",
+    alternatePhone: g.alternate_phone ?? "", emergencyContact: g.emergency_contact ?? "",
+    emergencyRelation: g.emergency_relation ?? "", presentAddress: g.address ?? "",
+    permanentAddress: g.permanent_address ?? "",
+    sameAddress: !!g.address && g.address === g.permanent_address,
+    adminNotes: g.notes ?? "",
+    linkedChildren: g.children.map((c) => ({
+      tempId: c.link_id, studentId: c.student, name: c.name, className: c.class_level_name,
+      section: c.section_name ?? "", roll: c.roll_number ?? "",
+    })),
+  };
+}
 
 function validate(form: ParentFormData): Errors {
   const e: Errors = {};
@@ -119,42 +120,22 @@ function sectionErrors(errors: Errors, keys: string[]) {
 export function ParentForm({ mode }: { mode: "create" | "edit" }) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [saving, setSaving] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const record = useParentRecord(mode === "edit" ? id : undefined);
+  const students = useStudents();
+  const save = useSaveParent();
 
-  const prefill = (): ParentFormData => {
-    if (mode === "edit" && id) {
-      const p = PARENTS.find((x) => x.id === Number(id));
-      if (p) {
-        return {
-          ...EMPTY,
-          name: p.name,
-          gender: p.gender,
-          relation: p.relation,
-          occupation: p.occupation,
-          parentId: p.parentId,
-          guardianCode: p.guardianCode,
-          status: p.status,
-          email: p.email ?? "",
-          phone: p.phone,
-          alternatePhone: p.alternatePhone ?? "",
-          presentAddress: p.address,
-          linkedChildren: p.linkedChildren.map((c) => ({
-            tempId: String(c.id),
-            studentId: String(c.studentId),
-            name: c.name,
-            className: c.className,
-            section: c.section,
-            roll: String(c.roll),
-          })),
-        };
-      }
-    }
-    return { ...EMPTY };
-  };
-
-  const [form, setForm] = useState<ParentFormData>(prefill);
+  const [form, setForm] = useState<ParentFormData>({ ...EMPTY });
   const [errors, setErrors] = useState<Errors>({});
+
+  useEffect(() => {
+    if (record.data) setForm(recordToForm(record.data));
+  }, [record.data]);
+
+  const studentChoices = useMemo(
+    () => (students.data ?? []).map((st) => ({ id: st.id, label: `${st.name} · ${st.className}${st.section ? `-${st.section}` : ""} · ${st.admissionNo}` })),
+    [students.data],
+  );
 
   function set<K extends keyof ParentFormData>(key: K, val: ParentFormData[K]) {
     setForm((f) => ({ ...f, [key]: val }));
@@ -175,10 +156,14 @@ export function ParentForm({ mode }: { mode: "create" | "edit" }) {
     setForm((f) => ({ ...f, linkedChildren: f.linkedChildren.filter((c) => c.tempId !== tempId) }));
   }
 
-  function updateChild(tempId: string, key: keyof LinkedChildDraft, value: string) {
+  function pickChild(tempId: string, studentId: string) {
+    const st = students.data?.find((x) => x.id === studentId);
     setForm((f) => ({
       ...f,
-      linkedChildren: f.linkedChildren.map((c) => c.tempId === tempId ? { ...c, [key]: value } : c),
+      linkedChildren: f.linkedChildren.map((c) => c.tempId === tempId ? {
+        ...c, studentId, name: st?.name ?? "", className: st?.className ?? "", section: st?.section ?? "",
+        roll: st?.roll === null || st?.roll === undefined ? "" : String(st.roll),
+      } : c),
     }));
   }
 
@@ -201,12 +186,26 @@ export function ParentForm({ mode }: { mode: "create" | "edit" }) {
       toast.error("Please fix the errors before saving.");
       return;
     }
-    setSaving(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setSaving(false);
-    toast.success(mode === "create" ? "Parent added successfully!" : "Parent updated successfully!");
-    navigate("/parents");
+    try {
+      const saved = await save.mutateAsync({
+        id: mode === "edit" ? id : undefined,
+        payload: {
+          full_name: form.name, gender: fromGender(form.gender), relation: form.relation.toLowerCase(),
+          occupation: form.occupation, status: form.status, email: form.email, phone: form.phone,
+          alternate_phone: form.alternatePhone, emergency_contact: form.emergencyContact,
+          emergency_relation: form.emergencyRelation, address: form.presentAddress,
+          permanent_address: form.sameAddress ? form.presentAddress : form.permanentAddress,
+          notes: form.adminNotes,
+        },
+        studentIds: form.linkedChildren.map((c) => c.studentId),
+      });
+      toast.success(mode === "create" ? "Parent added." : "Parent updated.");
+      navigate(`/parents/${saved.id}`);
+    } catch (err) {
+      toast.error(errorMessage(err, "Couldn't save the parent."));
+    }
   }
+  const saving = save.isPending;
 
   const INFO_KEYS   = ["name", "gender", "relation", "occupation"];
   const CONTACT_KEYS = ["phone", "email", "presentAddress"];
@@ -261,16 +260,11 @@ export function ParentForm({ mode }: { mode: "create" | "edit" }) {
             </Field>
           </div>
           <Field label="Occupation">
-            <Select value={form.occupation} onChange={(v) => set("occupation", v)}
-              options={OCCUPATION_OPTIONS} />
-          </Field>
-          <Field label="Parent ID">
-            <Input value={form.parentId} onChange={(e) => set("parentId", e.target.value)}
-              placeholder="PAR-2026-0001" />
+            <Input value={form.occupation} onChange={(e) => set("occupation", e.target.value)}
+              placeholder="e.g. Teacher" />
           </Field>
           <Field label="Guardian Code">
-            <Input value={form.guardianCode} onChange={(e) => set("guardianCode", e.target.value)}
-              placeholder="GRD-001" />
+            <Input value={form.guardianCode || "Assigned on save"} readOnly disabled />
           </Field>
           <Field label="Status">
             <Select value={form.status} onChange={(v) => set("status", v)}
@@ -357,25 +351,17 @@ export function ParentForm({ mode }: { mode: "create" | "edit" }) {
               </button>
               <p className="mb-3 text-[12px] font-semibold text-muted-foreground">Child {idx + 1}</p>
               <div className="grid gap-3 sm:grid-cols-3">
-                <Field label="Student ID">
-                  <Input value={child.studentId} onChange={(e) => updateChild(child.tempId, "studentId", e.target.value)}
-                    placeholder="Student ID" />
-                </Field>
-                <Field label="Full Name">
-                  <Input value={child.name} onChange={(e) => updateChild(child.tempId, "name", e.target.value)}
-                    placeholder="Student name" />
-                </Field>
-                <Field label="Class">
-                  <Select value={child.className} onChange={(v) => updateChild(child.tempId, "className", v)}
-                    options={CLASS_OPTIONS} />
-                </Field>
-                <Field label="Section">
-                  <Select value={child.section} onChange={(v) => updateChild(child.tempId, "section", v)}
-                    options={SECTION_OPTIONS} />
-                </Field>
+                <div className="sm:col-span-2">
+                  <Field label="Student">
+                    <select value={child.studentId} onChange={(e) => pickChild(child.tempId, e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring">
+                      <option value="">{students.isLoading ? "Loading students…" : "Select a student…"}</option>
+                      {studentChoices.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                    </select>
+                  </Field>
+                </div>
                 <Field label="Roll No">
-                  <Input value={child.roll} onChange={(e) => updateChild(child.tempId, "roll", e.target.value)}
-                    placeholder="Roll #" />
+                  <Input value={child.roll} readOnly disabled />
                 </Field>
               </div>
             </div>
@@ -386,38 +372,14 @@ export function ParentForm({ mode }: { mode: "create" | "edit" }) {
         </div>
       </FormSection>
 
-      {/* D. Documents */}
-      <FormSection icon={FileText} title="Documents Checklist"
-        subtitle="Mark documents received" defaultOpen={false}>
-        <div className="space-y-3">
-          {DOCUMENT_FIELDS.map(({ key, label }) => (
-            <label key={key} className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form[key] as boolean}
-                onChange={(e) => set(key, e.target.checked as ParentFormData[typeof key])}
-                className="h-4 w-4 rounded border-input accent-primary"
-              />
-              <span className="text-[13px]">{label}</span>
-              {form[key] && <Check className="h-3.5 w-3.5 text-emerald-500" />}
-            </label>
-          ))}
-        </div>
-      </FormSection>
-
       {/* E. Notes */}
       <FormSection icon={StickyNote} title="Administrative Notes"
-        subtitle="Internal notes and special instructions" defaultOpen={false}>
+        subtitle="Staff-only notes" defaultOpen={false}>
         <div className="grid gap-4">
           <Field label="Admin Notes">
             <textarea value={form.adminNotes} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("adminNotes", e.target.value)}
               placeholder="Internal notes for admin staff…" rows={3}
               className="flex min-h-[72px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring" />
-          </Field>
-          <Field label="Special Instructions">
-            <textarea value={form.specialInstructions} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("specialInstructions", e.target.value)}
-              placeholder="Any special instructions…" rows={2}
-              className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring" />
           </Field>
         </div>
       </FormSection>

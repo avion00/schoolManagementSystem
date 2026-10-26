@@ -41,7 +41,7 @@ class GuardianSerializer(serializers.ModelSerializer):
             "id", "guardian_code", "full_name", "gender", "relation",
             "phone", "alternate_phone", "email", "occupation",
             "nationality", "religion", "address", "permanent_address",
-            "emergency_contact", "emergency_relation", "status",
+            "emergency_contact", "emergency_relation", "status", "notes",
             "children", "children_count", "has_login", "is_active",
         ]
         read_only_fields = ["guardian_code", "is_active"]

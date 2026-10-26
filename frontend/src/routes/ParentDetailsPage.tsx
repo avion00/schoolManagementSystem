@@ -12,8 +12,12 @@ import { ParentNoticeBoard } from "@/components/parents/details/ParentNoticeBoar
 import { ParentDocumentsCard } from "@/components/parents/details/ParentDocumentsCard";
 import { ParentActivityTimeline } from "@/components/parents/details/ParentActivityTimeline";
 import { PremiumTabs } from "@/components/ui/PremiumTabs";
-import { PARENTS } from "@/data/parentsData";
-import { PARENT_DETAIL_MOCK } from "@/data/parentDetailsData";
+import { errorMessage } from "@/api/http";
+import { useParentDetail } from "@/api/parents";
+import { Button } from "@/components/ui/button";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { useAuth } from "@/lib/auth";
 
 const TABS: SlidingTabOption[] = [
   { value: "overview",  label: "Overview"  },
@@ -28,9 +32,18 @@ export function ParentDetailsPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState("overview");
 
-  const parent = PARENTS.find((p) => p.id === Number(id));
+  const { hasPermission } = useAuth();
+  const detail = useParentDetail(id, hasPermission("fee.view"));
+  if (detail.isLoading) return <PremiumSkeleton className="h-96 w-full rounded-2xl" />;
+  const notFound = (detail.error as { response?: { status?: number } } | null)?.response?.status === 404;
+  if (detail.isError && !notFound) {
+    return <PremiumEmptyState title="Couldn't load this parent" description={errorMessage(detail.error)}
+      action={<Button size="sm" variant="outline" onClick={() => detail.refetch()}>Try again</Button>} />;
+  }
+  const mock = detail.data;
+  const parent = mock?.parent;
 
-  if (!parent) {
+  if (!parent || !mock) {
     return (
       <div className="flex flex-col items-center justify-center py-32 text-muted-foreground">
         <p className="text-lg font-medium">Parent not found.</p>
@@ -40,8 +53,6 @@ export function ParentDetailsPage() {
       </div>
     );
   }
-
-  const mock = PARENT_DETAIL_MOCK;
 
   return (
     <div className="space-y-6 pb-12">

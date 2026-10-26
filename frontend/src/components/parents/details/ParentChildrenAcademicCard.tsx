@@ -1,7 +1,7 @@
 import { GraduationCap } from "lucide-react";
 
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { ChildAcademic } from "@/data/parentDetailsData";
+import type { ChildAcademic } from "@/api/types/parents";
 
 function pctColor(p: number) {
   if (p >= 85) return "text-emerald-600 dark:text-emerald-400";
@@ -37,7 +37,7 @@ export function ParentChildrenAcademicCard({ academicData }: { academicData: Chi
     <DetailCard icon={GraduationCap} title="Children Academic Overview">
       <div className="space-y-5">
         {academicData.map((child) => {
-          const hw = HOMEWORK_CFG[child.homeworkStatus];
+          const hw = HOMEWORK_CFG[child.homeworkStatus as keyof typeof HOMEWORK_CFG];
           return (
             <div key={child.studentId} className="space-y-3">
               {/* Header */}
@@ -46,7 +46,7 @@ export function ParentChildrenAcademicCard({ academicData }: { academicData: Chi
                   <p className="text-[13px] font-semibold text-foreground">{child.name}</p>
                   <p className="text-[11px] text-muted-foreground">{child.className} · Section {child.section}</p>
                 </div>
-                <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium ${hw.cls}`}>{hw.label}</span>
+                {hw && <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium ${hw.cls}`}>{hw.label}</span>}
               </div>
 
               {/* Metrics */}
@@ -55,24 +55,24 @@ export function ParentChildrenAcademicCard({ academicData }: { academicData: Chi
                 <div className="space-y-1">
                   <div className="flex justify-between text-[12px]">
                     <span className="text-muted-foreground">Attendance</span>
-                    <span className={`font-semibold ${pctColor(child.attendancePct)}`}>{child.attendancePct}%</span>
+                    <span className={`font-semibold ${pctColor(child.attendancePct ?? 0)}`}>{child.attendancePct === null ? "—" : `${child.attendancePct}%`}</span>
                   </div>
-                  <Bar value={child.attendancePct} color="bg-blue-500" />
+                  <Bar value={child.attendancePct ?? 0} color="bg-blue-500" />
                 </div>
                 {/* Latest Exam */}
                 <div className="space-y-1">
                   <div className="flex justify-between text-[12px]">
                     <span className="text-muted-foreground">Last Exam</span>
-                    <span className={`font-semibold ${pctColor(child.latestExamPct)}`}>{child.latestExamPct}%</span>
+                    <span className={`font-semibold ${pctColor(child.latestExamPct ?? 0)}`}>{child.latestExamPct === null ? "—" : `${child.latestExamPct}%`}</span>
                   </div>
-                  <Bar value={child.latestExamPct} color="bg-violet-500" />
+                  <Bar value={child.latestExamPct ?? 0} color="bg-violet-500" />
                 </div>
               </div>
 
               {/* Summary row */}
               <div className="grid grid-cols-3 gap-3 rounded-xl bg-muted/40 p-3 text-center text-[12px]">
                 <div>
-                  <p className="font-bold text-foreground">#{child.classRank}</p>
+                  <p className="font-bold text-foreground">{child.classRank === null ? "—" : `#${child.classRank}`}</p>
                   <p className="text-muted-foreground">Class Rank</p>
                 </div>
                 <div>

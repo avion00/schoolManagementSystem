@@ -4519,6 +4519,7 @@ export interface components {
             emergency_contact?: string;
             emergency_relation?: string;
             status?: components["schemas"]["GuardianStatusEnum"];
+            notes?: string;
             readonly children: components["schemas"]["LinkedChild"][];
             readonly children_count: number;
             readonly has_login: boolean;
@@ -5829,6 +5830,7 @@ export interface components {
             emergency_contact?: string;
             emergency_relation?: string;
             status?: components["schemas"]["GuardianStatusEnum"];
+            notes?: string;
             readonly children?: components["schemas"]["LinkedChild"][];
             readonly children_count?: number;
             readonly has_login?: boolean;

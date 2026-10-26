@@ -5,8 +5,8 @@ import { ParentAvatar } from "@/components/parents/ParentAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { LinkedChild } from "@/data/parentsData";
-import type { ChildAcademic } from "@/data/parentDetailsData";
+import type { LinkedChild } from "@/api/types/parents";
+import type { ChildAcademic } from "@/api/types/parents";
 
 const STUDENT_STATUS_CFG = {
   active:      "bg-emerald-50 text-emerald-700 ring-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400",
@@ -38,7 +38,7 @@ function ChildCard({ child, academic, index }: {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-[14px] font-semibold text-foreground">{child.name}</p>
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${STUDENT_STATUS_CFG[child.status]}`}>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${STUDENT_STATUS_CFG[child.status as keyof typeof STUDENT_STATUS_CFG] ?? STUDENT_STATUS_CFG.inactive}`}>
               {child.status.charAt(0).toUpperCase() + child.status.slice(1)}
             </span>
           </div>
@@ -72,16 +72,16 @@ function ChildCard({ child, academic, index }: {
       {academic && (
         <div className="mt-3 grid grid-cols-3 gap-2">
           <div className="rounded-lg bg-muted/50 p-2 text-center">
-            <p className="text-[13px] font-bold text-foreground">{academic.attendancePct}%</p>
+            <p className="text-[13px] font-bold text-foreground">{academic.attendancePct === null ? "—" : `${academic.attendancePct}%`}</p>
             <p className="text-[10px] text-muted-foreground">Attendance</p>
           </div>
           <div className="rounded-lg bg-muted/50 p-2 text-center">
-            <p className="text-[13px] font-bold text-foreground">{academic.latestExamPct}%</p>
+            <p className="text-[13px] font-bold text-foreground">{academic.latestExamPct === null ? "—" : `${academic.latestExamPct}%`}</p>
             <p className="text-[10px] text-muted-foreground">Last Exam</p>
           </div>
-          <div className={`rounded-lg p-2 text-center ${academic.dueFees > 0 ? "bg-rose-50 dark:bg-rose-950/30" : "bg-emerald-50 dark:bg-emerald-950/30"}`}>
-            <p className={`text-[13px] font-bold ${academic.dueFees > 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}>
-              {academic.dueFees > 0 ? `NPR ${academic.dueFees.toLocaleString()}` : "Cleared"}
+          <div className={`rounded-lg p-2 text-center ${(academic.dueFees ?? 0) > 0 ? "bg-rose-50 dark:bg-rose-950/30" : "bg-emerald-50 dark:bg-emerald-950/30"}`}>
+            <p className={`text-[13px] font-bold ${(academic.dueFees ?? 0) > 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+              {academic.dueFees === null ? "—" : academic.dueFees > 0 ? `NPR ${academic.dueFees.toLocaleString()}` : "Cleared"}
             </p>
             <p className="text-[10px] text-muted-foreground">Due Fees</p>
           </div>

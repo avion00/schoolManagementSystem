@@ -8,18 +8,20 @@ import { beforeAll, describe, expect, it } from "vitest";
 const BASE = process.env.CONTRACT_API;
 const run = BASE ? describe : describe.skip;
 
-run("contract: students", () => {
-  beforeAll(async () => {
-    const res = await fetch(`${BASE}/auth/login/`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: "principal@demo.school", password: "Passw0rd!2024" }),
-    });
-    expect(res.status).toBe(200);
-    const cookies = res.headers.getSetCookie().map((c) => c.split(";")[0]).join("; ");
-    const { api } = await import("@/lib/api");
-    api.defaults.baseURL = BASE;
-    api.defaults.headers.common.Cookie = cookies;
+async function signIn(email = "principal@demo.school") {
+  const res = await fetch(`${BASE}/auth/login/`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password: "Passw0rd!2024" }),
   });
+  if (res.status !== 200) throw new Error(`login ${res.status}`);
+  const cookies = res.headers.getSetCookie().map((c) => c.split(";")[0]).join("; ");
+  const { api } = await import("@/lib/api");
+  api.defaults.baseURL = BASE;
+  api.defaults.headers.common.Cookie = cookies;
+}
+
+run("contract: students", () => {
+  beforeAll(() => signIn());
 
   it("lists and maps students", async () => {
     const { getAll } = await import("../http");
@@ -42,5 +44,21 @@ run("contract: students", () => {
     expect(d.attendanceSummary.totalDays).toBeGreaterThanOrEqual(0);
     expect(d.fees).not.toBeNull();
     expect(Array.isArray(d.activities)).toBe(true);
+  });
+});
+
+run("contract: parents", () => {
+  beforeAll(() => signIn());
+
+  it("lists parents with linked children and builds a detail view", async () => {
+    const { getAll } = await import("../http");
+    const { fetchParentDetail, mapParent } = await import("../parents");
+    const parents = (await getAll<never>("/guardians/")).map(mapParent);
+    expect(parents.length).toBeGreaterThan(0);
+    const withKids = parents.find((p) => p.linkedChildren.length > 0)!;
+    expect(withKids.linkedChildren[0].studentId).toBeTruthy();
+    const d = await fetchParentDetail(withKids.id, true);
+    expect(d.childrenAcademic.length).toBe(withKids.linkedChildren.length);
+    expect(d.summaryCards.dueFees).not.toBeNull();
   });
 });

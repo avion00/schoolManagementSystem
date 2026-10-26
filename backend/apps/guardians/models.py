@@ -55,6 +55,7 @@ class Guardian(TenantBaseModel):
     status = models.CharField(
         max_length=12, choices=Status.choices, default=Status.ACTIVE, db_index=True
     )
+    notes = models.TextField(blank=True)  # staff-only
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL, related_name="guardian_profile",

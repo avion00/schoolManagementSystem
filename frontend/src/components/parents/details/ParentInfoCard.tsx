@@ -1,8 +1,8 @@
 import { User } from "lucide-react";
 
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { Parent } from "@/data/parentsData";
-import type { ParentDetailMock } from "@/data/parentDetailsData";
+import type { Parent } from "@/api/types/parents";
+import type { ParentDetailView } from "@/api/types/parents";
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -13,7 +13,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-export function ParentInfoCard({ parent, mock }: { parent: Parent; mock: ParentDetailMock }) {
+export function ParentInfoCard({ parent, mock }: { parent: Parent; mock: ParentDetailView }) {
   return (
     <DetailCard icon={User} title="Personal & Contact">
       <div className="divide-y divide-border/40">

@@ -13960,6 +13960,8 @@ components:
           maxLength: 64
         status:
           $ref: '#/components/schemas/GuardianStatusEnum'
+        notes:
+          type: string
         children:
           type: array
           items:
@@ -16529,6 +16531,8 @@ components:
           maxLength: 64
         status:
           $ref: '#/components/schemas/GuardianStatusEnum'
+        notes:
+          type: string
         children:
           type: array
           items:

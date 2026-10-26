@@ -2,7 +2,7 @@ import { Wallet } from "lucide-react";
 
 import { DetailCard } from "@/components/ui/DetailCard";
 import { Separator } from "@/components/ui/separator";
-import type { FeeRecord } from "@/data/parentDetailsData";
+import type { FeeRecord } from "@/api/types/parents";
 
 const STATUS_CFG = {
   Paid:    "bg-emerald-50 text-emerald-700 ring-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400",
