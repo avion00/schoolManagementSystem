@@ -10,6 +10,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from apps.audit.services import record_audit
+from apps.communications.services import notify_absences
 from apps.core.viewsets import TenantModelViewSet
 from apps.rbac.services import user_has_permission
 from apps.students.models import Student
@@ -101,6 +102,8 @@ class AttendanceViewSet(TenantModelViewSet):
         services.check_date(self.request.user, self._require_org(), data["date"])
         services.check_students(self.request.user, [data["student"]])
         super().perform_create(serializer)
+        if serializer.instance.status == "absent":
+            notify_absences([serializer.instance.student], serializer.instance.date)
 
     def perform_update(self, serializer):
         instance = serializer.instance
@@ -128,16 +131,24 @@ class AttendanceViewSet(TenantModelViewSet):
         user = request.user
         services.check_date(user, org_id, date)
         services.check_students(user, [r["student"] for r in records])
-        results = []
+        previous = dict(
+            Attendance.objects.filter(student__in=[r["student"] for r in records], date=date)
+            .values_list("student_id", "status")
+        )
+        results, newly_absent = [], []
         for rec in records:
             values = {"status": rec["status"], "remark": rec.get("remark", ""), "updated_by": user}
             obj, created = Attendance.objects.update_or_create(
                 organization_id=org_id, student=rec["student"], date=date,
                 defaults=values, create_defaults={**values, "created_by": user},
             )
+            if obj.status == "absent" and previous.get(rec["student"].id) != "absent":
+                newly_absent.append(rec["student"])
             results.append(
                 {"student": str(rec["student"].id), "status": obj.status, "created": created}
             )
+        # Guardians hear about each absence once, after the register commits.
+        transaction.on_commit(lambda: notify_absences(newly_absent, date))
         record_audit(
             action="attendance.bulk", actor=user, request=request,
             organization=user.organization,

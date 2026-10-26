@@ -76,9 +76,10 @@ python manage.py seed_rich      # optional: ~60 students, invoices, attendance, 
 python manage.py runserver 127.0.0.1:8000
 ```
 
-Run daily (cron for now) so unpaid invoices past their due date become overdue:
+Scheduled jobs (cron for now; Celery beat in Phase 3):
 ```bash
-python manage.py mark_overdue_invoices
+python manage.py mark_overdue_invoices        # daily: unpaid invoices past due -> overdue
+python manage.py dispatch_scheduled_notices   # every few minutes: publish due notices + notify
 ```
 
 ### Tests and lint

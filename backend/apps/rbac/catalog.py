@@ -44,6 +44,8 @@ PERMISSIONS = [
     ("fee.view.own", "View own fees", "fee"),
     ("student.promote", "Promote / change student status", "student"),
     ("exam.marks.enter.all", "Enter marks for any class / subject", "exam"),
+    ("notice.manage", "Create and edit notices", "communication"),
+    ("notice.publish", "Publish / archive notices", "communication"),
     ("timetable.view", "View class routines", "timetable"),
     ("timetable.manage", "Manage class routines and period slots", "timetable"),
     ("attendance.manage.all", "Mark / edit any class's attendance, any past date", "attendance"),

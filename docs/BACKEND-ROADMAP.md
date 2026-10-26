@@ -53,7 +53,7 @@ Plan for completing the Django/DRF backend. Status is kept up to date as work la
 | Module | Scope | Status |
 |---|---|---|
 | Timetable / class routine | Period slots per shift (no overlaps, breaks), routine entries by section × day × period, **clash checks by clock time** (section slot, teacher, room, across shifts), weekly grids by section/teacher/room, conflict report, stats; weekly timetable and "today" (completed/ongoing/upcoming) for students, parents and teachers. Rooms are shared with exams | ✅ |
-| Notices and notifications | Audience targeting (role, class, section), read receipts, in-app notifications | ⬜ |
+| Notices and notifications | Notices with drafts, scheduling (`dispatch_scheduled_notices`), publish/archive, audiences (role groups narrowed by class/section), pinning, expiry, read receipts and acknowledgements with recipient stats; in-app notification inbox (unread count, read, read-all, archive); automatic notifications for notice publish, **student absence → guardians**, results published → students and parents, discount decision → requester. Email/SMS delivery arrives with Celery (Phase 3) | ✅ |
 | Messaging | Conversations, groups, broadcasts, message requests, moderation, export; live delivery over WebSockets (Django Channels) | ⬜ |
 | LMS | Homework and assignments, submissions, learning materials, validated file uploads | ⬜ |
 | Finance operations | Expenses, vendors, payroll | ⬜ |

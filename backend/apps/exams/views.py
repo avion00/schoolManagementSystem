@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from apps.academics.models import ClassLevel, Section
 from apps.audit.services import record_audit
+from apps.communications.services import notify_results_published
 from apps.core.sequences import next_document_number
 from apps.core.viewsets import TenantModelViewSet
 from apps.rbac.services import user_has_permission
@@ -146,10 +147,12 @@ class ExamViewSet(TenantModelViewSet):
         if gaps and not request.data.get("force"):
             # Plain Response (not ValidationError) keeps the counts as numbers.
             return Response({"detail": "Some marks are missing.", "missing": gaps}, status=400)
-        return self._transition(
+        response = self._transition(
             request, "publish", is_published=True, published_at=timezone.now(),
             status=Exam.Status.COMPLETED,
         )
+        notify_results_published(exam)
+        return response
 
     @action(detail=True, methods=["post"])
     def unpublish(self, request, pk=None):

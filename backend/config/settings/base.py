@@ -52,6 +52,7 @@ LOCAL_APPS = [
     "apps.exams",
     "apps.fees",
     "apps.timetable",
+    "apps.communications",
     "apps.reports",
     "apps.portal",
 ]
@@ -194,12 +195,17 @@ SPECTACULAR_SETTINGS = {
         "TeacherStatusEnum": "apps.teachers.models.Teacher.Status",
         "StaffAttendanceStatusEnum": "apps.teachers.models.StaffAttendance.Status",
         "AttendanceStatusEnum": "apps.attendance.models.Attendance.Status",
-        "ClassLevelStatusEnum": "apps.academics.models.ClassLevel.Status",
+        # active / inactive / suspended (classes and routine entries share it)
+        "ActiveInactiveSuspendedEnum": "apps.academics.models.ClassLevel.Status",
         "SubjectStatusEnum": "apps.academics.models.Subject.Status",
         "SyllabusUnitStatusEnum": "apps.academics.models.SyllabusUnit.Status",
         "ExamStatusEnum": "apps.exams.models.Exam.Status",
         "InvoiceStatusEnum": "apps.fees.models.Invoice.Status",
         "FeeDiscountStatusEnum": "apps.fees.models.FeeDiscount.Status",
+        "NoticeStatusEnum": "apps.communications.models.Notice.Status",
+        "NoticeCategoryEnum": "apps.communications.models.Notice.Category",
+        "NotificationCategoryEnum": "apps.communications.models.Notification.Category",
+        "SubjectCategoryEnum": "apps.academics.models.Subject.Category",
     },
 }
 

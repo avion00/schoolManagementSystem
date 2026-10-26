@@ -16,6 +16,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.audit.services import record_audit
+from apps.communications.services import notify_discount_decided
 from apps.core.pagination import DefaultPagination
 from apps.core.permissions import HasPermission
 from apps.core.sequences import next_document_number
@@ -304,6 +305,7 @@ class FeeDiscountViewSet(TenantModelViewSet):
         discount.updated_by = request.user
         discount.save()
         invoice.recalculate()
+        notify_discount_decided(discount)
         record_audit(
             action=f"fee_discount.{status}", actor=request.user, instance=discount, request=request,
             organization=request.user.organization,
