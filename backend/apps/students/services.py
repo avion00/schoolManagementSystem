@@ -3,7 +3,6 @@ parent portal, so all three report identical numbers."""
 from django.db.models import Count, Sum
 
 from apps.attendance.models import Attendance
-from apps.exams.models import Mark
 from apps.fees.models import Invoice
 
 PRESENT_LIKE = ("present", "late", "half_day")
@@ -31,38 +30,29 @@ def fees_summary(student):
 
 
 def exam_results(student, *, published_only=True):
-    """Marks grouped per exam, newest first, with totals and percentage."""
-    marks = (
-        Mark.objects.filter(student=student)
-        .select_related("exam_subject", "exam_subject__exam", "exam_subject__subject")
-        .order_by("-exam_subject__exam__start_date", "exam_subject__subject__name")
-    )
-    if published_only:
-        marks = marks.filter(exam_subject__exam__is_published=True)
+    """The student's result in each exam (newest first), computed by the same
+    engine as staff results, so grades, GPA and ranks always agree."""
+    from apps.exams.models import Exam, ExamSubject
+    from apps.exams.services import compute_results
 
-    exams: dict = {}
-    for m in marks:
-        ex = m.exam_subject.exam
-        d = exams.setdefault(str(ex.id), {
-            "exam_id": str(ex.id), "exam": ex.name, "is_published": ex.is_published,
-            "subjects": [], "obtained": 0.0, "full": 0.0,
-        })
-        obtained = float(m.marks_obtained) if m.marks_obtained is not None else None
-        full = float(m.exam_subject.full_marks)
-        d["subjects"].append({
-            "subject": m.exam_subject.subject.name,
-            "marks_obtained": obtained,
-            "full_marks": full,
-            "pass_marks": float(m.exam_subject.pass_marks),
-            "is_absent": m.is_absent,
-        })
-        if obtained is not None and not m.is_absent:
-            d["obtained"] += obtained
-        d["full"] += full
+    exams = Exam.objects.filter(
+        exam_subjects__marks__student=student, exam_subjects__marks__is_active=True
+    ).distinct().select_related("grade_scale")
+    if published_only:
+        exams = exams.filter(is_published=True)
     results = []
-    for d in exams.values():
-        d["percentage"] = round(d["obtained"] / d["full"] * 100, 2) if d["full"] else None
-        results.append(d)
+    for exam in exams.order_by("-start_date", "-created_at"):
+        paper = ExamSubject.objects.filter(exam=exam, marks__student=student).select_related("class_level").first()
+        data = compute_results(exam, paper.class_level)
+        row = next((r for r in data["rows"] if r["student"] == str(student.id)), None)
+        if row is None:
+            continue
+        results.append({
+            "exam_id": str(exam.id), "exam": exam.name, "is_published": exam.is_published,
+            "subjects": row["subjects"], "obtained": row["total_obtained"], "full": row["total_full"],
+            "percentage": row["percentage"], "grade": row["grade"], "gpa": row["gpa"],
+            "result": row["result"], "rank": row["rank"], "section_rank": row["section_rank"],
+        })
     return results
 
 

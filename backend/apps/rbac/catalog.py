@@ -43,6 +43,7 @@ PERMISSIONS = [
     ("result.view.own", "View own results", "exam"),
     ("fee.view.own", "View own fees", "fee"),
     ("student.promote", "Promote / change student status", "student"),
+    ("exam.marks.enter.all", "Enter marks for any class / subject", "exam"),
     ("attendance.manage.all", "Mark / edit any class's attendance, any past date", "attendance"),
     ("staff_attendance.view", "View staff attendance", "teacher"),
     ("staff_attendance.manage", "Take / edit staff attendance", "teacher"),
