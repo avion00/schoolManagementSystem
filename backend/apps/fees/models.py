@@ -8,6 +8,7 @@ from decimal import Decimal
 
 from django.db import models
 from django.db.models import Sum
+from django.utils import timezone
 
 from apps.core.models import TenantBaseModel
 
@@ -29,6 +30,12 @@ class FeeCategory(TenantBaseModel):
 
 
 class FeeStructure(TenantBaseModel):
+    class Frequency(models.TextChoices):
+        ONE_TIME = "one_time", "One-time"
+        MONTHLY = "monthly", "Monthly"
+        TERM = "term", "Term"
+        ANNUAL = "annual", "Annual"
+
     name = models.CharField(max_length=150)
     category = models.ForeignKey(
         FeeCategory, on_delete=models.PROTECT, related_name="structures"
@@ -41,6 +48,7 @@ class FeeStructure(TenantBaseModel):
         on_delete=models.SET_NULL, related_name="fee_structures",
     )
     amount = models.DecimalField(max_digits=12, decimal_places=2)
+    frequency = models.CharField(max_length=10, choices=Frequency.choices, default=Frequency.MONTHLY)
 
     class Meta:
         ordering = ["name"]
@@ -64,7 +72,10 @@ class Invoice(TenantBaseModel):
     number = models.CharField(max_length=40)
     issue_date = models.DateField()
     due_date = models.DateField(null=True, blank=True)
+    # e.g. "2026-10" or "Term 1"; generated invoices are unique per student+period.
+    billing_period = models.CharField(max_length=40, blank=True, db_index=True)
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     status = models.CharField(
         max_length=12, choices=Status.choices, default=Status.UNPAID, db_index=True
@@ -83,25 +94,35 @@ class Invoice(TenantBaseModel):
         return self.number
 
     @property
+    def net_amount(self):
+        return self.total_amount - self.discount_amount
+
+    @property
     def balance(self):
-        return self.total_amount - self.paid_amount
+        return self.net_amount - self.paid_amount
 
     def recalculate(self, commit=True):
-        """Recompute paid_amount + status from non-reversed payments."""
+        """Recompute discount, paid amount and status from approved discounts and
+        non-reversed payments. Unpaid balances past the due date are overdue."""
         if self.status == self.Status.CANCELLED:
             return
+        self.discount_amount = self.discounts.filter(
+            status=FeeDiscount.Status.APPROVED, is_active=True
+        ).aggregate(t=Sum("amount"))["t"] or Decimal("0")
         paid = self.payments.filter(is_reversed=False, is_active=True).aggregate(
             total=Sum("amount")
         )["total"] or Decimal("0")
         self.paid_amount = paid
-        if paid <= 0:
-            self.status = self.Status.UNPAID
-        elif paid < self.total_amount:
+        if paid >= self.net_amount:
+            self.status = self.Status.PAID
+        elif self.due_date and self.due_date < timezone.localdate():
+            self.status = self.Status.OVERDUE
+        elif paid > 0:
             self.status = self.Status.PARTIAL
         else:
-            self.status = self.Status.PAID
+            self.status = self.Status.UNPAID
         if commit:
-            self.save(update_fields=["paid_amount", "status", "updated_at"])
+            self.save(update_fields=["discount_amount", "paid_amount", "status", "updated_at"])
 
 
 class InvoiceItem(TenantBaseModel):
@@ -113,7 +134,9 @@ class InvoiceItem(TenantBaseModel):
         on_delete=models.SET_NULL, related_name="invoice_items",
     )
     description = models.CharField(max_length=255)
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    quantity = models.PositiveIntegerField(default=1)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)  # quantity × unit price
 
     class Meta:
         ordering = ["created_at"]
@@ -125,8 +148,11 @@ class InvoiceItem(TenantBaseModel):
 class Payment(TenantBaseModel):
     class Method(models.TextChoices):
         CASH = "cash", "Cash"
-        BANK = "bank", "Bank"
+        BANK = "bank", "Bank Transfer"
+        CARD = "card", "Card"
         ONLINE = "online", "Online"
+        WALLET = "wallet", "Online Wallet"
+        MOBILE_BANKING = "mobile_banking", "Mobile Banking"
         CHEQUE = "cheque", "Cheque"
 
     invoice = models.ForeignKey(
@@ -134,7 +160,7 @@ class Payment(TenantBaseModel):
     )
     receipt_number = models.CharField(max_length=40)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    method = models.CharField(max_length=12, choices=Method.choices, default=Method.CASH)
+    method = models.CharField(max_length=16, choices=Method.choices, default=Method.CASH)
     paid_at = models.DateTimeField()
     transaction_id = models.CharField(max_length=120, blank=True)
     remarks = models.CharField(max_length=255, blank=True)
@@ -152,3 +178,29 @@ class Payment(TenantBaseModel):
 
     def __str__(self):
         return f"{self.receipt_number}: {self.amount}"
+
+
+class FeeDiscount(TenantBaseModel):
+    """A concession on one invoice. Maker-checker: requested by one user,
+    approved or rejected by a different user holding fee.discount.approve."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+
+    invoice = models.ForeignKey(Invoice, on_delete=models.PROTECT, related_name="discounts")
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    reason = models.CharField(max_length=255)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING, db_index=True)
+    decided_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
+    decision_note = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.invoice} −{self.amount} ({self.status})"
