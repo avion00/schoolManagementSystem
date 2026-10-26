@@ -51,6 +51,7 @@ LOCAL_APPS = [
     "apps.attendance",
     "apps.exams",
     "apps.fees",
+    "apps.timetable",
     "apps.reports",
     "apps.portal",
 ]

@@ -302,3 +302,58 @@ class MyStaffAttendanceSummaryView(APIView):
     def get(self, request):
         teacher = teacher_services.get_teacher(request.user)
         return Response(staff_attendance_summary(StaffAttendance.objects.filter(teacher=teacher)))
+
+
+# --- timetables (all portals) ----------------------------------------------
+
+def _section_timetable(student):
+    from apps.timetable import services as tt
+
+    if not student.section_id:
+        return tt.active_entries(pk__in=[])
+    return tt.active_entries(section_id=student.section_id)
+
+
+class MyTimetableView(APIView):
+    permission_classes = STUDENT_PERMS
+
+    def get(self, request):
+        from apps.timetable.services import weekly
+
+        return Response(weekly(_section_timetable(get_student(request.user))))
+
+
+class MyTodayView(APIView):
+    permission_classes = STUDENT_PERMS
+
+    def get(self, request):
+        from apps.timetable.services import today_schedule
+
+        return Response(today_schedule(_section_timetable(get_student(request.user))))
+
+
+class MyChildTimetableView(APIView):
+    permission_classes = GUARDIAN_PERMS
+
+    def get(self, request, student_id):
+        from apps.timetable.services import weekly
+
+        return Response(weekly(_section_timetable(get_child(request.user, student_id))))
+
+
+class MyTeacherTimetableView(APIView):
+    permission_classes = TEACHER_PERMS
+
+    def get(self, request):
+        from apps.timetable.services import active_entries, weekly
+
+        return Response(weekly(active_entries(teacher=teacher_services.get_teacher(request.user))))
+
+
+class MyTeacherTodayView(APIView):
+    permission_classes = TEACHER_PERMS
+
+    def get(self, request):
+        from apps.timetable.services import active_entries, today_schedule
+
+        return Response(today_schedule(active_entries(teacher=teacher_services.get_teacher(request.user))))

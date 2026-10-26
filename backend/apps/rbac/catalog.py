@@ -44,6 +44,8 @@ PERMISSIONS = [
     ("fee.view.own", "View own fees", "fee"),
     ("student.promote", "Promote / change student status", "student"),
     ("exam.marks.enter.all", "Enter marks for any class / subject", "exam"),
+    ("timetable.view", "View class routines", "timetable"),
+    ("timetable.manage", "Manage class routines and period slots", "timetable"),
     ("attendance.manage.all", "Mark / edit any class's attendance, any past date", "attendance"),
     ("staff_attendance.view", "View staff attendance", "teacher"),
     ("staff_attendance.manage", "Take / edit staff attendance", "teacher"),
@@ -55,7 +57,7 @@ ROLE_PERMISSIONS = {
         "student.view.class", "attendance.take",
         "attendance.update", "attendance.report", "exam.marks.enter",
         "report.view", "academics.view", "guardian.view", "teacher.view",
-        "exam.view",
+        "exam.view", "timetable.view",
     ],
     "Accountant": [
         "fee.view", "fee.create", "fee.collect", "fee.refund",

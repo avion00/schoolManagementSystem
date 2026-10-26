@@ -23,6 +23,7 @@ from apps.rbac.catalog import PERMISSIONS, ROLE_PERMISSIONS
 from apps.rbac.models import Permission, Role, RolePermission, UserRole
 from apps.students.models import Student
 from apps.teachers.models import Teacher, TeacherAssignment
+from apps.timetable.models import PeriodSlot, RoutineEntry
 
 DEMO_PASSWORD = "Passw0rd!2024"
 
@@ -189,6 +190,29 @@ class Command(BaseCommand):
             subject=subjects["SCI"], defaults={"is_class_teacher": True},
         )
         self.stdout.write(self.style.SUCCESS("Teacher + assignment ready."))
+
+        # --- Bell schedule + a week's routine for Grade 8 A ---
+        times = [((10, 0), (10, 45)), ((10, 45), (11, 30)), ((11, 30), (12, 0)), ((12, 0), (12, 45))]
+        slots = []
+        for no, (start, end) in enumerate(times, start=1):
+            slot, _ = PeriodSlot.objects.get_or_create(
+                organization=org, shift="day", period_no=no,
+                defaults={"start_time": datetime.time(*start), "end_time": datetime.time(*end),
+                          "is_break": no == 3, "label": "Lunch" if no == 3 else f"Period {no}"},
+            )
+            slots.append(slot)
+        teaching = [s for s in slots if not s.is_break]
+        rotation = list(subjects.values())
+        for d, day in enumerate(["sunday", "monday", "tuesday", "wednesday", "thursday", "friday"]):
+            for p, slot in enumerate(teaching):
+                subject = rotation[(d + p) % len(rotation)]
+                RoutineEntry.objects.get_or_create(
+                    organization=org, academic_year=year, section=sections[("Grade 8", "A")],
+                    day=day, period=slot,
+                    defaults={"subject": subject, "school": school,
+                              "teacher": teacher if subject.code == "SCI" else None},
+                )
+        self.stdout.write(self.style.SUCCESS("Timetable ready (Grade 8 A)."))
 
         # --- Student portal login (linked to a Student record) ---
         liam = Student.objects.filter(organization=org, admission_number="ADM-0001").first()

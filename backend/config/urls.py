@@ -26,6 +26,7 @@ api_v1 = [
     path("", include("apps.attendance.urls")),
     path("exams/", include("apps.exams.urls")),
     path("fees/", include("apps.fees.urls")),
+    path("timetable/", include("apps.timetable.urls")),
 ]
 
 urlpatterns = [

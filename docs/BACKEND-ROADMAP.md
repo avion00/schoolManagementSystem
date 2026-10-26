@@ -48,11 +48,11 @@ Plan for completing the Django/DRF backend. Status is kept up to date as work la
 | Fees | Item quantity × unit price, fee structure frequency, **bulk invoice generation** per billing period (safe to re-run), **two-person discount approval** that reduces the amount payable, automatic overdue status plus `mark_overdue_invoices` command (run daily), student fee roster, **ledger** with running balance, reports (summary by method, collection trend, defaulters), more payment methods and who received each payment | ✅ |
 | API quality | OpenAPI schema generates with 0 warnings and 0 errors (was 299 warnings, 108 errors) and is validated in CI. User list loads in a fixed number of queries (no per-row queries). Regression tests guard both | ✅ |
 
-## Phase 2: New modules
+## Phase 2: New modules 🚧
 
 | Module | Scope | Status |
 |---|---|---|
-| Timetable / class routine | Periods, shifts, rooms; conflicts by teacher, room and section | ⬜ |
+| Timetable / class routine | Period slots per shift (no overlaps, breaks), routine entries by section × day × period, **clash checks by clock time** (section slot, teacher, room, across shifts), weekly grids by section/teacher/room, conflict report, stats; weekly timetable and "today" (completed/ongoing/upcoming) for students, parents and teachers. Rooms are shared with exams | ✅ |
 | Notices and notifications | Audience targeting (role, class, section), read receipts, in-app notifications | ⬜ |
 | Messaging | Conversations, groups, broadcasts, message requests, moderation, export; live delivery over WebSockets (Django Channels) | ⬜ |
 | LMS | Homework and assignments, submissions, learning materials, validated file uploads | ⬜ |
