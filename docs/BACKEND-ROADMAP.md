@@ -48,7 +48,7 @@ Plan for completing the Django/DRF backend. Status is kept up to date as work la
 | Fees | Item quantity × unit price, fee structure frequency, **bulk invoice generation** per billing period (safe to re-run), **two-person discount approval** that reduces the amount payable, automatic overdue status plus `mark_overdue_invoices` command (run daily), student fee roster, **ledger** with running balance, reports (summary by method, collection trend, defaulters), more payment methods and who received each payment | ✅ |
 | API quality | OpenAPI schema generates with 0 warnings and 0 errors (was 299 warnings, 108 errors) and is validated in CI. User list loads in a fixed number of queries (no per-row queries). Regression tests guard both | ✅ |
 
-## Phase 2: New modules 🚧
+## Phase 2: New modules ✅
 
 | Module | Scope | Status |
 |---|---|---|
@@ -58,7 +58,7 @@ Plan for completing the Django/DRF backend. Status is kept up to date as work la
 | LMS | **Private file uploads** (size limit, extension allowlist, magic-byte content check, random storage names, permission-checked download with `nosniff` + sandbox CSP, audited, orphan purge job); assignments/homework (draft → publish → close, late policy, attachments, grading with feedback or return-for-changes); student submissions with To do / Late / Submitted / Graded / Missing status; learning materials (files or links); lesson plans with principal review; teachers limited to classes and subjects they teach; notifications to students and guardians on publish and grading | ✅ |
 | Finance operations | Vendors with purchase/outstanding totals; expenses with receipts and **two-person approval** (pending → approved/rejected → paid, frozen once decided); salary structures (bank details visible only with `payroll.manage`); monthly **payroll runs** that deduct days absent in staff attendance, allow bonus/deduction adjustments, keep adjustments when regenerated, need approval by someone other than the preparer, and record paid salary expenses; teacher payslips in the portal; income vs expense summary | ✅ |
 | Help desk | Tickets from any user (TKT codes, category, department, related student), **SLA first-response targets by priority** with on track / due soon / overdue / met / breached, public replies and agent-only internal notes, attachments, assignment to help desk staff, status workflow, resolve / close / reopen (7-day window for requesters), ratings, activity timeline, notifications, stats (open, overdue, unassigned, average first response, SLA met %) | ✅ |
-| Settings and account | School profile, per-module settings, change and forgot password, session list and revoke | ⬜ |
+| Settings and account | School profile with logo; organization settings (notifications, fees, attendance, exams, security, appearance) stored sparsely over code defaults and **validated** (unknown keys, types, ranges); attendance lock period and notification toggles take effect; **login lockout** from the security settings; profile edit; change password (signs out other devices); **forgot-password by email** (single-use links, same answer for unknown emails); **active sessions** with device/IP and immediate revocation (session id in the JWT) | ✅ |
 
 ## Phase 3: Production readiness
 
@@ -66,7 +66,7 @@ Plan for completing the Django/DRF backend. Status is kept up to date as work la
 |---|---|
 | Docker Compose with PostgreSQL, Redis and Celery | ⬜ |
 | PostgreSQL row-level security as a second tenant-isolation layer | ⬜ |
-| MFA and login lockout | ⬜ |
+| MFA (login lockout is done, in settings/account) | ⬜ |
 | Structured logging, Sentry, readiness checks | ⬜ |
 | Backups | ⬜ |
 | SaaS billing, entitlements and admissions CRM (`BLUEPRINT-PREMIUM.md`) | ⬜ |

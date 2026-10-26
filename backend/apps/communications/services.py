@@ -152,9 +152,17 @@ def guardian_users_of(students):
 
 # --- domain event hooks (called explicitly from the views that cause them) ---
 
+def _event_enabled(organization_id, event):
+    from apps.orgsettings.services import get_setting
+
+    return get_setting(organization_id, "notifications", "events", event)
+
+
 def notify_absences(students, date):
     """Tell each absent student's guardians (one notification per guardian per child)."""
     sent = 0
+    if students and not _event_enabled(students[0].organization_id, "attendance_alert"):
+        return 0
     for student in students:
         sent += notify(
             guardian_users_of([student]),
@@ -169,6 +177,8 @@ def notify_absences(students, date):
 def notify_results_published(exam):
     from apps.students.models import Student
 
+    if not _event_enabled(exam.organization_id, "result_published"):
+        return 0
     students = Student.objects.filter(
         organization_id=exam.organization_id, status="active",
         marks__exam_subject__exam=exam, marks__is_active=True,

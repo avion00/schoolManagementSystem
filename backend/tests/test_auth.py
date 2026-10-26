@@ -58,8 +58,9 @@ def test_logout_blacklists_refresh(tenant):
 
 
 def test_login_is_rate_limited(tenant):
+    # Per-IP throttle; an unknown email so account lockout doesn't kick in first.
     client = APIClient()
-    email = tenant.users["Principal"].email
+    email = "nobody@nowhere.test"
     codes = [login(client, email, "wrong").status_code for _ in range(11)]
     assert codes[:10] == [401] * 10
     assert codes[10] == 429

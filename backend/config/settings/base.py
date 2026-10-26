@@ -59,6 +59,7 @@ LOCAL_APPS = [
     "apps.lms",
     "apps.finance",
     "apps.helpdesk",
+    "apps.orgsettings",
     "apps.reports",
     "apps.portal",
 ]
@@ -246,7 +247,12 @@ CSRF_TRUSTED_ORIGINS = env.list(
 # ---------------------------------------------------------------------------
 # Users without attendance.manage.all may only enter/edit attendance this many
 # days back (school.md §7.8: past attendance is locked).
+# (Fallback only: each school sets attendance.lock_after_days in its settings.)
 ATTENDANCE_EDIT_WINDOW_DAYS = env.int("ATTENDANCE_EDIT_WINDOW_DAYS", default=7)
+
+# Where password-reset links point (the SPA route that accepts uid + token).
+FRONTEND_URL = env("FRONTEND_URL", default="http://127.0.0.1:5173")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@school.local")
 
 # ---------------------------------------------------------------------------
 # Channels (WebSockets). In-memory layer works for a single dev process; set

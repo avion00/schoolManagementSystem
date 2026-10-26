@@ -33,7 +33,11 @@ def check_date(user, organization_id, date):
     holiday = holiday_on(organization_id, date)
     if holiday:
         raise ValidationError({"date": f"{date} is a holiday ({holiday.name})."})
-    window = settings.ATTENDANCE_EDIT_WINDOW_DAYS
+    from apps.orgsettings.services import explicit_setting
+
+    window = explicit_setting(organization_id, "attendance", "lock_after_days")
+    if window is None:
+        window = settings.ATTENDANCE_EDIT_WINDOW_DAYS
     if not can_manage_all(user) and (today - date).days > window:
         raise ValidationError(
             {"date": f"Attendance older than {window} days is locked. Ask an administrator."}
