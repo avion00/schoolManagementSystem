@@ -6,6 +6,7 @@ a child linked to the requesting guardian — never from an unchecked URL id.
 from django.db.models import Count, Q
 from django.http import Http404
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -84,6 +85,8 @@ class MyAttendanceView(generics.ListAPIView):
     filterset_fields = ["status", "date"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Attendance.objects.none()
         return Attendance.objects.filter(student=get_student(self.request.user))
 
 
@@ -120,6 +123,7 @@ class MyDashboardView(APIView):
 class MyChildrenView(APIView):
     permission_classes = GUARDIAN_PERMS
 
+    @extend_schema(operation_id="v1_me_children_list")
     def get(self, request):
         guardian = get_guardian(request.user)
         links = guardian.student_links.select_related(
@@ -149,6 +153,8 @@ class MyChildAttendanceView(generics.ListAPIView):
     filterset_fields = ["status", "date"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Attendance.objects.none()
         return Attendance.objects.filter(
             student=get_child(self.request.user, self.kwargs["student_id"])
         )
@@ -285,6 +291,8 @@ class MyStaffAttendanceView(generics.ListAPIView):
     filterset_fields = ["status", "date"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return StaffAttendance.objects.none()
         return StaffAttendance.objects.filter(teacher=teacher_services.get_teacher(self.request.user))
 
 

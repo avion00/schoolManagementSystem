@@ -41,22 +41,22 @@ class TeacherSerializer(serializers.ModelSerializer):
     def _assignments(self, obj):
         return list(obj.assignments.all())
 
-    def get_subjects(self, obj):
+    def get_subjects(self, obj) -> list[str]:
         names = {a.subject.name for a in self._assignments(obj) if a.subject_id}
         if obj.primary_subject_id:
             names.add(obj.primary_subject.name)
         return sorted(names)
 
-    def get_assigned_classes(self, obj):
+    def get_assigned_classes(self, obj) -> list[str]:
         return sorted({_class_label(a) for a in self._assignments(obj)})
 
-    def get_class_teacher_of(self, obj):
+    def get_class_teacher_of(self, obj) -> str | None:
         return next((_class_label(a) for a in self._assignments(obj) if a.is_class_teacher), None)
 
-    def get_assignments_count(self, obj):
+    def get_assignments_count(self, obj) -> int:
         return len(self._assignments(obj))
 
-    def get_has_login(self, obj):
+    def get_has_login(self, obj) -> bool:
         return obj.user_id is not None
 
 

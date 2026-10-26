@@ -33,6 +33,8 @@ class TenantModelViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
+        if getattr(self, "swagger_fake_view", False):  # schema generation, no real user
+            return qs.none()
         user = self.request.user
         if user.is_superuser or getattr(user, "is_platform_admin", False):
             return qs

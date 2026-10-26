@@ -45,6 +45,8 @@ class RoleViewSet(viewsets.ModelViewSet):
     search_fields = ["name"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return self.serializer_class.Meta.model.objects.none()
         user = self.request.user
         qs = Role.objects.all().prefetch_related("permissions")
         if user.is_superuser or user.is_platform_admin:
@@ -128,6 +130,8 @@ class UserRoleViewSet(
     filterset_fields = ["user", "role"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return self.serializer_class.Meta.model.objects.none()
         user = self.request.user
         qs = UserRole.objects.select_related("user", "role", "school")
         if user.is_superuser or user.is_platform_admin:
@@ -161,6 +165,8 @@ class UserPermissionOverrideViewSet(
     filterset_fields = ["user", "granted"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return self.serializer_class.Meta.model.objects.none()
         user = self.request.user
         qs = UserPermissionOverride.objects.select_related("user", "permission")
         if user.is_superuser or user.is_platform_admin:

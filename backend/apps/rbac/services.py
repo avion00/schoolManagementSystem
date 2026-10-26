@@ -37,6 +37,30 @@ def _resolve(user):
     return frozenset(codes)
 
 
+PREFETCH_FOR_PERMISSIONS = (
+    "user_roles__role__role_permissions__permission",
+    "permission_overrides__permission",
+)
+
+
+def permission_codes_from_prefetch(user, all_codes=None):
+    """Same rules as `_resolve`, computed from relations prefetched with
+    PREFETCH_FOR_PERMISSIONS — for listing many users without N+1 queries."""
+    if _is_admin(user):
+        return set(all_codes) if all_codes is not None else set(_resolve(user))
+    codes = {
+        rp.permission.code
+        for ur in user.user_roles.all() if ur.role.is_active
+        for rp in ur.role.role_permissions.all()
+    }
+    for override in user.permission_overrides.all():
+        if override.granted:
+            codes.add(override.permission.code)
+        else:
+            codes.discard(override.permission.code)
+    return codes
+
+
 def user_permission_codes(user):
     if not user or not getattr(user, "is_authenticated", False):
         return set()

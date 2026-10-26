@@ -36,7 +36,7 @@ Plan for completing the Django/DRF backend. Status is kept up to date as work la
 | Audit logs record before/after diffs | ✅ |
 | Permission resolution memoised per request | ✅ |
 
-## Phase 1: Finish existing modules to match the frontend
+## Phase 1: Finish existing modules to match the frontend ✅
 
 | Module | Scope | Status |
 |---|---|---|
@@ -46,7 +46,7 @@ Plan for completing the Django/DRF backend. Status is kept up to date as work la
 | Attendance | Holiday calendar (no attendance on holidays), no future dates, teachers limited to their own sections, edit window for past days (`ATTENDANCE_EDIT_WINDOW_DAYS`, bypassed by `attendance.manage.all`), section register, monthly sheet, student report, class comparison, stats (today, monthly rate, weekly change, 6-month trend). Absence alerts to guardians come with Notifications | ✅ |
 | Exams | Exam codes/types/status, exam rooms, paper schedule (time, room, invigilators) with **clash detection** (room, invigilator, class), component marks (theory/practical/internal), non-overlapping grade bands with pass/fail, **results engine** (grade, GPA, pass/fail, class and section rank, incomplete detection) shared by staff and portals, bulk marks entry and marks sheet scoped to what the teacher teaches, publish blocked while marks are missing (`force` overrides), report card and admit card endpoints (JSON; the frontend prints them) | ✅ |
 | Fees | Item quantity × unit price, fee structure frequency, **bulk invoice generation** per billing period (safe to re-run), **two-person discount approval** that reduces the amount payable, automatic overdue status plus `mark_overdue_invoices` command (run daily), student fee roster, **ledger** with running balance, reports (summary by method, collection trend, defaulters), more payment methods and who received each payment | ✅ |
-| API quality | OpenAPI schema with no warnings (portal and report views need response serializers), fix N+1 queries on the user list | ⬜ |
+| API quality | OpenAPI schema generates with 0 warnings and 0 errors (was 299 warnings, 108 errors) and is validated in CI. User list loads in a fixed number of queries (no per-row queries). Regression tests guard both | ✅ |
 
 ## Phase 2: New modules
 

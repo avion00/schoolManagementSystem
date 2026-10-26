@@ -26,25 +26,25 @@ class UserSerializer(serializers.ModelSerializer):
             "must_change_password", "is_student", "is_guardian", "is_teacher", "organization", "roles", "permissions",
         ]
 
-    def get_roles(self, obj):
+    def get_roles(self, obj) -> list[str]:
         return user_role_names(obj)
 
-    def get_permissions(self, obj):
+    def get_permissions(self, obj) -> list[str]:
         return sorted(user_permission_codes(obj))
 
-    def get_is_student(self, obj):
+    def get_is_student(self, obj) -> bool:
         try:
             return obj.student_profile is not None
         except Exception:
             return False
 
-    def get_is_teacher(self, obj):
+    def get_is_teacher(self, obj) -> bool:
         try:
             return obj.teacher_profile is not None
         except Exception:
             return False
 
-    def get_is_guardian(self, obj):
+    def get_is_guardian(self, obj) -> bool:
         try:
             return obj.guardian_profile is not None
         except Exception:

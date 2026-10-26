@@ -51,11 +51,11 @@ class StudentSerializer(serializers.ModelSerializer):
         read_only_fields = ["status", "is_active"]
         extra_kwargs = {"registration_number": {"required": False}}
 
-    def get_primary_guardian_name(self, obj):
+    def get_primary_guardian_name(self, obj) -> str | None:
         guardian = obj.primary_guardian
         return guardian.full_name if guardian else None
 
-    def get_has_login(self, obj):
+    def get_has_login(self, obj) -> bool:
         return obj.user_id is not None
 
     def validate(self, attrs):

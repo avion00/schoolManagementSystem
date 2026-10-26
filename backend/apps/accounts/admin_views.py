@@ -13,7 +13,8 @@ from rest_framework.response import Response
 
 from apps.audit.services import record_audit
 from apps.core.permissions import HasPermission
-from apps.rbac.services import can_manage_user
+from apps.rbac.models import Permission
+from apps.rbac.services import PREFETCH_FOR_PERMISSIONS, can_manage_user
 
 from .admin_serializers import UserAdminSerializer
 from .models import User
@@ -27,12 +28,20 @@ class UserManagementViewSet(viewsets.ModelViewSet):
     filterset_fields = ["is_active"]
 
     def get_queryset(self):
-        qs = User.objects.all().order_by("email")
+        if getattr(self, "swagger_fake_view", False):
+            return self.serializer_class.Meta.model.objects.none()
+        qs = User.objects.prefetch_related(*PREFETCH_FOR_PERMISSIONS).order_by("email")
         user = self.request.user
         if user.is_superuser or user.is_platform_admin:
             return qs
         # Principals never see platform admins or other tenants' users.
         return qs.filter(organization_id=user.organization_id, is_platform_admin=False)
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        # Admin rows hold every permission; fetch the catalogue once per request.
+        context["all_permission_codes"] = list(Permission.objects.values_list("code", flat=True))
+        return context
 
     def get_object(self):
         target = super().get_object()

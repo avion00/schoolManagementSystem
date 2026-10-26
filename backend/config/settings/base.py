@@ -154,7 +154,7 @@ REST_FRAMEWORK = {
         "rest_framework.filters.SearchFilter",
         "rest_framework.filters.OrderingFilter",
     ),
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_SCHEMA_CLASS": "apps.core.schema.AutoSchema",
     "DEFAULT_THROTTLE_CLASSES": (
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
@@ -184,6 +184,22 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "Multi-tenant school management platform API.",
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    # Registers the cookie/JWT auth scheme extension.
+    "EXTENSIONS_TO_LOAD": ["apps.core.schema"],
+    # Many models have a `status` field; give each choice set a stable name.
+    "ENUM_NAME_OVERRIDES": {
+        "StudentStatusEnum": "apps.students.models.Student.Status",
+        "GuardianStatusEnum": "apps.guardians.models.Guardian.Status",
+        "TeacherStatusEnum": "apps.teachers.models.Teacher.Status",
+        "StaffAttendanceStatusEnum": "apps.teachers.models.StaffAttendance.Status",
+        "AttendanceStatusEnum": "apps.attendance.models.Attendance.Status",
+        "ClassLevelStatusEnum": "apps.academics.models.ClassLevel.Status",
+        "SubjectStatusEnum": "apps.academics.models.Subject.Status",
+        "SyllabusUnitStatusEnum": "apps.academics.models.SyllabusUnit.Status",
+        "ExamStatusEnum": "apps.exams.models.Exam.Status",
+        "InvoiceStatusEnum": "apps.fees.models.Invoice.Status",
+        "FeeDiscountStatusEnum": "apps.fees.models.FeeDiscount.Status",
+    },
 }
 
 # ---------------------------------------------------------------------------

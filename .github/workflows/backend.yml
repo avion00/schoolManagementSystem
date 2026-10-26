@@ -25,4 +25,7 @@ jobs:
       - run: python manage.py makemigrations --check --dry-run
         env:
           DJANGO_SETTINGS_MODULE: config.settings.test
+      - run: python manage.py spectacular --validate --fail-on-warn --file /dev/null
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.test
       - run: pytest

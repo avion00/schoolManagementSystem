@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.core.serializers import TenantPrimaryKeyRelatedField, merged_value
@@ -49,13 +50,14 @@ class GuardianSerializer(serializers.ModelSerializer):
         # Uses the viewset's prefetch; only links to students that still exist.
         return [link for link in obj.student_links.all() if link.student.is_active]
 
+    @extend_schema_field(LinkedChildSerializer(many=True))
     def get_children(self, obj):
         return LinkedChildSerializer(self._links(obj), many=True).data
 
-    def get_children_count(self, obj):
+    def get_children_count(self, obj) -> int:
         return len(self._links(obj))
 
-    def get_has_login(self, obj):
+    def get_has_login(self, obj) -> bool:
         return obj.user_id is not None
 
 
