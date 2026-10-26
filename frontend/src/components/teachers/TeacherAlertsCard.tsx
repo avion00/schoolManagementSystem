@@ -3,7 +3,7 @@ import { CalendarClock, UserMinus, UserX } from "lucide-react";
 
 import { Reveal } from "@/components/motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Teacher } from "@/data/teachersData";
+import type { Teacher } from "@/api/types/teachers";
 import { cn } from "@/lib/utils";
 
 export function TeacherAlertsCard({ teachers }: { teachers: Teacher[] }) {

@@ -67,6 +67,12 @@ class Teacher(TenantBaseModel):
     permanent_address = models.TextField(blank=True)
     emergency_contact = models.CharField(max_length=32, blank=True)
     emergency_relation = models.CharField(max_length=64, blank=True)
+    alternate_phone = models.CharField(max_length=32, blank=True)
+    # Free-form career details (comma/line separated in the UI).
+    skills = models.TextField(blank=True)
+    previous_schools = models.TextField(blank=True)
+    certifications = models.TextField(blank=True)
+    notes = models.TextField(blank=True)  # staff-only remarks
 
     class Meta:
         ordering = ["full_name"]

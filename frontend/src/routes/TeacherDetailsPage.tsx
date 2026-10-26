@@ -12,8 +12,13 @@ import { TeacherPersonalInfoCard } from "@/components/teachers/details/TeacherPe
 import { TeacherProfileHero } from "@/components/teachers/details/TeacherProfileHero";
 import { TeacherScheduleCard } from "@/components/teachers/details/TeacherScheduleCard";
 import { PremiumTabs } from "@/components/ui/PremiumTabs";
-import { TEACHERS } from "@/data/teachersData";
-import { TEACHER_DETAIL_MOCK } from "@/data/teacherDetailsData";
+import { errorMessage } from "@/api/http";
+import { useTeacherDetail } from "@/api/teachers";
+import { Button } from "@/components/ui/button";
+import { PremiumCard } from "@/components/ui/PremiumCard";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { useAuth } from "@/lib/auth";
 
 const TABS = [
   { value: "overview",    label: "Overview"    },
@@ -27,9 +32,19 @@ export function TeacherDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const [tab, setTab] = useState("overview");
 
-  const teacher = TEACHERS.find((t) => t.id === Number(id));
+  const { hasPermission } = useAuth();
+  const canSeePayroll = hasPermission("payroll.manage");
+  const detail = useTeacherDetail(id, canSeePayroll);
+  if (detail.isLoading) return <PremiumSkeleton className="h-96 w-full rounded-2xl" />;
+  const notFound = (detail.error as { response?: { status?: number } } | null)?.response?.status === 404;
+  if (detail.isError && !notFound) {
+    return <PremiumEmptyState title="Couldn't load this teacher" description={errorMessage(detail.error)}
+      action={<Button size="sm" variant="outline" onClick={() => detail.refetch()}>Try again</Button>} />;
+  }
+  const mock = detail.data;
+  const teacher = mock?.teacher;
 
-  if (!teacher) {
+  if (!teacher || !mock) {
     return (
       <div className="flex flex-col items-center justify-center py-32 text-muted-foreground">
         <p className="text-2xl font-bold text-foreground">Teacher not found</p>
@@ -37,8 +52,6 @@ export function TeacherDetailsPage() {
       </div>
     );
   }
-
-  const mock = TEACHER_DETAIL_MOCK;
 
   return (
     <div className="space-y-5">
@@ -65,7 +78,13 @@ export function TeacherDetailsPage() {
           <TeacherEmploymentInfoCard teacher={teacher} extra={mock.employmentExtra} />
           <div className="space-y-5">
             <TeacherAttendanceCard summary={mock.attendanceSummary} monthly={mock.attendanceMonthly} />
-            <TeacherPerformanceCard perf={mock.performance} />
+            {mock.performance ? (
+              <TeacherPerformanceCard perf={mock.performance} />
+            ) : (
+              <PremiumCard className="p-5">
+                <PremiumEmptyState title="No performance reviews yet" className="py-6" />
+              </PremiumCard>
+            )}
           </div>
         </div>
       )}
@@ -73,7 +92,16 @@ export function TeacherDetailsPage() {
       {/* ── Payroll ──────────────────────────────────────────────── */}
       {tab === "payroll" && (
         <div className="mx-auto max-w-2xl">
-          <TeacherPayrollCard payroll={mock.payroll} history={mock.monthlyPayHistory} />
+          {mock.payroll ? (
+            <TeacherPayrollCard payroll={mock.payroll} history={mock.monthlyPayHistory} />
+          ) : (
+            <PremiumCard className="p-5">
+              <PremiumEmptyState
+                title={canSeePayroll ? "No salary set up" : "Payroll is restricted"}
+                description={canSeePayroll ? "Add a salary structure from the edit form." : "You need payroll access to see salary details."}
+                className="py-6" />
+            </PremiumCard>
+          )}
         </div>
       )}
 

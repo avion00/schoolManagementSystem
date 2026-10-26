@@ -6307,6 +6307,11 @@ export interface components {
             permanent_address?: string;
             emergency_contact?: string;
             emergency_relation?: string;
+            alternate_phone?: string;
+            skills?: string;
+            previous_schools?: string;
+            certifications?: string;
+            notes?: string;
             status?: components["schemas"]["TeacherStatusEnum"];
             readonly has_login?: boolean;
             readonly is_active?: boolean;
@@ -6915,6 +6920,11 @@ export interface components {
             permanent_address?: string;
             emergency_contact?: string;
             emergency_relation?: string;
+            alternate_phone?: string;
+            skills?: string;
+            previous_schools?: string;
+            certifications?: string;
+            notes?: string;
             status?: components["schemas"]["TeacherStatusEnum"];
             readonly has_login: boolean;
             readonly is_active: boolean;

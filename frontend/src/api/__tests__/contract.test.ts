@@ -62,3 +62,20 @@ run("contract: parents", () => {
     expect(d.summaryCards.dueFees).not.toBeNull();
   });
 });
+
+run("contract: teachers", () => {
+  beforeAll(() => signIn());
+
+  it("lists teachers with salary data for payroll users and builds a detail view", async () => {
+    const { getAll } = await import("../http");
+    const { fetchTeacherDetail, mapTeacher } = await import("../teachers");
+    const teachers = (await getAll<never>("/teachers/")).map((t) => mapTeacher(t));
+    expect(teachers.length).toBeGreaterThan(0);
+    const demo = teachers.find((t) => t.employeeId === "EMP-001") ?? teachers[0];
+    const d = await fetchTeacherDetail(demo.id, true);
+    expect(d.teacher.id).toBe(demo.id);
+    expect(d.attendanceSummary.totalWorkingDays).toBeGreaterThanOrEqual(0);
+    expect(Array.isArray(d.todaySchedule)).toBe(true);
+    expect(d.assignments.length).toBeGreaterThan(0);
+  });
+});

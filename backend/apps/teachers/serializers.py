@@ -32,7 +32,8 @@ class TeacherSerializer(serializers.ModelSerializer):
             "class_teacher_of", "assignments_count",
             "phone", "email", "gender", "date_of_birth", "blood_group", "nationality",
             "religion", "marital_status", "spouse_name", "address", "permanent_address",
-            "emergency_contact", "emergency_relation",
+            "emergency_contact", "emergency_relation", "alternate_phone", "skills",
+            "previous_schools", "certifications", "notes",
             "status", "has_login", "is_active",
         ]
         read_only_fields = ["is_active"]

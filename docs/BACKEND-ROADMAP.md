@@ -73,8 +73,8 @@ type-checker shows anything still using fake data.
 | Foundation (generated types, HTTP helpers, Vitest, dev env) | ✅ |
 | Students: list, details, add/edit form with guardians, photo, documents (upload/verify), status changes, CSV export | ✅ |
 | Parents / guardians: list, details (children, attendance, results, fee records), add/edit with a real student picker and staff notes | ✅ |
-| Teachers | 🚧 |
-| Classes, subjects, class routine | ⬜ |
+| Teachers: list (salary shown only with payroll access), details (schedule, attendance, exam duties, payroll and payslips), add/edit with class/subject **assignment editor**, salary structure, career fields | ✅ |
+| Classes, subjects, class routine | 🚧 |
 | Attendance | ⬜ |
 | Exams (schedule, grades, marks entry, results, report and admit cards) | ⬜ |
 | Billing (fees, invoices, payments, expenses, payroll, vendors, reports) | ⬜ |

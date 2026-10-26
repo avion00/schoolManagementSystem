@@ -17696,6 +17696,17 @@ components:
         emergency_relation:
           type: string
           maxLength: 64
+        alternate_phone:
+          type: string
+          maxLength: 32
+        skills:
+          type: string
+        previous_schools:
+          type: string
+        certifications:
+          type: string
+        notes:
+          type: string
         status:
           $ref: '#/components/schemas/TeacherStatusEnum'
         has_login:
@@ -19220,6 +19231,17 @@ components:
         emergency_relation:
           type: string
           maxLength: 64
+        alternate_phone:
+          type: string
+          maxLength: 32
+        skills:
+          type: string
+        previous_schools:
+          type: string
+        certifications:
+          type: string
+        notes:
+          type: string
         status:
           $ref: '#/components/schemas/TeacherStatusEnum'
         has_login:
