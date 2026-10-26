@@ -12,7 +12,7 @@ from rest_framework import viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 
-from apps.audit.services import record_audit
+from apps.audit.services import diff, record_audit, snapshot
 from apps.core.permissions import HasPermission
 
 
@@ -44,11 +44,12 @@ class TenantModelViewSet(viewsets.ModelViewSet):
             )
         return org_id
 
-    def perform_create(self, serializer):
+    def perform_create(self, serializer, **extra):
+        """`extra` lets subclasses add server-assigned fields (e.g. numbers)."""
         user = self.request.user
         org_id = self._require_org()
         obj = serializer.save(
-            organization_id=org_id, created_by=user, updated_by=user
+            organization_id=org_id, created_by=user, updated_by=user, **extra
         )
         record_audit(
             action=f"{self.audit_label}.create", actor=user, instance=obj,
@@ -57,10 +58,12 @@ class TenantModelViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         user = self.request.user
+        before = snapshot(serializer.instance, serializer.validated_data.keys())
         obj = serializer.save(updated_by=user)
         record_audit(
             action=f"{self.audit_label}.update", actor=user, instance=obj,
             request=self.request, organization=user.organization,
+            changes=diff(before, obj),
         )
 
     def perform_destroy(self, instance):

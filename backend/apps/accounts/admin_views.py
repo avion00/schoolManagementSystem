@@ -7,12 +7,13 @@ import secrets
 
 from rest_framework import viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.audit.services import record_audit
 from apps.core.permissions import HasPermission
+from apps.rbac.services import can_manage_user
 
 from .admin_serializers import UserAdminSerializer
 from .models import User
@@ -32,6 +33,13 @@ class UserManagementViewSet(viewsets.ModelViewSet):
             return qs
         # Principals never see platform admins or other tenants' users.
         return qs.filter(organization_id=user.organization_id, is_platform_admin=False)
+
+    def get_object(self):
+        target = super().get_object()
+        # Reads are fine; any write needs authority over the target account.
+        if self.action not in ("retrieve",) and not can_manage_user(self.request.user, target):
+            raise PermissionDenied("You cannot manage a user with permissions you do not hold.")
+        return target
 
     def _org_id(self):
         org_id = getattr(self.request.user, "organization_id", None)
@@ -58,6 +66,8 @@ class UserManagementViewSet(viewsets.ModelViewSet):
         )
 
     def perform_destroy(self, instance):
+        if instance.pk == self.request.user.pk:
+            raise ValidationError("You cannot deactivate your own account.")
         # Deactivate rather than delete (preserves history + audit trail).
         instance.is_active = False
         instance.save(update_fields=["is_active"])

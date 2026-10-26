@@ -159,7 +159,7 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
     ),
-    "DEFAULT_THROTTLE_RATES": {"anon": "30/min", "user": "1000/min"},
+    "DEFAULT_THROTTLE_RATES": {"anon": "30/min", "user": "1000/min", "auth": "10/min"},
 }
 
 SIMPLE_JWT = {

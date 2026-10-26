@@ -22,6 +22,14 @@ class AcademicYear(TenantBaseModel):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Only one current academic year per school.
+        if self.is_current:
+            AcademicYear.objects.filter(
+                organization_id=self.organization_id, school_id=self.school_id, is_current=True,
+            ).exclude(pk=self.pk).update(is_current=False)
+
 
 class ClassLevel(TenantBaseModel):
     name = models.CharField(max_length=64)  # e.g. "Grade 8"

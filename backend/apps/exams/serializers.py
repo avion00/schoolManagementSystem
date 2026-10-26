@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from apps.academics.models import AcademicYear, ClassLevel, Subject
-from apps.core.serializers import TenantPrimaryKeyRelatedField
+from apps.core.serializers import TenantPrimaryKeyRelatedField, merged_value
 from apps.students.models import Student
 
 from .models import Exam, ExamSubject, GradeBand, GradeScale, Mark
@@ -39,6 +39,13 @@ class ExamSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["is_locked", "is_published", "is_active"]
 
+    def validate(self, attrs):
+        start = merged_value(attrs, self.instance, "start_date")
+        end = merged_value(attrs, self.instance, "end_date")
+        if start and end and end < start:
+            raise serializers.ValidationError({"end_date": "End date cannot be before the start date."})
+        return attrs
+
 
 class ExamSubjectSerializer(serializers.ModelSerializer):
     exam = TenantPrimaryKeyRelatedField(queryset=Exam.objects.all())
@@ -53,6 +60,20 @@ class ExamSubjectSerializer(serializers.ModelSerializer):
             "full_marks", "pass_marks", "exam_date", "is_active",
         ]
         read_only_fields = ["is_active"]
+
+    def validate(self, attrs):
+        exam = merged_value(attrs, self.instance, "exam")
+        if exam and exam.is_locked:
+            raise serializers.ValidationError("This exam is locked and its subjects cannot be changed.")
+        if self.instance and "exam" in attrs and attrs["exam"] != self.instance.exam:
+            raise serializers.ValidationError({"exam": "An exam subject cannot be moved to another exam."})
+        full = merged_value(attrs, self.instance, "full_marks")
+        passing = merged_value(attrs, self.instance, "pass_marks")
+        if full is not None and full <= 0:
+            raise serializers.ValidationError({"full_marks": "Full marks must be greater than zero."})
+        if passing is not None and full is not None and not 0 <= passing <= full:
+            raise serializers.ValidationError({"pass_marks": "Pass marks must be between 0 and full marks."})
+        return attrs
 
 
 class MarkSerializer(serializers.ModelSerializer):
@@ -69,16 +90,26 @@ class MarkSerializer(serializers.ModelSerializer):
         read_only_fields = ["is_active"]
 
     def validate(self, attrs):
-        exam_subject = attrs.get("exam_subject") or getattr(
-            self.instance, "exam_subject", None
-        )
-        if exam_subject and exam_subject.exam.is_locked:
+        exam_subject = merged_value(attrs, self.instance, "exam_subject")
+        student = merged_value(attrs, self.instance, "student")
+        if self.instance and any(
+            k in attrs and attrs[k] != getattr(self.instance, k) for k in ("exam_subject", "student")
+        ):
+            raise serializers.ValidationError("A mark's exam subject and student cannot be changed.")
+        if exam_subject.exam.is_locked:
             raise serializers.ValidationError(
                 "Marks for this exam are locked and cannot be changed."
             )
-        marks = attrs.get("marks_obtained")
-        if marks is not None and exam_subject and marks > exam_subject.full_marks:
+        if student.class_level_id != exam_subject.class_level_id:
             raise serializers.ValidationError(
-                {"marks_obtained": "Marks cannot exceed the subject's full marks."}
+                {"student": "Student is not in the class this exam subject is for."}
+            )
+        if merged_value(attrs, self.instance, "is_absent"):
+            attrs["marks_obtained"] = None  # an absent student has no score
+            return attrs
+        marks = attrs.get("marks_obtained")
+        if marks is not None and not 0 <= marks <= exam_subject.full_marks:
+            raise serializers.ValidationError(
+                {"marks_obtained": "Marks must be between 0 and the subject's full marks."}
             )
         return attrs

@@ -15,7 +15,16 @@ from .serializers import (
     UserPermissionOverrideSerializer,
     UserRoleSerializer,
 )
-from .services import user_permission_codes
+from .services import (
+    can_manage_user,
+    invalidate_permission_cache,
+    user_permission_codes,
+)
+
+
+def _guard_target(actor, target):
+    if not can_manage_user(actor, target):
+        raise PermissionDenied("You cannot manage a user with permissions you do not hold.")
 
 
 class PermissionViewSet(
@@ -47,6 +56,11 @@ class RoleViewSet(viewsets.ModelViewSet):
     def _guard_editable(self, role):
         if role.is_system or role.organization_id is None:
             raise PermissionDenied("System roles cannot be modified.")
+        actor = self.request.user
+        if not (actor.is_superuser or actor.is_platform_admin):
+            role_codes = set(role.permissions.values_list("code", flat=True))
+            if not role_codes <= user_permission_codes(actor):
+                raise PermissionDenied("You cannot modify a role with permissions you do not hold.")
 
     def perform_create(self, serializer):
         actor = self.request.user
@@ -94,6 +108,7 @@ class RoleViewSet(viewsets.ModelViewSet):
         RolePermission.objects.bulk_create(
             [RolePermission(role=role, permission=p) for p in perms]
         )
+        invalidate_permission_cache()
         record_audit(
             action="role.permissions.set", actor=actor, instance=role, request=request,
             organization=actor.organization, changes={"codes": sorted(p.code for p in perms)},
@@ -122,15 +137,18 @@ class UserRoleViewSet(
     def perform_create(self, serializer):
         actor = self.request.user
         obj = serializer.save()
+        invalidate_permission_cache()
         record_audit(action="user.role.assign", actor=actor, instance=obj, request=self.request,
                      organization=actor.organization,
                      changes={"user": str(obj.user_id), "role": obj.role.name})
 
     def perform_destroy(self, instance):
+        _guard_target(self.request.user, instance.user)
         record_audit(action="user.role.remove", actor=self.request.user, instance=instance,
                      request=self.request, organization=self.request.user.organization,
                      changes={"user": str(instance.user_id), "role": instance.role.name})
         instance.delete()
+        invalidate_permission_cache()
 
 
 class UserPermissionOverrideViewSet(
@@ -152,12 +170,15 @@ class UserPermissionOverrideViewSet(
     def perform_create(self, serializer):
         actor = self.request.user
         obj = serializer.save()
+        invalidate_permission_cache()
         record_audit(action="permission.override.set", actor=actor, instance=obj, request=self.request,
                      organization=actor.organization,
                      changes={"user": str(obj.user_id), "permission": obj.permission.code, "granted": obj.granted})
 
     def perform_destroy(self, instance):
+        _guard_target(self.request.user, instance.user)
         record_audit(action="permission.override.remove", actor=self.request.user, instance=instance,
                      request=self.request, organization=self.request.user.organization,
                      changes={"user": str(instance.user_id), "permission": instance.permission.code})
         instance.delete()
+        invalidate_permission_cache()

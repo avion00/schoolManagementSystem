@@ -3,12 +3,14 @@ from django.contrib.auth import authenticate
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.audit.services import record_audit
 
+from .models import User
 from .serializers import LoginSerializer, UserSerializer
 
 
@@ -40,6 +42,8 @@ def _set_auth_cookies(response, access, refresh=None):
 class LoginView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
+    # Brute-force protection: per-IP limit from DEFAULT_THROTTLE_RATES["auth"].
+    throttle_classes = [ScopedRateThrottle]
     throttle_scope = "auth"
 
     def post(self, request):
@@ -77,6 +81,11 @@ class RefreshView(APIView):
             )
         try:
             refresh = RefreshToken(raw)
+            # A deactivated account must not keep minting access tokens.
+            user_id = refresh.get(settings.SIMPLE_JWT.get("USER_ID_CLAIM", "user_id"))
+            if not User.objects.filter(pk=user_id, is_active=True).exists():
+                refresh.blacklist()
+                raise TokenError("User is inactive.")
             access = refresh.access_token
             new_refresh = None
             if settings.SIMPLE_JWT.get("ROTATE_REFRESH_TOKENS"):

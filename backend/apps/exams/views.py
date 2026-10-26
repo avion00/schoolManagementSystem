@@ -1,4 +1,5 @@
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from apps.audit.services import record_audit
@@ -55,6 +56,11 @@ class ExamViewSet(TenantModelViewSet):
 
     def _set_flag(self, request, field, value, action_name):
         exam = self.get_object()
+        # Workflow: enter marks -> lock -> publish. Published results stay locked.
+        if action_name == "publish" and not exam.is_locked:
+            raise ValidationError("Lock the exam's marks before publishing results.")
+        if action_name == "unlock" and exam.is_published:
+            raise ValidationError("Unpublish the results before unlocking marks.")
         setattr(exam, field, value)
         exam.updated_by = request.user
         exam.save(update_fields=[field, "updated_by", "updated_at"])
@@ -81,12 +87,21 @@ class ExamViewSet(TenantModelViewSet):
         return self._set_flag(request, "is_published", False, "unpublish")
 
 
+def _ensure_unlocked(exam):
+    if exam.is_locked:
+        raise ValidationError("This exam is locked and cannot be changed.")
+
+
 class ExamSubjectViewSet(TenantModelViewSet):
     queryset = ExamSubject.objects.select_related("exam", "class_level", "subject").all()
     serializer_class = ExamSubjectSerializer
     audit_label = "exam_subject"
     permission_required = _MANAGE
     filterset_fields = ["exam", "class_level", "subject"]
+
+    def perform_destroy(self, instance):
+        _ensure_unlocked(instance.exam)
+        super().perform_destroy(instance)
 
 
 class MarkViewSet(TenantModelViewSet):
@@ -102,3 +117,7 @@ class MarkViewSet(TenantModelViewSet):
         "destroy": "exam.marks.enter",
     }
     filterset_fields = ["exam_subject", "student"]
+
+    def perform_destroy(self, instance):
+        _ensure_unlocked(instance.exam_subject.exam)
+        super().perform_destroy(instance)

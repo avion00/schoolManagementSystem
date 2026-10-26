@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from apps.academics.models import AcademicYear, ClassLevel, Section, Subject
-from apps.core.serializers import TenantPrimaryKeyRelatedField
+from apps.core.serializers import TenantPrimaryKeyRelatedField, merged_value
 
 from .models import Teacher, TeacherAssignment
 
@@ -42,10 +42,8 @@ class TeacherAssignmentSerializer(serializers.ModelSerializer):
         read_only_fields = ["is_active"]
 
     def validate(self, attrs):
-        section = attrs.get("section") or getattr(self.instance, "section", None)
-        class_level = attrs.get("class_level") or getattr(
-            self.instance, "class_level", None
-        )
+        section = merged_value(attrs, self.instance, "section")
+        class_level = merged_value(attrs, self.instance, "class_level")
         if section and class_level and section.class_level_id != class_level.id:
             raise serializers.ValidationError(
                 {"section": "Section does not belong to the selected class level."}
