@@ -15,7 +15,8 @@ def _check_section(attrs, instance):
 
 
 class AssignmentSerializer(serializers.ModelSerializer):
-    academic_year = TenantPrimaryKeyRelatedField(queryset=AcademicYear.objects.all())
+    # Optional: defaults to the school's current academic year.
+    academic_year = TenantPrimaryKeyRelatedField(queryset=AcademicYear.objects.all(), required=False)
     class_level = TenantPrimaryKeyRelatedField(queryset=ClassLevel.objects.all())
     section = TenantPrimaryKeyRelatedField(queryset=Section.objects.all(), required=False, allow_null=True)
     subject = TenantPrimaryKeyRelatedField(queryset=Subject.objects.all())
@@ -44,6 +45,11 @@ class AssignmentSerializer(serializers.ModelSerializer):
             frozen = {"class_level", "section", "subject", "academic_year", "max_marks"} & set(attrs)
             if frozen:
                 raise serializers.ValidationError(f"Can't change {', '.join(sorted(frozen))} after publishing.")
+        if not self.instance and not attrs.get("academic_year"):
+            current = AcademicYear.objects.filter(organization=self.context["request"].user.organization, is_current=True).first()
+            if current is None:
+                raise serializers.ValidationError({"academic_year": "No current academic year is set."})
+            attrs["academic_year"] = current
         marks = attrs.get("max_marks")
         if marks is not None and marks <= 0:
             raise serializers.ValidationError({"max_marks": "Must be greater than zero."})

@@ -21,6 +21,8 @@ export interface User {
   is_platform_admin: boolean;
   is_superuser: boolean;
   is_student: boolean;
+  is_guardian?: boolean;
+  is_teacher?: boolean;
   organization: Organization | null;
   roles: string[];
   permissions: string[];

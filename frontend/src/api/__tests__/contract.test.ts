@@ -262,3 +262,52 @@ run("contract: messaging", () => {
     expect(typeof (await get<{ unread: number }>("/messaging/conversations/unread-count/")).unread).toBe("number");
   });
 });
+
+run("contract: portals", () => {
+  it("serves the student portal", async () => {
+    await signIn("student@demo.school");
+    const { get, getAll } = await import("../http");
+    const d = await get<{ profile: { full_name: string }; attendance: { total: number }; fees: { outstanding: number } }>("/me/dashboard/");
+    expect(d.profile.full_name).toBeTruthy();
+    expect(typeof d.fees.outstanding).toBe("number");
+    const today = await get<{ periods: { start_time: string; subject: string }[] }>("/me/today/");
+    expect(Array.isArray(today.periods)).toBe(true);
+    const week = await get<Record<string, unknown[]>>("/me/timetable/");
+    expect(Object.keys(week)).toContain("monday");
+    const results = await get<{ exam: string; subjects: unknown[] }[]>("/me/results/");
+    for (const r of results) expect(Array.isArray(r.subjects)).toBe(true);
+    expect(Array.isArray((await get<{ invoices: unknown[] }>("/me/fees/")).invoices)).toBe(true);
+    await getAll("/me/attendance/");
+    for (const a of await get<{ my_status: string }[]>("/me/assignments/"))
+      expect(["pending", "submitted", "late", "graded", "missing", "returned"]).toContain(a.my_status);
+    expect(Array.isArray(await get("/me/materials/"))).toBe(true);
+  });
+
+  it("serves the guardian portal", async () => {
+    await signIn("parent@demo.school");
+    const { get, getAll } = await import("../http");
+    const kids = await get<{ id: string; full_name: string; outstanding_fees: number }[]>("/me/children/");
+    expect(kids.length).toBeGreaterThan(0);
+    const id = kids[0].id;
+    expect((await get<{ profile: { id: string } }>(`/me/children/${id}/`)).profile.id).toBe(id);
+    await getAll(`/me/children/${id}/attendance/`);
+    expect(Array.isArray(await get(`/me/children/${id}/results/`))).toBe(true);
+    expect(Array.isArray((await get<{ invoices: unknown[] }>(`/me/children/${id}/fees/`)).invoices)).toBe(true);
+    expect(Array.isArray(await get(`/me/children/${id}/assignments/`))).toBe(true);
+  });
+
+  it("serves the teacher portal and LMS", async () => {
+    await signIn("teacher@demo.school");
+    const { get, getAll } = await import("../http");
+    const classes = await get<{ assignment: string; students: number; is_class_teacher: boolean }[]>("/me/teacher/classes/");
+    expect(classes.length).toBeGreaterThan(0);
+    const students = await get<{ id: string; name: string; guardian_email: string }[]>(`/me/teacher/classes/${classes[0].assignment}/students/`);
+    for (const s of students) expect(s.name).toBeTruthy();
+    expect(Array.isArray((await get<{ periods: unknown[] }>("/me/teacher/today/")).periods)).toBe(true);
+    expect(Array.isArray(await get("/me/teacher/payslips/"))).toBe(true);
+    expect(typeof (await get<{ total: number }>("/me/teacher/attendance/summary/")).total).toBe("number");
+    await getAll("/lms/assignments/");
+    await getAll("/lms/materials/");
+    await getAll("/lms/lesson-plans/");
+  });
+});

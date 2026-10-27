@@ -11,9 +11,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { errorMessage } from "@/api/http";
 import { useChangePassword, useMe, useSessions } from "@/api/settings";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
 
 export function SecurityOverviewCard({ onManageSessions }: { onManageSessions: () => void }) {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
   const me = useMe().query.data;
   const sessions = useSessions().query.data ?? [];
   const change = useChangePassword();
@@ -70,9 +72,11 @@ export function SecurityOverviewCard({ onManageSessions }: { onManageSessions: (
         <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[12px]" onClick={onManageSessions}>
           <Laptop2 className="h-3.5 w-3.5" /> Manage Signed-in Devices
         </Button>
+        {hasPermission("audit.view") && (
         <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[12px]" onClick={() => navigate("/settings/audit-logs")}>
           <FileClock className="h-3.5 w-3.5" /> View Security Logs
         </Button>
+        )}
       </div>
 
       <Dialog open={pwOpen} onOpenChange={setPwOpen}>

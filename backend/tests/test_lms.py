@@ -42,6 +42,7 @@ def make_assignment(client, tenant, **extra):
         "title": "Fractions worksheet", "due_at": (timezone.now() + datetime.timedelta(days=2)).isoformat(),
         "max_marks": "20", **extra,
     }
+    payload = {k: v for k, v in payload.items() if v is not None}
     res = client.post("/api/v1/lms/assignments/", payload, format="json")
     assert res.status_code == 201, res.json()
     return res.json()
@@ -214,3 +215,10 @@ def test_attached_upload_survives_purge(teacher, tenant):
     call_command("purge_orphan_files", stdout=open("/dev/null", "w"))
     assert StoredFile.objects.filter(pk=f["id"]).exists()
     assert Assignment.objects.count() == 1 and Submission.objects.count() == 0
+
+
+def test_assignment_defaults_to_current_academic_year(teacher, tenant):
+    tenant.year.is_current = True
+    tenant.year.save()
+    a = make_assignment(teacher, tenant, academic_year=None)
+    assert a["academic_year"] == str(tenant.year.id)
