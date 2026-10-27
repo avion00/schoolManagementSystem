@@ -11,6 +11,7 @@ import { TeacherPerformanceCard } from "@/components/teachers/details/TeacherPer
 import { TeacherPersonalInfoCard } from "@/components/teachers/details/TeacherPersonalInfoCard";
 import { TeacherProfileHero } from "@/components/teachers/details/TeacherProfileHero";
 import { TeacherScheduleCard } from "@/components/teachers/details/TeacherScheduleCard";
+import { PortalLoginStrip } from "@/components/people/PortalLoginStrip";
 import { PremiumTabs } from "@/components/ui/PremiumTabs";
 import { errorMessage } from "@/api/http";
 import { useTeacherDetail } from "@/api/teachers";
@@ -57,6 +58,7 @@ export function TeacherDetailsPage() {
     <div className="space-y-5">
       <TeacherProfileHero teacher={teacher} />
 
+      {id && <PortalLoginStrip kind="teachers" id={id} />}
       <PremiumTabs value={tab} onValueChange={setTab} options={TABS} />
 
       {/* ── Overview ─────────────────────────────────────────────── */}

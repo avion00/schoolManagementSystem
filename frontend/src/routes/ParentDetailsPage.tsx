@@ -11,6 +11,7 @@ import { ParentFeesCard } from "@/components/parents/details/ParentFeesCard";
 import { ParentNoticeBoard } from "@/components/parents/details/ParentNoticeBoard";
 import { ParentDocumentsCard } from "@/components/parents/details/ParentDocumentsCard";
 import { ParentActivityTimeline } from "@/components/parents/details/ParentActivityTimeline";
+import { PortalLoginStrip } from "@/components/people/PortalLoginStrip";
 import { PremiumTabs } from "@/components/ui/PremiumTabs";
 import { errorMessage } from "@/api/http";
 import { useParentDetail } from "@/api/parents";
@@ -63,6 +64,7 @@ export function ParentDetailsPage() {
       <ParentSummaryCards cards={mock.summaryCards} />
 
       {/* Tab navigation */}
+      {id && <PortalLoginStrip kind="guardians" id={id} />}
       <PremiumTabs value={tab} onValueChange={setTab} options={TABS} />
 
       {/* Overview tab */}

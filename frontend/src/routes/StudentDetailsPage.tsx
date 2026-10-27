@@ -20,6 +20,7 @@ import { Reveal } from "@/components/motion";
 import { Button } from "@/components/ui/button";
 import { DetailCard } from "@/components/ui/DetailCard";
 import { PremiumCard } from "@/components/ui/PremiumCard";
+import { PortalLoginStrip } from "@/components/people/PortalLoginStrip";
 import { PremiumTabs } from "@/components/ui/PremiumTabs";
 import { errorMessage } from "@/api/http";
 import { useStudentDetail } from "@/api/students";
@@ -128,6 +129,8 @@ export function StudentDetailsPage() {
       <Reveal delay={0}>
         <StudentProfileHero student={student} mock={mock} />
       </Reveal>
+
+      {id && <PortalLoginStrip kind="students" id={id} />}
 
       {/* Tabs */}
       <Reveal delay={60}>
