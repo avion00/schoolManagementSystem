@@ -5,7 +5,7 @@ import {
 
 import { Reveal } from "@/components/motion";
 import { MetricCard } from "@/components/ui/MetricCard";
-import type { SupportTicket } from "@/data/helpDeskData";
+import type { SupportTicket } from "@/api/types/helpdesk";
 
 function formatDuration(ms: number): string {
   const totalMinutes = Math.max(0, Math.round(ms / 60_000));

@@ -119,3 +119,24 @@ def test_ticket_attachments_access(requester, agent, api, tenant):
 def test_tenant_isolation(requester, api, other_tenant):
     t = open_ticket(requester)
     assert api(other_tenant.users["Principal"]).get(f"{H}/{t['id']}/").status_code == 404
+
+
+def test_agents_list_for_assignment(api, tenant):
+    principal = api(tenant.users["Principal"])
+    agents = principal.get("/api/v1/helpdesk/tickets/agents/").json()
+    assert any(a["email"] == tenant.users["Principal"].email for a in agents)
+    assert api(tenant.users["Student"]).get("/api/v1/helpdesk/tickets/agents/").status_code == 403
+
+
+def test_agent_can_log_ticket_for_someone(api, tenant):
+    student_user = tenant.users["Student"]
+    res = api(tenant.users["Principal"]).post("/api/v1/helpdesk/tickets/", {
+        "category": "account", "subject": "Can't log in", "description": "Called the office.",
+        "priority": "normal", "source": "phone", "requester": str(student_user.id),
+    }, format="json")
+    assert res.status_code == 201 and res.json()["requester"]["id"] == str(student_user.id)
+    # non-agents can't file for others
+    other = api(student_user).post("/api/v1/helpdesk/tickets/", {
+        "category": "other", "subject": "x", "description": "y", "requester": str(tenant.users["Principal"].id),
+    }, format="json").json()
+    assert other["requester"]["id"] == str(student_user.id)

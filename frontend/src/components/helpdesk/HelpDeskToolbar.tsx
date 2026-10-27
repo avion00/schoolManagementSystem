@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { PremiumTableToolbar } from "@/components/ui/PremiumTableToolbar";
 import {
-  ASSIGNEE_DIRECTORY,
   CATEGORY_OPTIONS,
   DEPARTMENT_OPTIONS,
   ROLE_OPTIONS,
@@ -13,7 +12,8 @@ import {
   SOURCE_OPTIONS,
   STATUS_OPTIONS,
   PRIORITY_OPTIONS,
-} from "@/data/helpDeskData";
+} from "@/api/types/helpdesk";
+import { useAgents } from "@/api/helpdesk";
 
 export type DateRangeFilter = "all" | "today" | "7d" | "30d";
 
@@ -49,6 +49,7 @@ export function HelpDeskToolbar({
   resultCount: number;
   onNewTicket: () => void;
 }) {
+  const agents = useAgents().data ?? [];
   function set<K extends keyof TicketFilters>(key: K, value: TicketFilters[K]) {
     onFiltersChange({ ...filters, [key]: value });
   }
@@ -89,7 +90,7 @@ export function HelpDeskToolbar({
             <PremiumSelect value={filters.category} onChange={(v) => set("category", v)} className="w-44"
               options={[{ value: "all", label: "All Categories" }, ...CATEGORY_OPTIONS.map((c) => ({ value: c, label: c }))]} />
             <PremiumSelect value={filters.assignedTo} onChange={(v) => set("assignedTo", v)} className="w-48"
-              options={[{ value: "all", label: "Assigned To — Anyone" }, { value: "unassigned", label: "Unassigned" }, ...ASSIGNEE_DIRECTORY.map((a) => ({ value: a.name, label: a.name }))]} />
+              options={[{ value: "all", label: "Assigned To — Anyone" }, { value: "unassigned", label: "Unassigned" }, ...agents.map((a) => ({ value: a.name, label: a.name }))]} />
             <PremiumSelect value={filters.slaStatus} onChange={(v) => set("slaStatus", v)} className="w-36"
               options={[{ value: "all", label: "Any SLA Status" }, ...SLA_STATUS_OPTIONS.map((s) => ({ value: s, label: s }))]} />
             <PremiumSelect value={filters.department} onChange={(v) => set("department", v)} className="w-40"

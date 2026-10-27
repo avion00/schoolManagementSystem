@@ -14,6 +14,7 @@ from apps.accounts.models import User
 from apps.communications.models import Notification
 from apps.communications.services import notify
 from apps.core.sequences import next_document_number
+from apps.messaging.serializers import ChatUserSerializer
 from apps.rbac.services import user_has_permission
 
 from .models import Ticket, TicketEvent, TicketMessage
@@ -85,11 +86,18 @@ class TicketViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Cre
         source = serializer.validated_data.get("source", Ticket.Source.WEB)
         if not is_agent(user):
             source = Ticket.Source.WEB  # only agents log phone/walk-in tickets
-        ticket = Ticket(organization_id=user.organization_id, requester=user, related_student=student)
+        requester = user
+        if is_agent(user) and self.request.data.get("requester"):
+            # Staff logging a phone/walk-in request on someone's behalf.
+            requester = User.objects.filter(pk=self.request.data["requester"], organization_id=user.organization_id,
+                                            is_active=True).first()
+            if requester is None:
+                raise ValidationError({"requester": "User not found."})
+        ticket = Ticket(organization_id=user.organization_id, requester=requester, related_student=student)
         ticket.priority = serializer.validated_data.get("priority", Ticket.Priority.NORMAL)
         ticket.set_sla()
         ticket = serializer.save(
-            organization_id=user.organization_id, requester=user, related_student=student, source=source,
+            organization_id=user.organization_id, requester=requester, related_student=student, source=source,
             due_at=ticket.due_at, code=next_document_number(user.organization_id, "TKT"),
             created_by=user, updated_by=user,
         )
@@ -232,6 +240,14 @@ class TicketViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Cre
         ticket.rating = rating
         ticket.save(update_fields=["rating", "updated_at"])
         return Response({"rating": rating})
+
+    @action(detail=False, methods=["get"])
+    def agents(self, request):
+        """Help desk staff tickets can be assigned to."""
+        self._agent()
+        users = [u for u in User.objects.filter(organization_id=request.user.organization_id, is_active=True)
+                 .order_by("full_name") if is_agent(u)]
+        return Response(ChatUserSerializer(users, many=True).data)
 
     @action(detail=False, methods=["get"])
     def stats(self, request):

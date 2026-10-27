@@ -1,7 +1,7 @@
 import { ArrowUpRight, Link2 } from "lucide-react";
 import { toast } from "sonner";
 
-import type { RelatedRecord } from "@/data/helpDeskData";
+import type { RelatedRecord } from "@/api/types/helpdesk";
 
 export function RelatedRecordsCard({ records }: { records: RelatedRecord[] }) {
   if (records.length === 0) {

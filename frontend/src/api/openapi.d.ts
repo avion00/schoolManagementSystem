@@ -1892,6 +1892,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/helpdesk/tickets/agents/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Help desk staff tickets can be assigned to. */
+        get: operations["v1_helpdesk_tickets_agents_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/helpdesk/tickets/stats/": {
         parameters: {
             query?: never;
@@ -12671,6 +12688,25 @@ export interface operations {
                 "multipart/form-data": components["schemas"]["Ticket"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ticket"];
+                };
+            };
+        };
+    };
+    v1_helpdesk_tickets_agents_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {
