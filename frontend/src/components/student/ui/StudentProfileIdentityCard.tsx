@@ -4,7 +4,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { Reveal } from "@/components/motion";
 import { StudentPrimaryButton } from "@/components/student/ui/StudentPrimaryButton";
 import { StudentSecondaryButton } from "@/components/student/ui/StudentSecondaryButton";
-import { SCHOOL_PROFILE } from "@/data/settingsData";
+import { useLetterhead } from "@/api/classes";
 import { cn } from "@/lib/utils";
 
 // Fixed (non-random) bar-width pattern so the barcode never shifts between renders.
@@ -40,13 +40,14 @@ const TEXTURE_PATTERN: CSSProperties = {
 };
 
 function StudentIdHeader() {
+  const letterhead = useLetterhead();
   return (
     <div className="flex flex-col items-center gap-1">
       <div className="flex items-center gap-1.5 text-slate-800">
         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10">
           <GraduationCap className="h-3 w-3 text-primary" />
         </span>
-        <span className="font-display text-[12.5px] font-bold tracking-tight">{SCHOOL_PROFILE.name}</span>
+        <span className="font-display text-[12.5px] font-bold tracking-tight">{letterhead.name}</span>
       </div>
       <p className="font-display text-[9px] font-medium uppercase tracking-[0.3em] text-slate-400">
         Student Identity Card
