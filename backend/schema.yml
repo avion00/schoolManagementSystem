@@ -13063,7 +13063,6 @@ components:
           format: date-time
           readOnly: true
       required:
-      - academic_year
       - attachments
       - class_level
       - class_level_name

@@ -95,14 +95,15 @@ single Linux VPS running Docker Compose.
 
 | Item | Status |
 |---|---|
-| Production settings: env-only secrets, `DEBUG` off, HTTPS/HSTS, secure cookies, allowed hosts/CORS/CSRF from env, `check --deploy` clean | ⬜ |
-| PostgreSQL (with `DATABASE_URL`), Redis for Channels/cache, Celery worker + beat for scheduled jobs | ⬜ |
-| Docker images (backend on Daphne, frontend built and served by Nginx), Compose stack, Nginx with TLS (Let's Encrypt) and WebSocket proxying | ⬜ |
-| Health/readiness endpoints, structured JSON logs, optional Sentry | ⬜ |
-| Static/media storage, upload limits, private files served only through the API | ⬜ |
-| Nightly Postgres backups with retention, plus a tested restore procedure | ⬜ |
-| First-customer bootstrap command (organization, school, admin user) without demo data | ⬜ |
-| Deploy runbook: server prep, first deploy, updates, rollback, backups | ⬜ |
+| Production settings: env-only secrets, `DEBUG` off, HTTPS/HSTS, secure cookies, allowed hosts/CSRF from env, `check --deploy` clean | ✅ |
+| PostgreSQL required in production (`DATABASE_URL`), Redis for the cache (shared login throttling) and Channels. Background jobs run in a `scheduler` container (`run_scheduler`): every minute it publishes scheduled notices and sends queued emails; nightly it handles overdue invoices and late fees, purges orphaned uploads and flushes expired tokens. This replaces the planned Celery setup, which would add moving parts for no gain at this size | ✅ |
+| Email: notifications are queued for email when the school's email channel is on (or the notice asks for email) and sent by the scheduler, never twice, with failures recorded and retryable; SMTP via `EMAIL_URL` | ✅ |
+| Docker images (backend on Daphne; frontend built and served by **Caddy**, which also handles automatic Let's Encrypt TLS and WebSocket proxying), Compose stack in `deploy/` | ✅ |
+| Health (`/health/`) and readiness (`/ready/`: database + cache) endpoints, JSON logs on stdout, optional Sentry | ✅ |
+| Static files collected into a shared volume; uploads in a private volume, served only through the API; 25 MB proxy body limit | ✅ |
+| Nightly Postgres dump + uploads archive with retention (`backup` service), documented restore procedure | ✅ |
+| First-customer bootstrap (`bootstrap_school`): organization, school, roles and a Principal with a one-time password; the app makes them set their own at first sign-in | ✅ |
+| Deploy runbook (`docs/DEPLOY.md`): server prep, first deploy, email, updates, rollback, backups/restore, go-live security checklist | ✅ |
 | Later: row-level security, MFA, SaaS billing/entitlements (`BLUEPRINT-PREMIUM.md`) | ⬜ |
 
 ### App-wide clean-ups

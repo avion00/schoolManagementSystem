@@ -109,9 +109,22 @@ def resolve_audience(organization_id, audience, class_ids=(), section_ids=()):
     return User.objects.filter(q, organization_id=organization_id, is_active=True).distinct()
 
 
+def _email_channel_on(organization_id):
+    from apps.orgsettings.services import get_setting
+
+    return bool(organization_id) and bool(get_setting(organization_id, "notifications", "channels", "email"))
+
+
 def notify(users, *, title, body="", category=Notification.Category.SYSTEM,
-           type=Notification.Type.INFO, priority="normal", related=None, action_url=""):
-    """Create one in-app notification per user. Returns how many were created."""
+           type=Notification.Type.INFO, priority="normal", related=None, action_url="", email=None):
+    """Create one in-app notification per user. Returns how many were created.
+
+    `email=None` follows the school's email channel setting; True/False forces it.
+    Emails are queued here and sent by the `send_notification_emails` job.
+    """
+    users = list(users)
+    if email is None:
+        email = bool(users) and _email_channel_on(users[0].organization_id)
     related_type = related.__class__.__name__ if related is not None else ""
     related_id = str(related.pk) if related is not None else ""
     rows = [
@@ -119,6 +132,7 @@ def notify(users, *, title, body="", category=Notification.Category.SYSTEM,
             organization_id=u.organization_id, user=u, title=title[:200], body=body,
             category=category, type=type, priority=priority,
             related_type=related_type, related_id=related_id, action_url=action_url,
+            email_status="pending" if email and u.email else "",
         )
         for u in users
     ]
@@ -128,13 +142,14 @@ def notify(users, *, title, body="", category=Notification.Category.SYSTEM,
 
 def notify_notice(notice):
     """Fan a published notice out as notifications (once)."""
-    if not notice.send_notification or notice.notified_at:
+    if not (notice.send_notification or notice.send_email) or notice.notified_at:
         return 0
     count = notify(
         audience_users(notice), title=notice.title, body=notice.summary or notice.body[:280],
         category=Notification.Category.NOTICES,
         type=Notification.Type.WARNING if notice.priority == "urgent" else Notification.Type.INFO,
         priority=notice.priority, related=notice, action_url=f"/notices/{notice.pk}",
+        email=True if notice.send_email else None,
     )
     Notice.objects.filter(pk=notice.pk).update(notified_at=timezone.now())
     return count

@@ -127,6 +127,13 @@ class Notification(UUIDModel, TimeStampedModel):
     action_url = models.CharField(max_length=255, blank=True)
     read_at = models.DateTimeField(null=True, blank=True)
     archived_at = models.DateTimeField(null=True, blank=True)
+    # Email copy, sent by the `send_notification_emails` job when the school's
+    # email channel is on (or the notice asked for email).
+    email_status = models.CharField(
+        max_length=8, blank=True, db_index=True,
+        choices=[("pending", "Pending"), ("sent", "Sent"), ("failed", "Failed"), ("skipped", "Skipped")],
+    )
+    emailed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at"]

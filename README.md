@@ -138,6 +138,11 @@ Create your own superuser: `python manage.py createsuperuser`.
    the request (refresh tokens rotate and old ones are blacklisted).
 4. `POST /api/v1/auth/logout/` blacklists the refresh token and clears cookies.
 
+## Production
+
+Deploy with Docker Compose on one Linux server. See [docs/DEPLOY.md](docs/DEPLOY.md) for setup, the
+customer bootstrap (`bootstrap_school`), backups and restore, and the go-live checklist.
+
 ## Security notes (current foundation)
 
 - Passwords hashed with **Argon2**; JWTs in **HttpOnly** cookies (not localStorage).

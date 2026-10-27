@@ -1,6 +1,7 @@
 import { Loader2 } from "lucide-react";
 import { Navigate, Outlet } from "react-router-dom";
 
+import { FirstPasswordChange } from "@/components/FirstPasswordChange";
 import { useAuth } from "@/lib/auth";
 
 export function ProtectedRoute() {
@@ -17,6 +18,9 @@ export function ProtectedRoute() {
   if (!user) {
     return <Navigate to="/login" replace />;
   }
+
+  // Accounts created with a one-time password must set their own first.
+  if (user.must_change_password) return <FirstPasswordChange />;
 
   return <Outlet />;
 }
