@@ -1,6 +1,7 @@
 import { Pin } from "lucide-react";
 
-import { chatUserById, type ChatMessage } from "@/data/messagesData";
+import { chatUserById } from "@/lib/messagesService";
+import { type ChatMessage } from "@/api/types/messages";
 
 export function PinnedMessagesPanel({ messages, onJumpTo }: { messages: ChatMessage[]; onJumpTo?: (messageId: string) => void }) {
   const pinned = messages.filter((m) => m.pinned && !m.deleted);

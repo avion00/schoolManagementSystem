@@ -88,17 +88,19 @@ def can_send(conv, participant):
 
 
 @transaction.atomic
-def send_message(conv, user, body, reply_to=None):
+def send_message(conv, user, body, reply_to=None, attachments=()):
     me = membership(conv, user)
     if me is None:
         raise PermissionDenied("You're not in this conversation.")
     if not can_send(conv, me):
         raise PermissionDenied("You can't send messages in this conversation.")
-    if not body.strip():
+    if not body.strip() and not attachments:
         raise ValidationError({"body": "Message can't be empty."})
     if reply_to is not None and reply_to.conversation_id != conv.pk:
         raise ValidationError({"reply_to": "Reply must be in the same conversation."})
     msg = Message.objects.create(conversation=conv, sender=user, body=body.strip(), reply_to=reply_to)
+    if attachments:
+        msg.attachments.set(attachments)
     Conversation.objects.filter(pk=conv.pk).update(last_message_at=msg.created_at)
     me.last_read_at = msg.created_at
     me.archived = False

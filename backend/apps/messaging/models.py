@@ -90,7 +90,8 @@ class Message(UUIDModel, TimeStampedModel):
         settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+"
     )
     type = models.CharField(max_length=8, choices=Type.choices, default=Type.TEXT)
-    body = models.TextField()
+    body = models.TextField(blank=True)
+    attachments = models.ManyToManyField("files.StoredFile", blank=True, related_name="messages")
     reply_to = models.ForeignKey("self", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     edited_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)

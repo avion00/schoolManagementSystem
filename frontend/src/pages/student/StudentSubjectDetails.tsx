@@ -9,8 +9,8 @@ import {
   exams, homeworkAssignments, learningMaterials, results, subjects, teachers,
 } from "@/data/studentDashboardData";
 import { useAuth } from "@/lib/auth";
-import { messagesService, resolveCurrentChatUser } from "@/lib/messagesService";
-import { realtimeService } from "@/lib/realtimeService";
+import { resolveCurrentChatUser } from "@/lib/messagesService";
+import { openChat } from "@/lib/openChat";
 
 const TABS = [
   { value: "overview", label: "Overview" },
@@ -47,12 +47,10 @@ export function StudentSubjectDetails() {
 
   function messageTeacher() {
     if (!teacher || !subject) return;
-    const conv = messagesService.findOrCreateDirectConversation({
+    openChat({
       currentUserId, otherUserId: teacher.chatUserId, otherUserName: teacher.name, otherUserRole: "Teacher",
       subtitle: `${subject.name} teacher`,
-    });
-    realtimeService.refreshConversations();
-    navigate(`/student/messages/${conv.id}`);
+    }, (conversationId) => navigate(`/student/messages/${conversationId}`));
   }
 
   return (

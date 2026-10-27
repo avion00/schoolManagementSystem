@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from "react-rout
 
 import { ConversationLayout } from "@/components/messages/ConversationLayout";
 import { useConversations } from "@/hooks/useConversations";
-import { canViewAllConversations } from "@/data/messagePermissions";
+import { canViewAllConversations } from "@/lib/messagePermissions";
 import { useAuth } from "@/lib/auth";
 import { resolveCurrentChatUser } from "@/lib/messagesService";
 import { realtimeService } from "@/lib/realtimeService";

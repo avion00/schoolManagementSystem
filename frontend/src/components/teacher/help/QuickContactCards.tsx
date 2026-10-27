@@ -4,8 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { PremiumCard } from "@/components/ui/PremiumCard";
 import { quickContacts, type SendToOption } from "@/data/teacherHelpData";
-import { messagesService } from "@/lib/messagesService";
-import { realtimeService } from "@/lib/realtimeService";
+import { openChat } from "@/lib/openChat";
 
 export function QuickContactCards({
   currentUserId,
@@ -19,14 +18,12 @@ export function QuickContactCards({
   function message(contactId: string) {
     const contact = quickContacts.find((c) => c.id === contactId);
     if (!contact) return;
-    const conv = messagesService.findOrCreateDirectConversation({
+    openChat({
       currentUserId,
       otherUserId: contact.chatUserId,
       otherUserName: contact.name,
       otherUserRole: "Staff",
-    });
-    realtimeService.refreshConversations();
-    navigate(`/teacher/messages/${conv.id}`);
+    }, (conversationId) => navigate(`/teacher/messages/${conversationId}`));
   }
 
   return (

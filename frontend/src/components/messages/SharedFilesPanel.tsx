@@ -1,5 +1,5 @@
 import { AttachmentPreview } from "@/components/messages/AttachmentPreview";
-import type { ChatMessage } from "@/data/messagesData";
+import type { ChatMessage } from "@/api/types/messages";
 
 export function SharedFilesPanel({ messages, onDownload }: { messages: ChatMessage[]; onDownload?: (fileName: string) => void }) {
   const files = messages.flatMap((m) => m.attachments.map((a) => ({ attachment: a, messageId: m.id })));

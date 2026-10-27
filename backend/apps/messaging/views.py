@@ -181,14 +181,15 @@ class ConversationViewSet(viewsets.ViewSet):
     def messages(self, request, pk=None):
         conv = self._get(request, pk, admin_view=request.method == "GET")
         if request.method == "POST":
-            data = SendMessageSerializer(data=request.data)
+            data = SendMessageSerializer(data=request.data, context={"request": request})
             data.is_valid(raise_exception=True)
             reply = None
             if data.validated_data.get("reply_to"):
                 reply = Message.objects.filter(pk=data.validated_data["reply_to"]).first()
-            msg = services.send_message(conv, request.user, data.validated_data["body"], reply_to=reply)
+            msg = services.send_message(conv, request.user, data.validated_data["body"], reply_to=reply,
+                                        attachments=data.validated_data.get("attachment_ids") or [])
             return Response(MessageSerializer(msg).data, status=http.HTTP_201_CREATED)
-        qs = conv.messages.select_related("sender").prefetch_related("reactions").order_by("-created_at")
+        qs = conv.messages.select_related("sender").prefetch_related("reactions", "attachments").order_by("-created_at")
         before = request.query_params.get("before")
         if before:
             qs = qs.filter(created_at__lt=before)

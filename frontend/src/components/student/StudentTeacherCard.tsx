@@ -6,19 +6,16 @@ import { PremiumBadge } from "@/components/ui/PremiumBadge";
 import { PremiumCard } from "@/components/ui/PremiumCard";
 import { Button } from "@/components/ui/button";
 import type { StudentTeacher } from "@/data/studentDashboardData";
-import { messagesService } from "@/lib/messagesService";
-import { realtimeService } from "@/lib/realtimeService";
+import { openChat } from "@/lib/openChat";
 
 export function StudentTeacherCard({ teacher, currentUserId }: { teacher: StudentTeacher; currentUserId: string }) {
   const navigate = useNavigate();
 
   function message() {
-    const conv = messagesService.findOrCreateDirectConversation({
+    openChat({
       currentUserId, otherUserId: teacher.chatUserId, otherUserName: teacher.name, otherUserRole: "Teacher",
       subtitle: `${teacher.subject} teacher`,
-    });
-    realtimeService.refreshConversations();
-    navigate(`/student/messages/${conv.id}`);
+    }, (conversationId) => navigate(`/student/messages/${conversationId}`));
   }
 
   return (

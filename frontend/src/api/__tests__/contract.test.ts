@@ -8,13 +8,24 @@ import { beforeAll, describe, expect, it } from "vitest";
 const BASE = process.env.CONTRACT_API;
 const run = BASE ? describe : describe.skip;
 
+// One sign-in per account for the whole file: login is rate-limited (10/min).
+const sessions = new Map<string, string>();
+
 async function signIn(email = "principal@demo.school") {
+  const cached = sessions.get(email);
+  if (cached) {
+    const { api } = await import("@/lib/api");
+    api.defaults.baseURL = BASE;
+    api.defaults.headers.common.Cookie = cached;
+    return;
+  }
   const res = await fetch(`${BASE}/auth/login/`, {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password: "Passw0rd!2024" }),
   });
   if (res.status !== 200) throw new Error(`login ${res.status}`);
   const cookies = res.headers.getSetCookie().map((c) => c.split(";")[0]).join("; ");
+  sessions.set(email, cookies);
   const { api } = await import("@/lib/api");
   api.defaults.baseURL = BASE;
   api.defaults.headers.common.Cookie = cookies;
@@ -223,5 +234,31 @@ run("contract: notices and notifications", () => {
     const inbox = (await getAll<never>("/me/notifications/")).map(mapNotification);
     for (const n of inbox) expect(["unread", "read"]).toContain(n.status);
     expect(typeof (await get<{ unread: number }>("/me/notifications/unread-count/")).unread).toBe("number");
+  });
+});
+
+run("contract: messaging", () => {
+  beforeAll(() => signIn());
+
+  it("serves conversations, messages with attachments, contacts and broadcasts", async () => {
+    const { get, getAll, post } = await import("../http");
+    const contacts = await get<{ id: string; role: string; access: string }[]>("/messaging/conversations/contacts/");
+    expect(contacts.length).toBeGreaterThan(0);
+    for (const c of contacts) expect(["allowed", "request"]).toContain(c.access);
+    const target = contacts.find((c) => c.access === "allowed")!;
+    const conv = await post<{ id: string; members: { id: string }[]; effective_permissions: object }>(
+      "/messaging/conversations/direct/", { user: target.id });
+    expect(conv.members.some((m) => m.id === target.id)).toBe(true);
+    const sent = await post<{ id: string; body: string; attachments: unknown[] }>(
+      `/messaging/conversations/${conv.id}/messages/`, { body: "Contract test message" });
+    expect(sent.body).toBe("Contract test message");
+    expect(Array.isArray(sent.attachments)).toBe(true);
+    const page = await get<{ results: { id: string; status: string | null }[]; has_more: boolean }>(
+      `/messaging/conversations/${conv.id}/messages/`);
+    expect(page.results.some((m) => m.id === sent.id)).toBe(true);
+    await post(`/messaging/messages/${sent.id}/react/`, { emoji: "👍" });
+    expect((await getAll("/messaging/conversations/")).length).toBeGreaterThan(0);
+    expect(Array.isArray(await get("/messaging/broadcasts/"))).toBe(true);
+    expect(typeof (await get<{ unread: number }>("/messaging/conversations/unread-count/")).unread).toBe("number");
   });
 });

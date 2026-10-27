@@ -23,8 +23,8 @@ import {
   type MeetingRequest,
 } from "@/data/teacherDashboardData";
 import { useAuth } from "@/lib/auth";
-import { messagesService, resolveCurrentChatUser } from "@/lib/messagesService";
-import { realtimeService } from "@/lib/realtimeService";
+import { resolveCurrentChatUser } from "@/lib/messagesService";
+import { openChat } from "@/lib/openChat";
 
 const STATUS_TONE: Record<MeetingRequest["status"], PremiumBadgeTone> = {
   Requested: "warning",
@@ -68,7 +68,7 @@ export function TeacherParentCommunication() {
   const recentReplies = parentMessages.filter((m) => !m.unread).slice(0, 3);
 
   function messageGuardian(student: AssignedStudent) {
-    const conv = messagesService.findOrCreateDirectConversation({
+    openChat({
       currentUserId,
       otherUserId: guardianChatUserId(student.id),
       otherUserName: student.guardian,
@@ -76,9 +76,7 @@ export function TeacherParentCommunication() {
       subtitle: `Guardian of ${student.name} · ${student.className}-${student.section}`,
       relatedStudentId: String(student.id),
       relatedClassId: student.classId,
-    });
-    realtimeService.refreshConversations();
-    navigate(`/teacher/messages/${conv.id}`);
+    }, (conversationId) => navigate(`/teacher/messages/${conversationId}`));
   }
 
   function openTemplate(rawText: string) {
@@ -89,21 +87,13 @@ export function TeacherParentCommunication() {
   function sendTemplate() {
     const student = assignedStudents.find((s) => s.id === templateStudentId);
     if (!student) return;
-    const conv = messagesService.findOrCreateDirectConversation({
-      currentUserId,
-      otherUserId: guardianChatUserId(student.id),
-      otherUserName: student.guardian,
-      otherUserRole: "Parent",
-      subtitle: `Guardian of ${student.name} · ${student.className}-${student.section}`,
-      relatedStudentId: String(student.id),
-      relatedClassId: student.classId,
-    });
     const body = templateText.replace(/\{student\}/g, student.name);
-    messagesService.sendMessage({ conversationId: conv.id, senderId: currentUserId, body });
-    realtimeService.refreshConversations();
-    setTemplateOpen(false);
-    toast.success(`Message sent to ${student.guardian}`);
-    navigate(`/teacher/messages/${conv.id}`);
+    // The first message goes with the chat (or with the request, if approval is needed).
+    openChat({ otherUserId: guardianChatUserId(student.id), message: body }, (conversationId) => {
+      setTemplateOpen(false);
+      toast.success(`Message sent to ${student.guardian}`);
+      navigate(`/teacher/messages/${conversationId}`);
+    });
   }
 
   const previewText = templateText.replace(/\{student\}/g, assignedStudents.find((s) => s.id === templateStudentId)?.name ?? "the student");

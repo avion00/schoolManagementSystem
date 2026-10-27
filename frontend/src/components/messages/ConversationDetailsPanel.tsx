@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Archive, BellOff, CalendarClock, Download, Flag, FolderOpen, GraduationCap, Lock, LogOut,
   NotebookPen, Phone, Pin, ScrollText, ShieldAlert, Trash2, UserPlus,
@@ -11,9 +11,8 @@ import { ParentMessageTemplate } from "@/components/teacher/ParentMessageTemplat
 import { PinnedMessagesPanel } from "@/components/messages/PinnedMessagesPanel";
 import { SharedFilesPanel } from "@/components/messages/SharedFilesPanel";
 import { Button } from "@/components/ui/button";
-import {
-  CHAT_USERS, chatUserById, type ChatMessage, type Conversation,
-} from "@/data/messagesData";
+import { chatUserById } from "@/lib/messagesService";
+import type { ChatMessage, ChatUser, Conversation } from "@/api/types/messages";
 import { assignedStudents } from "@/data/teacherDashboardData";
 import { messagesService } from "@/lib/messagesService";
 
@@ -61,10 +60,20 @@ export function ConversationDetailsPanel({
 }) {
   const navigate = useNavigate();
   const [showAddMember, setShowAddMember] = useState(false);
+  const [memberSearch, setMemberSearch] = useState("");
+  const [contacts, setContacts] = useState<ChatUser[]>([]);
+  useEffect(() => {
+    if (!showAddMember) return;
+    let cancelled = false;
+    const t = setTimeout(() => {
+      messagesService.searchContacts(memberSearch.trim()).then((rows) => { if (!cancelled) setContacts(rows); }).catch(() => undefined);
+    }, 250);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [showAddMember, memberSearch]);
   const isGroupLike = conversation.type !== "direct" && conversation.type !== "support_request";
   const isAdminOfGroup = conversation.adminIds.includes(currentUserId);
   const canManageGroup = isSuperAdmin || isAdminOfGroup;
-  const candidates = CHAT_USERS.filter((u) => !conversation.participantIds.includes(u.id));
+  const candidates = contacts.filter((u) => !conversation.participantIds.includes(u.id));
   const auditForConversation = messagesService.getAuditEvents().filter((e) => e.conversationId === conversation.id).slice(0, 4);
 
   const otherUserId = !isGroupLike ? conversation.participantIds.find((id) => id !== currentUserId) : undefined;
@@ -149,9 +158,11 @@ export function ConversationDetailsPanel({
           }
         >
           {showAddMember && (
-            <div className="mb-2 max-h-40 space-y-0.5 overflow-y-auto rounded-lg border border-border/60 p-1.5">
+            <div className="mb-2 max-h-48 space-y-0.5 overflow-y-auto rounded-lg border border-border/60 p-1.5">
+              <input value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} placeholder="Search people…"
+                className="mb-1 h-8 w-full rounded-md border border-input bg-background px-2 text-[12px] focus:outline-none focus:ring-1 focus:ring-ring" />
               {candidates.length === 0 ? (
-                <p className="px-2 py-1.5 text-[11.5px] text-muted-foreground">Everyone is already in this conversation.</p>
+                <p className="px-2 py-1.5 text-[11.5px] text-muted-foreground">No one else to add.</p>
               ) : (
                 candidates.map((u) => (
                   <button
@@ -175,7 +186,7 @@ export function ConversationDetailsPanel({
       </Section>
 
       <Section title="Shared files">
-        <SharedFilesPanel messages={messages} onDownload={(name) => isSuperAdmin && messagesService.logFileDownload(conversation.id, currentUserId, name)} />
+        <SharedFilesPanel messages={messages} />
       </Section>
 
       {!canManageGroup && isGroupLike && (

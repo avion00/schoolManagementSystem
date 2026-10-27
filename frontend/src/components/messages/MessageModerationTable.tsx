@@ -6,7 +6,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { chatUserById, conversationById, type ModerationReport, type ModerationStatus } from "@/data/messagesData";
+import { chatUserById, conversationById } from "@/lib/messagesService";
+import { type ModerationReport, type ModerationStatus } from "@/api/types/messages";
 
 const STATUS_VARIANT: Record<ModerationStatus, "default" | "success" | "destructive" | "secondary"> = {
   open: "default", reviewed: "secondary", dismissed: "secondary", actioned: "destructive",
@@ -68,9 +69,9 @@ export function MessageModerationTable({
                     <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="h-4 w-4" /></Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onReview(r.id)}><Eye className="mr-2 h-3.5 w-3.5" /> Review</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onReview(r.id)}><Eye className="mr-2 h-3.5 w-3.5" /> Open conversation</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onDismiss(r.id)}><X className="mr-2 h-3.5 w-3.5" /> Dismiss</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onWarn(r.id)}><ShieldAlert className="mr-2 h-3.5 w-3.5" /> Warn user</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onWarn(r.id)}><ShieldAlert className="mr-2 h-3.5 w-3.5" /> Message sender</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onDeleteMessage(r.id)} className="text-destructive focus:text-destructive">
                       <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete message
                     </DropdownMenuItem>

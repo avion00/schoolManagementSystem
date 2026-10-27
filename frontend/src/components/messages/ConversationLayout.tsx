@@ -10,14 +10,13 @@ import { MessageThread } from "@/components/messages/MessageThread";
 import { NewChatModal } from "@/components/messages/NewChatModal";
 import { useConversation } from "@/hooks/useConversation";
 import { useConversations } from "@/hooks/useConversations";
-import {
-  chatUserById, CONVERSATION_FILTER_TABS,
-  type ChatMessage, type ChatRole, type ConversationFilterTab,
-} from "@/data/messagesData";
-import { canViewAllConversations, needsApproval } from "@/data/messagePermissions";
+import { chatUserById } from "@/lib/messagesService";
+import { CONVERSATION_FILTER_TABS, type ChatMessage, type ChatRole, type ConversationFilterTab } from "@/api/types/messages";
+import { canViewAllConversations, needsApproval } from "@/lib/messagePermissions";
 import { messagesService } from "@/lib/messagesService";
-import { realtimeService } from "@/lib/realtimeService";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { errorMessage } from "@/api/http";
 
 function chatUserLabel(id: string) {
   return chatUserById(id)?.name ?? "Someone";
@@ -92,17 +91,28 @@ export function ConversationLayout({
     }
   }
 
+  const fail = (e: unknown) => toast.error(errorMessage(e));
+
   function handleAction(action: "pin" | "mute" | "archive" | "lock" | "delete" | "export") {
     if (!conversation) return;
     switch (action) {
       case "pin": messagesService.togglePin(conversation.id); break;
       case "mute": messagesService.toggleMute(conversation.id); break;
       case "archive": messagesService.toggleArchive(conversation.id); break;
-      case "lock": messagesService.toggleLock(conversation.id, currentUserId); break;
-      case "delete": messagesService.deleteConversation(conversation.id); onBack(); break;
-      case "export": messagesService.logExport(conversation.id, currentUserId, "json"); break;
+      case "lock": messagesService.toggleLock(conversation.id).catch(fail); break;
+      case "delete":
+        if (!window.confirm("Leave this conversation? It disappears from your list; others keep it.")) return;
+        messagesService.deleteConversation(conversation.id).then(onBack).catch(fail);
+        break;
+      case "export":
+        messagesService.exportConversation(conversation.id).then((data) => {
+          const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+          const a = Object.assign(document.createElement("a"), { href: url, download: `conversation-${conversation.id}.json` });
+          a.click();
+          URL.revokeObjectURL(url);
+        }).catch(fail);
+        break;
     }
-    realtimeService.refreshConversations();
   }
 
   return (
@@ -144,16 +154,20 @@ export function ConversationLayout({
               isGroup={conversation.type !== "direct" && conversation.type !== "support_request"}
               typingLabel={typingLabel}
               onReply={setReplyingTo}
-              onPin={(id) => { messagesService.togglePinMessage(id); realtimeService.refreshConversations(); }}
-              onDelete={(id) => { messagesService.deleteMessage(id, isSuperAdmin, currentUserId); }}
-              onReact={(id, emoji) => messagesService.toggleReaction(id, emoji, currentUserId)}
-              onReport={(id) => messagesService.flagMessage(id)}
+              onPin={(id) => { messagesService.togglePinMessage(id).catch(fail); }}
+              onDelete={(id) => { messagesService.deleteMessage(id).catch(fail); }}
+              onReact={(id, emoji) => { messagesService.toggleReaction(id, emoji).catch(fail); }}
+              onReport={(id) => {
+                const reason = window.prompt("Why are you reporting this message?", "Inappropriate");
+                if (reason === null) return;
+                messagesService.flagMessage(id, reason || "Inappropriate")
+                  .then(() => toast.success("Reported to the school's moderators.")).catch(fail);
+              }}
               canModerate={isSuperAdmin}
             />
             <MessageComposer
-              onSend={(body, attachments) => {
-                const type = attachments.length > 0 ? (attachments[0].kind === "image" ? "image" : "file") : "text";
-                send(body, { type, attachments, replyTo: replyingTo?.id ?? null });
+              onSend={async (body, attachments) => {
+                await send(body, { attachmentIds: attachments.map((a) => a.id), replyTo: replyingTo?.id ?? null });
                 setReplyingTo(null);
               }}
               onTyping={emitTyping}
@@ -199,9 +213,9 @@ export function ConversationLayout({
                 onToggleLock={() => handleAction("lock")}
                 onDeleteConversation={() => handleAction("delete")}
                 onExport={() => handleAction("export")}
-                onRemoveMember={(userId) => { messagesService.removeMember(conversation.id, userId, currentUserId); realtimeService.refreshConversations(); }}
-                onAddMember={(userId) => { messagesService.addMember(conversation.id, userId); realtimeService.refreshConversations(); }}
-                onSendTemplate={(text) => { send(text); setDetailsOpen(false); }}
+                onRemoveMember={(userId) => { messagesService.removeMember(conversation.id, userId).catch(fail); }}
+                onAddMember={(userId) => { messagesService.addMember(conversation.id, userId).catch(fail); }}
+                onSendTemplate={(text) => { send(text).catch(fail); setDetailsOpen(false); }}
               />
             </DialogPrimitive.Content>
           </DialogPrimitive.Portal>

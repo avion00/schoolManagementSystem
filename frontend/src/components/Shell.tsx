@@ -33,6 +33,8 @@ import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { useUnreadCount } from "@/api/notifications";
+import { messagesService } from "@/lib/messagesService";
+import { realtimeService } from "@/lib/realtimeService";
 
 export interface NavItem {
   to: string;
@@ -572,7 +574,15 @@ function UserMenu({ collapsed, compact }: { collapsed?: boolean; compact?: boole
 /* ── Shell ────────────────────────────────────────────────────────────── */
 export function Shell({ nav, brand }: { nav: NavGroup[]; brand: string }) {
   const unread = useUnreadCount().data ?? 0;
-  const { hasPermission } = useAuth();
+  const { hasPermission, user: sessionUser } = useAuth();
+
+  // Messaging: load this user's chats and keep a live connection while signed in.
+  useEffect(() => {
+    if (!sessionUser) return;
+    messagesService.init(sessionUser);
+    realtimeService.connect();
+    return () => realtimeService.disconnect();
+  }, [sessionUser]);
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(

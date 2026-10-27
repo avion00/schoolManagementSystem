@@ -8,10 +8,9 @@ import { PremiumCard } from "@/components/ui/PremiumCard";
 import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
 import { Button } from "@/components/ui/button";
 import { assignedStudents } from "@/data/teacherDashboardData";
-import { guardianChatUserIdForStudent } from "@/data/messagesData";
+import { guardianChatUserIdForStudent } from "@/data/teacherHelpData";
 import type { StudentSupportCase } from "@/data/teacherHelpData";
-import { messagesService } from "@/lib/messagesService";
-import { realtimeService } from "@/lib/realtimeService";
+import { openChat } from "@/lib/openChat";
 
 const ISSUE_TONE: Record<StudentSupportCase["issueType"], PremiumBadgeTone> = {
   "Attendance concern": "warning",
@@ -34,7 +33,7 @@ export function StudentSupportCases({
   function messageGuardian(c: StudentSupportCase) {
     const student = assignedStudents.find((s) => s.id === c.studentId);
     if (!student) return;
-    const conv = messagesService.findOrCreateDirectConversation({
+    openChat({
       currentUserId,
       otherUserId: guardianChatUserIdForStudent(student.id),
       otherUserName: student.guardian,
@@ -42,9 +41,7 @@ export function StudentSupportCases({
       subtitle: `Guardian of ${student.name} · ${student.className}-${student.section}`,
       relatedStudentId: String(student.id),
       relatedClassId: student.classId,
-    });
-    realtimeService.refreshConversations();
-    navigate(`/teacher/messages/${conv.id}`);
+    }, (conversationId) => navigate(`/teacher/messages/${conversationId}`));
   }
 
   const open = cases.filter((c) => !c.resolved);

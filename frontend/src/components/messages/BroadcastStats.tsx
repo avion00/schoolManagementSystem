@@ -1,4 +1,4 @@
-import type { Broadcast } from "@/data/messagesData";
+import type { Broadcast } from "@/api/types/messages";
 
 export function BroadcastStats({ broadcast }: { broadcast: Broadcast }) {
   const deliveredPct = Math.round((broadcast.delivered / broadcast.audienceCount) * 100) || 0;

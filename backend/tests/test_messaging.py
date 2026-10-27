@@ -212,3 +212,23 @@ def test_participants_table_consistency(tenant, parent):
 
     conv, _ = services.get_or_create_direct(tenant.org.id, parent, tenant.users["Teacher"])
     assert Participant.objects.filter(conversation=conv).count() == 2
+
+
+def test_attachments_in_chat_visible_to_members_only(api, tenant, parent):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    dad = api(parent)
+    teacher_user = tenant.users["Teacher"]
+    conv = start(dad, teacher_user).json()
+    pdf = SimpleUploadedFile("homework.pdf", b"%PDF-1.4\n%fake but well-formed enough\n")
+    stored = dad.post("/api/v1/files/", {"file": pdf}, format="multipart").json()
+    sent = dad.post(f"{BASE}/conversations/{conv['id']}/messages/", {"attachment_ids": [stored["id"]]}, format="json")
+    assert sent.status_code == 201 and sent.json()["attachments"][0]["id"] == stored["id"]
+    url = f"/api/v1/files/{stored['id']}/download/"
+    assert api(teacher_user).get(url).status_code == 200
+    assert api(tenant.users["Student"]).get(url).status_code == 404
+    listed = api(teacher_user).get(f"{BASE}/conversations/{conv['id']}/messages/").json()["results"]
+    assert listed[-1]["attachments"][0]["original_name"] == "homework.pdf"
+    # a message needs text or a file
+    empty = dad.post(f"{BASE}/conversations/{conv['id']}/messages/", {"body": ""}, format="json")
+    assert empty.status_code == 400

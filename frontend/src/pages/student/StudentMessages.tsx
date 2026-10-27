@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { ConversationLayout } from "@/components/messages/ConversationLayout";
-import { canViewAllConversations } from "@/data/messagePermissions";
+import { canViewAllConversations } from "@/lib/messagePermissions";
 import { useConversations } from "@/hooks/useConversations";
 import { useAuth } from "@/lib/auth";
 import { resolveCurrentChatUser } from "@/lib/messagesService";

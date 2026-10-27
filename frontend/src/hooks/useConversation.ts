@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import type { ChatMessage, MessageAttachment } from "@/data/messagesData";
+import type { ChatMessage } from "@/api/types/messages";
 import { messagesService } from "@/lib/messagesService";
 import { realtimeService } from "@/lib/realtimeService";
 
@@ -27,21 +27,27 @@ export function useConversation(conversationId: string | undefined, currentUserI
     };
   }, [conversationId]);
 
+  /** Sends a message; resolves once the server has stored it (rejects with the server's reason). */
   const send = useCallback(
-    (body: string, opts?: { type?: ChatMessage["type"]; attachments?: MessageAttachment[]; replyTo?: string | null }) => {
-      if (!conversationId) return;
-      realtimeService.sendMessage({ conversationId, senderId: currentUserId, body, ...opts });
+    (body: string, opts?: { attachmentIds?: string[]; replyTo?: string | null }) => {
+      if (!conversationId) return Promise.resolve(undefined);
+      return realtimeService.sendMessage({ conversationId, body, ...opts });
     },
-    [conversationId, currentUserId],
+    [conversationId],
   );
 
   const emitTyping = useCallback(() => {
     if (!conversationId) return;
-    realtimeService.emitTyping(conversationId, currentUserId);
-  }, [conversationId, currentUserId]);
+    realtimeService.emitTyping(conversationId);
+  }, [conversationId]);
+
+  const loadOlder = useCallback(() => {
+    if (conversationId) void messagesService.loadMessages(conversationId, true);
+  }, [conversationId]);
 
   const conversation = conversationId ? messagesService.getConversation(conversationId) : undefined;
   const typingOthers = typingUserIds.filter((id) => id !== currentUserId);
+  const hasOlder = conversationId ? messagesService.hasOlderMessages(conversationId) : false;
 
-  return { conversation, messages, typingUserIds: typingOthers, send, emitTyping };
+  return { conversation, messages, typingUserIds: typingOthers, send, emitTyping, loadOlder, hasOlder };
 }

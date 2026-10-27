@@ -9,9 +9,8 @@ import { PremiumCard } from "@/components/ui/PremiumCard";
 import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
 import { assignedStudents } from "@/data/teacherDashboardData";
 import type { AssignedTicket } from "@/data/teacherHelpData";
-import { guardianChatUserIdForStudent, studentChatUserId } from "@/data/messagesData";
-import { messagesService } from "@/lib/messagesService";
-import { realtimeService } from "@/lib/realtimeService";
+import { guardianChatUserIdForStudent, studentChatUserId } from "@/data/teacherHelpData";
+import { openChat } from "@/lib/openChat";
 
 export function AssignedHelpTickets({
   tickets,
@@ -37,7 +36,7 @@ export function AssignedHelpTickets({
     const isParent = ticket.requesterRole === "Parent";
     const otherUserId = isParent ? guardianChatUserIdForStudent(student.id) : studentChatUserId(student.id);
     const otherUserName = isParent ? student.guardian : student.name;
-    const conv = messagesService.findOrCreateDirectConversation({
+    openChat({
       currentUserId,
       otherUserId,
       otherUserName,
@@ -45,9 +44,7 @@ export function AssignedHelpTickets({
       subtitle: isParent ? `Guardian of ${student.name} · ${student.className}-${student.section}` : `${student.className}-${student.section}`,
       relatedStudentId: String(student.id),
       relatedClassId: student.classId,
-    });
-    realtimeService.refreshConversations();
-    navigate(`/teacher/messages/${conv.id}`);
+    }, (conversationId) => navigate(`/teacher/messages/${conversationId}`));
   }
 
   if (tickets.length === 0) {

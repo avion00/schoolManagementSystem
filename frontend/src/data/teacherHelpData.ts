@@ -467,3 +467,13 @@ export function findTicket(id: string): NormalizedTicket | undefined {
   }
   return undefined;
 }
+
+
+/* Mock chat identities for the teacher help screens; replaced by real user ids
+ * when the teacher portal is wired to the API. */
+export function guardianChatUserIdForStudent(studentId: number): string {
+  return `u-parent-guardian-${studentId}`;
+}
+export function studentChatUserId(studentId: number): string {
+  return `u-student-${studentId}`;
+}

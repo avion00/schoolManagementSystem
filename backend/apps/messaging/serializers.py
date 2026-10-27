@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.academics.models import ClassLevel, Section
+from apps.files.serializers import FileIdsField, StoredFileSerializer
 
 from .models import DEFAULT_GROUP_PERMISSIONS, Conversation, Message, MessageRequest, ModerationReport
 from .policy import chat_role
@@ -25,11 +26,12 @@ class MessageSerializer(serializers.ModelSerializer):
     reactions = serializers.SerializerMethodField()
     is_deleted = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
+    attachments = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
         fields = [
-            "id", "conversation", "sender", "sender_name", "type", "body", "reply_to",
+            "id", "conversation", "sender", "sender_name", "type", "body", "attachments", "reply_to",
             "created_at", "edited_at", "is_deleted", "is_pinned", "reactions", "status",
         ]
 
@@ -38,6 +40,11 @@ class MessageSerializer(serializers.ModelSerializer):
 
     def get_body(self, obj) -> str:
         return "" if obj.deleted_at else obj.body  # deleted content is never sent to clients
+
+    def get_attachments(self, obj) -> list[dict]:
+        if obj.deleted_at:
+            return []
+        return StoredFileSerializer(obj.attachments.all(), many=True).data
 
     def get_is_deleted(self, obj) -> bool:
         return obj.deleted_at is not None
@@ -132,8 +139,14 @@ class CreateGroupSerializer(serializers.Serializer):
 
 
 class SendMessageSerializer(serializers.Serializer):
-    body = serializers.CharField(max_length=5000, trim_whitespace=False)
+    body = serializers.CharField(max_length=5000, trim_whitespace=False, required=False, allow_blank=True, default="")
     reply_to = serializers.UUIDField(required=False, allow_null=True)
+    attachment_ids = FileIdsField(many=True, required=False)
+
+    def validate_attachment_ids(self, value):
+        if len(value) > 10:
+            raise serializers.ValidationError("Attach at most 10 files.")
+        return value
 
 
 class BroadcastSerializer(serializers.Serializer):
