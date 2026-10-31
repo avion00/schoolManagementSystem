@@ -5,19 +5,25 @@ import { NoticeToolbar, EMPTY_FILTERS } from "@/components/notices/NoticeToolbar
 import { NoticeCardGrid }  from "@/components/notices/NoticeCardGrid";
 import { NoticeTable }     from "@/components/notices/NoticeTable";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { NOTICES } from "@/data/noticesData";
+import { Button } from "@/components/ui/button";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { useNotices } from "@/api/notices";
+import { errorMessage } from "@/api/http";
+import type { Notice } from "@/api/types/notices";
 import type { NoticeFilters } from "@/components/notices/NoticeToolbar";
 import { cn } from "@/lib/utils";
 
 type ViewMode = "card" | "table";
 
-function applyFilters(filters: NoticeFilters) {
+function applyFilters(NOTICES: Notice[], filters: NoticeFilters) {
   return NOTICES.filter((n) => {
     if (filters.search) {
       const q = filters.search.toLowerCase();
       if (!n.title.toLowerCase().includes(q)
         && !n.summary.toLowerCase().includes(q)
         && !n.publishedBy.toLowerCase().includes(q)
+        && !n.noticeId.toLowerCase().includes(q)
         && !n.category.toLowerCase().includes(q)) return false;
     }
     if (filters.category && n.category  !== filters.category)  return false;
@@ -37,15 +43,23 @@ export function NoticeBoardPage() {
   const onChange  = useCallback((f: NoticeFilters) => setFilters(f), []);
   const onClear   = useCallback(() => setFilters(EMPTY_FILTERS), []);
 
-  const filtered = useMemo(() => applyFilters(filters), [filters]);
+  const query = useNotices();
+  const NOTICES = useMemo(() => query.data ?? [], [query.data]);
+  const filtered = useMemo(() => applyFilters(NOTICES, filters), [NOTICES, filters]);
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <PageHeader description="Manage school notices, announcements, and circulars" />
 
+      {query.isError && (
+        <PremiumEmptyState title="Couldn't load notices" description={errorMessage(query.error)}
+          action={<Button size="sm" variant="outline" onClick={() => query.refetch()}>Try again</Button>} />
+      )}
+      {query.isLoading && <PremiumSkeleton className="h-72 w-full rounded-2xl" />}
+      {query.isSuccess && (<>
       {/* Summary KPIs */}
-      <NoticeSummaryCards />
+      <NoticeSummaryCards notices={NOTICES} />
 
       {/* Toolbar */}
       <NoticeToolbar
@@ -87,6 +101,7 @@ export function NoticeBoardPage() {
       {view === "card"
         ? <NoticeCardGrid notices={filtered} />
         : <NoticeTable    notices={filtered} />}
+      </>)}
     </div>
   );
 }

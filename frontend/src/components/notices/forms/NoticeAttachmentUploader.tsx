@@ -1,6 +1,10 @@
 import { useRef, useState } from "react";
 import { Paperclip, Upload, X, FileText, Image, Sheet } from "lucide-react";
-import type { NoticeAttachment } from "@/data/noticesData";
+import { toast } from "sonner";
+import { uploadFile } from "@/api/files";
+import { errorMessage } from "@/api/http";
+import { mapAttachment } from "@/api/notices";
+import type { NoticeAttachment } from "@/api/types/notices";
 
 interface Props {
   attachments: NoticeAttachment[];
@@ -14,38 +18,30 @@ const TYPE_ICON: Record<string, React.FC<{ className?: string }>> = {
   Spreadsheet: Sheet,
 };
 
-function formatBytes(bytes: number): string {
-  if (bytes < 1024)       return `${bytes} B`;
-  if (bytes < 1048576)    return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / 1048576).toFixed(1)} MB`;
-}
-
-function getFileType(file: File): NoticeAttachment["type"] {
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-  if (["pdf"].includes(ext)) return "PDF";
-  if (["jpg","jpeg","png","gif","webp"].includes(ext)) return "Image";
-  if (["xls","xlsx","csv"].includes(ext)) return "Spreadsheet";
-  return "Document";
-}
-
-let nextId = 100;
-
 export function NoticeAttachmentUploader({ attachments, onChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(0);
 
-  function addFiles(files: FileList | null) {
-    if (!files) return;
-    const newAtt: NoticeAttachment[] = Array.from(files).map((f) => ({
-      id:   nextId++,
-      name: f.name,
-      type: getFileType(f),
-      size: formatBytes(f.size),
-    }));
-    onChange([...attachments, ...newAtt]);
+  // Files upload straight away (validated by the server) and attach on save.
+  async function addFiles(files: FileList | null) {
+    if (!files?.length) return;
+    const list = Array.from(files);
+    setUploading((n) => n + list.length);
+    const added: NoticeAttachment[] = [];
+    for (const f of list) {
+      try {
+        added.push(mapAttachment(await uploadFile(f)));
+      } catch (e) {
+        toast.error(`${f.name}: ${errorMessage(e)}`);
+      } finally {
+        setUploading((n) => n - 1);
+      }
+    }
+    if (added.length) onChange([...attachments, ...added]);
   }
 
-  function remove(id: number) {
+  function remove(id: string) {
     onChange(attachments.filter((a) => a.id !== id));
   }
 
@@ -62,14 +58,16 @@ export function NoticeAttachmentUploader({ attachments, onChange }: Props) {
       >
         <Upload className="h-8 w-8 text-muted-foreground mb-2" />
         <p className="text-[13px] font-medium text-foreground">Drop files here or click to browse</p>
-        <p className="text-[11px] text-muted-foreground mt-1">PDF, Images, Documents, Spreadsheets — Max 10 MB each</p>
+        <p className="text-[11px] text-muted-foreground mt-1">
+          {uploading > 0 ? `Uploading ${uploading} file${uploading === 1 ? "" : "s"}…` : "PDF, images, documents and spreadsheets"}
+        </p>
         <input
           ref={inputRef}
           type="file"
           multiple
           accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png,.gif,.webp"
           className="hidden"
-          onChange={(e) => addFiles(e.target.files)}
+          onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }}
         />
       </div>
 
@@ -86,7 +84,7 @@ export function NoticeAttachmentUploader({ attachments, onChange }: Props) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[12px] font-medium text-foreground truncate">{a.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{a.type} · {a.size}</p>
+                  <p className="text-[10px] text-muted-foreground">{[a.type, a.size].filter(Boolean).join(" · ")}</p>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />

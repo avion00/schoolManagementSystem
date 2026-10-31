@@ -1,8 +1,8 @@
 import { GraduationCap } from "lucide-react";
 
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { StudentDetailMock } from "@/data/studentDetailsData";
-import type { Student } from "@/data/studentsData";
+import type { StudentDetailView } from "@/api/types/students";
+import type { Student } from "@/api/types/students";
 
 function Row({ label, value }: { label: string; value?: string | null }) {
   return (
@@ -13,7 +13,7 @@ function Row({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-interface Props { student: Student; mock: StudentDetailMock; }
+interface Props { student: Student; mock: StudentDetailView; }
 
 export function AcademicInfoCard({ student, mock }: Props) {
   const { academicExtra } = mock;

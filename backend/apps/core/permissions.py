@@ -15,7 +15,8 @@ class IsPlatformAdmin(BasePermission):
 
 
 class HasPermission(BasePermission):
-    """Checks the RBAC code declared as `required_permission` on the view.
+    """Checks the RBAC code declared as `required_permission` on the view
+    (a single code, or a tuple meaning "any of these").
 
     Superusers / platform admins always pass. If a view declares no
     `required_permission`, authentication alone is sufficient.
@@ -30,6 +31,8 @@ class HasPermission(BasePermission):
         code = getattr(view, "required_permission", None)
         if not code:
             return True
+        if isinstance(code, (tuple, list)):  # any one of these codes suffices
+            return any(user_has_permission(user, c) for c in code)
         return user_has_permission(user, code)
 
 

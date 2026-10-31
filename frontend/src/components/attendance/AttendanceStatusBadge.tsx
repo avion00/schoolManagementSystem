@@ -1,4 +1,4 @@
-import type { AttendanceStatus } from "@/data/attendanceData";
+import type { AttendanceStatus } from "@/api/types/attendance";
 import { cn } from "@/lib/utils";
 
 interface StatusCfg { label: string; cls: string; symbol: string; }
@@ -9,6 +9,8 @@ const STATUS_CFG: Record<AttendanceStatus, StatusCfg> = {
   late:       { label: "Late",     symbol: "L",  cls: "bg-amber-50   text-amber-700   ring-amber-500/30   dark:bg-amber-950/30   dark:text-amber-300" },
   "half-day": { label: "Half Day", symbol: "H",  cls: "bg-blue-50    text-blue-700    ring-blue-500/30    dark:bg-blue-950/30    dark:text-blue-300" },
   leave:      { label: "Leave",    symbol: "LV", cls: "bg-violet-50  text-violet-700  ring-violet-500/30  dark:bg-violet-950/30  dark:text-violet-300" },
+  holiday:    { label: "Holiday",  symbol: "HO", cls: "bg-muted text-muted-foreground ring-border/40" },
+  excused:    { label: "Excused",  symbol: "EX", cls: "bg-sky-50 text-sky-700 ring-sky-500/30 dark:bg-sky-950/30 dark:text-sky-300" },
 };
 
 interface Props {

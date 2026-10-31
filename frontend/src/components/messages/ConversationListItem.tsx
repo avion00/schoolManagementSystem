@@ -1,7 +1,8 @@
 import { BellOff, Paperclip, Pin, Users } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { chatUserById, type Conversation } from "@/data/messagesData";
+import { chatUserById } from "@/lib/messagesService";
+import { type Conversation } from "@/api/types/messages";
 import { cn } from "@/lib/utils";
 
 function initialsOf(name: string) {
@@ -37,7 +38,7 @@ export function ConversationListItem({
   const isDirect = conversation.type === "direct" || conversation.type === "support_request";
   const otherUserId = isDirect ? conversation.participantIds.find((id) => id !== currentUserId) : undefined;
   const otherUser = otherUserId ? chatUserById(otherUserId) : undefined;
-  const hasAttachmentPreview = conversation.lastMessage.toLowerCase().startsWith("sent a ");
+  const hasAttachmentPreview = conversation.lastMessage === "Sent an attachment";
 
   return (
     <button

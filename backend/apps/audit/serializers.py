@@ -13,5 +13,5 @@ class AuditLogSerializer(serializers.ModelSerializer):
             "changes", "ip_address", "user_agent", "created_at",
         ]
 
-    def get_actor_email(self, obj):
+    def get_actor_email(self, obj) -> str | None:
         return obj.actor.email if obj.actor_id else None

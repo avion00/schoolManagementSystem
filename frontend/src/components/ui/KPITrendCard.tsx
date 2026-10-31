@@ -33,8 +33,9 @@ export function KPITrendCard({
   icon: LucideIcon;
   iconCls: string;
   trend?: KPITrend;
-  sparklineData: Record<string, number>[];
-  sparklineColor: string;
+  /** Only pass real series; the card renders no sparkline without data. */
+  sparklineData?: Record<string, number>[];
+  sparklineColor?: string;
   className?: string;
 }) {
   return (
@@ -71,9 +72,11 @@ export function KPITrendCard({
           </p>
         )}
 
-        <div className="-mx-1 -mb-1 mt-auto pt-3">
-          <MiniSparkline data={sparklineData} color={sparklineColor} width="100%" height={36} />
-        </div>
+        {sparklineData && sparklineData.length > 1 && (
+          <div className="-mx-1 -mb-1 mt-auto pt-3">
+            <MiniSparkline data={sparklineData} color={sparklineColor ?? "currentColor"} width="100%" height={36} />
+          </div>
+        )}
       </PremiumCard>
     </TiltCard>
   );

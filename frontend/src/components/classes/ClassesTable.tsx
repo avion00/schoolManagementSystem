@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PremiumDataTable, type PremiumDataTableColumn, type PremiumDataTablePagination } from "@/components/ui/PremiumDataTable";
 import { RowActionMenu } from "@/components/ui/RowActionMenu";
-import type { ClassData } from "@/data/classesData";
+import type { ClassData } from "@/api/types/classes";
 
 export function ClassesTable({
   rows,
@@ -53,10 +53,10 @@ export function ClassesTable({
         </div>
       ),
     },
-    { key: "classTeacher", header: "Class Teacher", width: "w-[140px]", render: (c) => <span className="text-[12.5px] text-muted-foreground">{c.mainClassTeacher.name}</span> },
+    { key: "classTeacher", header: "Class Teacher", width: "w-[140px]", render: (c) => <span className="text-[12.5px] text-muted-foreground">{c.mainClassTeacher?.name ?? "—"}</span> },
     {
       key: "totalStudents", header: "Students", width: "w-[140px]", sortable: true, render: (c) => {
-        const usedPct = Math.round((c.totalStudents / c.totalCapacity) * 100);
+        const usedPct = c.totalCapacity ? Math.round((c.totalStudents / c.totalCapacity) * 100) : 0;
         return (
           <div className="flex items-center gap-2">
             <span className="text-[13px] font-medium text-foreground">{c.totalStudents}</span>

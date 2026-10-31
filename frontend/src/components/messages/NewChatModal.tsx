@@ -1,20 +1,20 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
 import { RecipientPicker } from "@/components/messages/RecipientPicker";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { chatUserById, type ChatRole, type ConversationType } from "@/data/messagesData";
-import { canCreateGroup, canSendBroadcast } from "@/data/messagePermissions";
+import { type ChatRole, type ConversationType } from "@/api/types/messages";
+import { canCreateGroup, canSendBroadcast } from "@/lib/messagePermissions";
 import { messagesService } from "@/lib/messagesService";
-import { realtimeService } from "@/lib/realtimeService";
+import { errorMessage } from "@/api/http";
 import { cn } from "@/lib/utils";
 
 const TYPE_OPTIONS: { value: ConversationType; label: string }[] = [
   { value: "direct", label: "Direct Message" },
   { value: "group", label: "Group Chat" },
   { value: "class_group", label: "Class Group" },
-  { value: "parent_teacher", label: "Parent-Teacher Chat" },
   { value: "staff_group", label: "Staff Group" },
   { value: "admin_broadcast", label: "Broadcast" },
 ];
@@ -37,6 +37,7 @@ export function NewChatModal({
   const [selected, setSelected] = useState<string[]>([]);
   const [title, setTitle] = useState("");
   const [firstMessage, setFirstMessage] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const isGroupType = type !== "direct" && type !== "admin_broadcast";
   const availableTypes = TYPE_OPTIONS.filter((t) => {
@@ -52,39 +53,37 @@ export function NewChatModal({
     setFirstMessage("");
   }
 
-  function handleCreate() {
+  async function handleCreate() {
     if (type === "admin_broadcast") {
       onOpenChange(false);
       reset();
       navigate("/messages/broadcasts");
       return;
     }
-    if (selected.length === 0) return;
-    if (!isGroupType) {
-      const conv = messagesService.createConversation({
-        type: "direct",
-        title: chatUserById(selected[0])?.name ?? "Direct Message",
-        participantIds: [currentUserId, selected[0]],
-        creatorId: currentUserId,
-        firstMessage: firstMessage.trim() || undefined,
+    if (selected.length === 0 || saving) return;
+    setSaving(true);
+    try {
+      if (!isGroupType) {
+        const conv = await messagesService.findOrCreateDirectConversation({
+          otherUserId: selected[0], message: firstMessage.trim() || undefined, reason: firstMessage.trim() || undefined,
+        });
+        onOpenChange(false);
+        reset();
+        if (conv) onCreated(conv.id);
+        else toast.success("Message request sent. You can chat once they accept.");
+        return;
+      }
+      const conv = await messagesService.createConversation({
+        type, title: title.trim() || "New group", participantIds: selected, firstMessage: firstMessage.trim() || undefined,
       });
-      realtimeService.refreshConversations();
       onOpenChange(false);
       reset();
       onCreated(conv.id);
-      return;
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setSaving(false);
     }
-    const conv = messagesService.createConversation({
-      type,
-      title: title.trim() || "New group",
-      participantIds: [currentUserId, ...selected],
-      creatorId: currentUserId,
-      firstMessage: firstMessage.trim() || undefined,
-    });
-    realtimeService.refreshConversations();
-    onOpenChange(false);
-    reset();
-    onCreated(conv.id);
   }
 
   return (
@@ -157,7 +156,7 @@ export function NewChatModal({
             </p>
           )}
 
-          <Button className="w-full" onClick={handleCreate} disabled={type !== "admin_broadcast" && (selected.length === 0 || (isGroupType && !title.trim()))}>
+          <Button className="w-full" onClick={handleCreate} disabled={saving || (type !== "admin_broadcast" && (selected.length === 0 || (isGroupType && !title.trim())))}>
             {type === "admin_broadcast" ? "Continue to Broadcasts" : "Create conversation"}
           </Button>
         </div>

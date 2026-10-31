@@ -7,7 +7,7 @@ import {
 import { PremiumCard } from "@/components/ui/PremiumCard";
 import {
   CATEGORY_OPTIONS, PRIORITY_OPTIONS, ROLE_OPTIONS, STATUS_OPTIONS, type SupportTicket,
-} from "@/data/helpDeskData";
+} from "@/api/types/helpdesk";
 
 const PRIORITY_COLOR: Record<string, string> = { Low: "#94a3b8", Normal: "#2a78d6", High: "#eda100", Urgent: "#e34948" };
 const STATUS_COLOR: Record<string, string> = {

@@ -7,7 +7,7 @@ import { StudentStatusBadge } from "@/components/students/StudentStatusBadge";
 import { Button } from "@/components/ui/button";
 import { PremiumDataTable, type PremiumDataTableColumn, type PremiumDataTablePagination } from "@/components/ui/PremiumDataTable";
 import { RowActionMenu } from "@/components/ui/RowActionMenu";
-import type { Student } from "@/data/studentsData";
+import type { Student } from "@/api/types/students";
 
 export function StudentsTable({
   rows,

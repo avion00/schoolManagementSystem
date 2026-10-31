@@ -1,40 +1,36 @@
 import { useState, useMemo } from "react";
-import { Award, BarChart2, ListChecks, Percent, TrendingUp, Users } from "lucide-react";
-import { CATEGORICAL_COLORS, STATUS_COLORS } from "@/components/charts/palette";
+import { Award, BarChart2, ListChecks, Lock, LockOpen, Percent, Send, TrendingUp, Undo2, Users } from "lucide-react";
+import { toast } from "sonner";
 import { Reveal } from "@/components/motion";
+import { Button } from "@/components/ui/button";
 import { KPITrendCard } from "@/components/ui/KPITrendCard";
 import { METRIC_TONES } from "@/components/ui/MetricCard";
 import { PremiumCard } from "@/components/ui/PremiumCard";
-import { PremiumSelect } from "@/components/ui/PremiumSelect";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
 import { ExamResultsTable } from "@/components/exams/ExamResultsTable";
 import { GradeBadge }       from "@/components/exams/GradeBadge";
-import { EXAM_RESULTS, EXAM_TERM_OPTIONS, CLASS_OPTIONS, SECTION_OPTIONS } from "@/data/examsData";
+import { EMPTY_SELECTION, ExamPicker, useSelection, type ExamSelection } from "@/components/exams/ExamPicker";
+import { missingMarks, useExamResults, useExamTransition, useGradeScales } from "@/api/exams";
+import { errorMessage } from "@/api/http";
+import type { ExamResult } from "@/api/types/exams";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 type SortField = "rank" | "studentName" | "roll" | "totalMarks" | "percentage" | "gpa";
 type SortDir = "asc" | "desc";
 const PAGE_SIZE = 15;
 
-const SPARK = {
-  up: [{ value: 28 }, { value: 29 }, { value: 30 }, { value: 31 }, { value: 32 }, { value: 33 }, { value: 34 }],
-  upSlow: [{ value: 70 }, { value: 71 }, { value: 72 }, { value: 71 }, { value: 73 }, { value: 74 }, { value: 75 }],
-  flat: [{ value: 3 }, { value: 3 }, { value: 3 }, { value: 3 }, { value: 3 }, { value: 3 }, { value: 3 }],
-};
-
-// Grade distribution
-function gradeDistribution(results: typeof EXAM_RESULTS) {
-  const dist: Record<string, number> = {};
-  results.forEach((r) => { dist[r.grade] = (dist[r.grade] ?? 0) + 1; });
-  return dist;
-}
-
 export function ExamResultsPage() {
-  const [term,    setTerm]    = useState<string>("First Term");
-  const [cls,     setCls]     = useState<string>("Grade 6");
-  const [section, setSection] = useState<string>("A");
+  const [sel, setSel] = useState<ExamSelection>(EMPTY_SELECTION);
   const [sortField, setSortField] = useState<SortField>("rank");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [page, setPage] = useState(1);
+  const { exam } = useSelection(sel);
+  const query = useExamResults(exam, sel.classLevel || undefined, sel.section || undefined);
+  const scale = useGradeScales().data?.find((s) => s.id === exam?.gradeScaleId);
+  const transition = useExamTransition();
+  const { hasPermission } = useAuth();
 
   function handleSort(field: string) {
     const f = field as SortField;
@@ -43,20 +39,37 @@ export function ExamResultsPage() {
     setPage(1);
   }
 
-  const filtered = useMemo(() =>
-    EXAM_RESULTS.filter((r) => {
-      if (term    && r.examTerm   !== term)    return false;
-      if (cls     && r.className  !== cls)     return false;
-      if (section && r.section    !== section) return false;
-      return true;
-    }),
-  [term, cls, section]);
+  function run(action: "lock" | "unlock" | "publish" | "unpublish", force = false) {
+    if (!exam) return;
+    transition.mutate({ id: exam.id, action, force }, {
+      onSuccess: () => toast.success({
+        lock: "Marks locked.", unlock: "Marks unlocked.", publish: "Results published. Students and parents have been notified.",
+        unpublish: "Results unpublished.",
+      }[action]),
+      onError: (e) => {
+        const gaps = missingMarks(e);
+        if (gaps && action === "publish") {
+          const list = gaps.map((g) => `${g.subject} (${g.className}): ${g.missing} missing`).join("\n");
+          if (window.confirm(`Some marks are missing:\n\n${list}\n\nPublish anyway?`)) run("publish", true);
+          return;
+        }
+        toast.error(errorMessage(e));
+      },
+    });
+  }
+
+  const filtered = useMemo(() => query.data?.rows ?? [], [query.data]);
 
   const sorted = useMemo(() => {
+    const key = (r: ExamResult): string | number | null => sortField === "studentName" ? r.studentName : r[sortField];
     return [...filtered].sort((a, b) => {
-      const av = a[sortField], bv = b[sortField];
+      const av = key(a), bv = key(b);
+      if (av === null && bv === null) return 0;
+      if (av === null) return 1;   // unranked / missing always last
+      if (bv === null) return -1;
       if (typeof av === "number" && typeof bv === "number") return sortDir === "asc" ? av - bv : bv - av;
-      return sortDir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+      return sortDir === "asc" ? String(av).localeCompare(String(bv), undefined, { numeric: true })
+        : String(bv).localeCompare(String(av), undefined, { numeric: true });
     });
   }, [filtered, sortField, sortDir]);
 
@@ -64,12 +77,19 @@ export function ExamResultsPage() {
   const safePage = Math.min(page, totalPages);
   const paginated = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
+  const graded      = filtered.filter((r) => r.result === "Pass" || r.result === "Fail");
   const passCount   = filtered.filter((r) => r.result === "Pass").length;
   const failCount   = filtered.filter((r) => r.result === "Fail").length;
-  const avgPct      = filtered.length ? Math.round(filtered.reduce((s, r) => s + r.percentage, 0) / filtered.length) : 0;
-  const avgGpa      = filtered.length ? (filtered.reduce((s, r) => s + r.gpa, 0) / filtered.length).toFixed(2) : "—";
-  const dist        = gradeDistribution(filtered);
-  const gradeOrder  = ["A+","A","B+","B","C+","C","F"];
+  const pcts        = graded.map((r) => r.percentage).filter((v): v is number => v !== null);
+  const gpas        = graded.map((r) => r.gpa).filter((v): v is number => v !== null);
+  const avgPct      = pcts.length ? `${Math.round(pcts.reduce((s, v) => s + v, 0) / pcts.length)}%` : "—";
+  const avgGpa      = gpas.length ? (gpas.reduce((s, v) => s + v, 0) / gpas.length).toFixed(2) : "—";
+  const gradeOrder  = [...(scale?.bands ?? [])].map((b) => b.gradeName);
+  const dist: Record<string, number> = {};
+  graded.forEach((r) => { if (r.grade) dist[r.grade] = (dist[r.grade] ?? 0) + 1; });
+  const failGrades  = new Set((scale?.bands ?? []).filter((b) => b.resultStatus === "Fail").map((b) => b.gradeName));
+
+  const stateLabel = !exam ? "" : exam.isPublished ? "Published" : exam.isLocked ? "Marks locked" : "Open for marks entry";
 
   return (
     <div className="space-y-5">
@@ -77,99 +97,81 @@ export function ExamResultsPage() {
       <Reveal>
         <h1 className="text-2xl font-bold text-foreground">Exam Results</h1>
         <p className="text-[13px] text-muted-foreground mt-0.5">
-          Published results for {filtered.length} students
+          Ranked results computed from entered marks. Workflow: enter marks → lock → publish.
         </p>
       </Reveal>
 
-      {/* Filters */}
-      <PremiumCard className="p-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <PremiumSelect
-            value={term}
-            onChange={(v) => { setTerm(v); setPage(1); }}
-            className="w-40"
-            placeholder="All Terms"
-            options={EXAM_TERM_OPTIONS.map((t) => ({ value: t, label: t }))}
-          />
-          <PremiumSelect
-            value={cls}
-            onChange={(v) => { setCls(v); setPage(1); }}
-            className="w-36"
-            placeholder="All Classes"
-            options={CLASS_OPTIONS.map((c) => ({ value: c, label: c }))}
-          />
-          <PremiumSelect
-            value={section}
-            onChange={(v) => { setSection(v); setPage(1); }}
-            className="w-36"
-            placeholder="All Sections"
-            options={SECTION_OPTIONS.map((s) => ({ value: s, label: `Section ${s}` }))}
-          />
-          <span className="ml-auto text-[11px] text-muted-foreground">{filtered.length} results</span>
-        </div>
+      {/* Filters + workflow */}
+      <PremiumCard className="p-4 space-y-3">
+        <ExamPicker value={sel} onChange={(v) => { setSel(v); setPage(1); }} mode="section" />
+        {exam && (
+          <div className="flex flex-wrap items-center gap-2 border-t border-border/40 pt-3">
+            <span className={cn("rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+              exam.isPublished ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                : exam.isLocked ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300" : "bg-muted text-muted-foreground")}>
+              {stateLabel}
+            </span>
+            {exam.publishedAt && <span className="text-[11px] text-muted-foreground">on {exam.publishedAt.slice(0, 10)}</span>}
+            <div className="ml-auto flex flex-wrap gap-2">
+              {hasPermission("exam.marks.lock") && !exam.isPublished && (
+                exam.isLocked ? (
+                  <Button size="sm" variant="outline" className="h-8 gap-1.5 text-[12px]" disabled={transition.isPending} onClick={() => run("unlock")}>
+                    <LockOpen className="h-3.5 w-3.5" />Unlock marks
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="outline" className="h-8 gap-1.5 text-[12px]" disabled={transition.isPending}
+                    onClick={() => window.confirm("Lock marks? Teachers won't be able to change them until unlocked.") && run("lock")}>
+                    <Lock className="h-3.5 w-3.5" />Lock marks
+                  </Button>
+                )
+              )}
+              {hasPermission("exam.result.publish") && exam.isLocked && (
+                exam.isPublished ? (
+                  <Button size="sm" variant="outline" className="h-8 gap-1.5 text-[12px]" disabled={transition.isPending}
+                    onClick={() => window.confirm("Unpublish results? Students and parents will no longer see them.") && run("unpublish")}>
+                    <Undo2 className="h-3.5 w-3.5" />Unpublish
+                  </Button>
+                ) : (
+                  <Button size="sm" className="h-8 gap-1.5 text-[12px]" disabled={transition.isPending}
+                    onClick={() => window.confirm("Publish results to students and parents?") && run("publish")}>
+                    <Send className="h-3.5 w-3.5" />Publish results
+                  </Button>
+                )
+              )}
+            </div>
+          </div>
+        )}
       </PremiumCard>
 
+      {query.isError && <PremiumEmptyState title="Couldn't load results" description={errorMessage(query.error)} />}
+      {query.isLoading && <PremiumSkeleton className="h-72 w-full rounded-2xl" />}
+
+      {query.isSuccess && (<>
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <KPITrendCard
-          label="Total Students"
-          value={filtered.length}
-          icon={Users}
-          iconCls={METRIC_TONES.blue}
-          trend={{ value: "+4.2%", up: true, compareLabel: "vs last term" }}
-          sparklineData={SPARK.up}
-          sparklineColor={CATEGORICAL_COLORS[0]}
-        />
-        <KPITrendCard
-          label="Pass / Fail"
-          value={`${passCount} / ${failCount}`}
-          icon={ListChecks}
-          iconCls={METRIC_TONES.purple}
-          trend={{
-            value: passCount >= failCount ? "+3.0%" : "-3.0%",
-            up: passCount >= failCount,
-            compareLabel: "pass rate vs last term",
-          }}
-          sparklineData={SPARK.flat}
-          sparklineColor={CATEGORICAL_COLORS[4]}
-        />
-        <KPITrendCard
-          label="Average %"
-          value={`${avgPct}%`}
-          icon={Percent}
-          iconCls={METRIC_TONES.amber}
-          trend={{ value: "+1.6%", up: true, compareLabel: "vs last term" }}
-          sparklineData={SPARK.upSlow}
-          sparklineColor={STATUS_COLORS.warning}
-        />
-        <KPITrendCard
-          label="Avg GPA"
-          value={avgGpa}
-          icon={Award}
-          iconCls={METRIC_TONES.cyan}
-          trend={{ value: "+0.8%", up: true, compareLabel: "vs last term" }}
-          sparklineData={SPARK.upSlow}
-          sparklineColor={CATEGORICAL_COLORS[5]}
-        />
+        <KPITrendCard label="Students" value={filtered.length} icon={Users} iconCls={METRIC_TONES.blue} />
+        <KPITrendCard label="Pass / Fail" value={`${passCount} / ${failCount}`} icon={ListChecks} iconCls={METRIC_TONES.purple} />
+        <KPITrendCard label="Average %" value={avgPct} icon={Percent} iconCls={METRIC_TONES.amber} />
+        <KPITrendCard label="Avg GPA" value={avgGpa} icon={Award} iconCls={METRIC_TONES.cyan} />
       </div>
 
       {/* Grade distribution */}
-      {filtered.length > 0 && (
+      {graded.length > 0 && gradeOrder.length > 0 && (
         <PremiumCard className="p-5">
           <div className="flex items-center gap-2 mb-4">
             <BarChart2 className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-[13px] font-semibold text-foreground">Grade Distribution</h2>
           </div>
           <div className="flex items-end gap-3 h-24">
-            {gradeOrder.map((g) => {
+            {gradeOrder.map((g, i) => {
               const count = dist[g] ?? 0;
-              const pct   = filtered.length ? (count / filtered.length) * 100 : 0;
+              const pct   = (count / graded.length) * 100;
               return (
                 <div key={g} className="flex flex-col items-center gap-1 flex-1">
                   <span className="text-[10px] text-muted-foreground">{count}</span>
                   <div
                     className={cn("w-full rounded-t transition-all",
-                      g === "F" ? "bg-rose-400" : g === "A+" ? "bg-emerald-500" : "bg-indigo-400")}
+                      failGrades.has(g) ? "bg-rose-400" : i === 0 ? "bg-emerald-500" : "bg-indigo-400")}
                     style={{ height: `${Math.max(4, pct)}%` }}
                   />
                   <GradeBadge grade={g} />
@@ -192,8 +194,10 @@ export function ExamResultsPage() {
           sortDir={sortDir}
           onSort={handleSort}
           pagination={{ page: safePage, pageSize: PAGE_SIZE, total: sorted.length, onPage: setPage, itemLabel: "results" }}
+          reportLink={(r) => `/exams/report-cards?exam=${sel.exam}&class=${sel.classLevel}&student=${r.studentId}`}
         />
       </PremiumCard>
+      </>)}
     </div>
   );
 }

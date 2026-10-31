@@ -1,6 +1,6 @@
 import { Layers, Users } from "lucide-react";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { SubjectClassMapping } from "@/data/subjectDetailData";
+import type { SubjectClassMapping } from "@/api/types/subjects";
 
 const SECTION_COLORS = [
   "border-l-violet-400",

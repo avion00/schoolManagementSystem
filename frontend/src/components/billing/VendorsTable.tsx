@@ -1,11 +1,11 @@
 import { Truck } from "lucide-react";
-import { toast } from "sonner";
 
 import { BillingStatusBadge } from "@/components/billing/BillingStatusBadge";
 import { Button } from "@/components/ui/button";
 import { PremiumDataTable, type PremiumDataTableColumn, type PremiumDataTablePagination } from "@/components/ui/PremiumDataTable";
 import { RowActionMenu } from "@/components/ui/RowActionMenu";
-import type { Vendor } from "@/data/billingData";
+import type { Vendor } from "@/api/types/billing";
+import { useMoney } from "@/api/billing";
 
 export function VendorsTable({
   vendors,
@@ -17,6 +17,8 @@ export function VendorsTable({
   pagination,
   hasActiveFilter,
   onResetFilters,
+  onEdit,
+  onDelete,
 }: {
   vendors: Vendor[];
   sortField: string;
@@ -27,7 +29,10 @@ export function VendorsTable({
   pagination: PremiumDataTablePagination;
   hasActiveFilter: boolean;
   onResetFilters: () => void;
+  onEdit?: (vendor: Vendor) => void;
+  onDelete?: (vendor: Vendor) => void;
 }) {
+  const money = useMoney();
   const columns: PremiumDataTableColumn<Vendor>[] = [
     { key: "vendorId", header: "Vendor ID", width: "w-[120px]", sortable: true, render: (v) => <span className="font-mono text-[12px] font-medium text-foreground">{v.vendorId}</span> },
     { key: "vendorName", header: "Vendor Name", width: "w-[190px]", sortable: true, render: (v) => <span className="text-[12.5px] font-medium text-foreground">{v.vendorName}</span> },
@@ -35,11 +40,11 @@ export function VendorsTable({
     { key: "contactPerson", header: "Contact Person", width: "w-[140px]", render: (v) => <span className="text-[12px] text-muted-foreground">{v.contactPerson}</span> },
     { key: "phone", header: "Phone", width: "w-[130px]", render: (v) => <span className="whitespace-nowrap text-[12px] text-muted-foreground">{v.phone}</span> },
     { key: "email", header: "Email", render: (v) => <span className="text-[12px] text-muted-foreground">{v.email}</span> },
-    { key: "totalPurchases", header: "Total Purchases", width: "w-[130px]", sortable: true, render: (v) => <span className="text-[12.5px] font-medium tabular-nums text-foreground">${v.totalPurchases.toLocaleString()}</span> },
+    { key: "totalPurchases", header: "Total Purchases", width: "w-[130px]", sortable: true, render: (v) => <span className="text-[12.5px] font-medium tabular-nums text-foreground">{money(v.totalPurchases)}</span> },
     {
       key: "outstandingBalance", header: "Outstanding", width: "w-[110px]", sortable: true, render: (v) => (
         <span className={`text-[12.5px] font-medium tabular-nums ${v.outstandingBalance > 0 ? "text-rose-600 dark:text-rose-400" : "text-muted-foreground"}`}>
-          ${v.outstandingBalance.toLocaleString()}
+          {money(v.outstandingBalance)}
         </span>
       ),
     },
@@ -51,7 +56,6 @@ export function VendorsTable({
       columns={columns}
       rows={vendors}
       rowKey={(v) => v.id}
-      selectable
       selectedKeys={selected}
       onSelectionChange={onSelectionChange}
       sortField={sortField}
@@ -62,18 +66,13 @@ export function VendorsTable({
       emptyDescription={hasActiveFilter ? "Try adjusting your search or filters." : "No vendors have been added yet."}
       emptyAction={hasActiveFilter ? <Button variant="outline" size="sm" onClick={onResetFilters}>Clear filters</Button> : undefined}
       pagination={pagination}
-      bulkActions={(_count, clear) => (
-        <>
-          <Button variant="ghost" size="sm" className="ml-auto text-muted-foreground" onClick={clear}>Deselect all</Button>
-        </>
-      )}
-      rowActions={(vendor) => (
+      rowActions={onEdit ? (vendor) => (
         <RowActionMenu
           entityLabel="vendor"
-          onView={() => toast.info(`Viewing ${vendor.vendorName}`)}
-          onEdit={() => toast.info(`Editing ${vendor.vendorName}`)}
+          onEdit={() => onEdit(vendor)}
+          onDelete={onDelete && vendor.totalPurchases === 0 ? () => onDelete(vendor) : undefined}
         />
-      )}
+      ) : undefined}
     />
   );
 }

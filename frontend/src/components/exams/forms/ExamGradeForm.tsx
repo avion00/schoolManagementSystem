@@ -1,11 +1,13 @@
-import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Award, Save, X } from "lucide-react";
 import { toast }   from "sonner";
 import { Button }  from "@/components/ui/button";
 import { Input }   from "@/components/ui/input";
 import { FormSection } from "@/components/ui/form-section";
-import { GRADE_SCALE } from "@/data/examsData";
+import { useGradeScales, useSaveBand } from "@/api/exams";
+import { errorMessage } from "@/api/http";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
 import { cn } from "@/lib/utils";
 
 interface FormData {
@@ -16,7 +18,6 @@ interface FormData {
   resultStatus: "Pass" | "Fail";
   comment:      string;
   colorLabel:   string;
-  status:       "active" | "inactive";
 }
 type Errors = Partial<Record<keyof FormData, string>>;
 
@@ -28,7 +29,7 @@ const COLOR_SWATCH: Record<string, string> = {
 };
 
 function defaultForm(): FormData {
-  return { gradeName: "", gradePoint: "", percentFrom: "", percentUpto: "", resultStatus: "Pass", comment: "", colorLabel: "blue", status: "active" };
+  return { gradeName: "", gradePoint: "", percentFrom: "", percentUpto: "", resultStatus: "Pass", comment: "", colorLabel: "blue" };
 }
 
 function Field({ id, label, required, error, children }: {
@@ -48,24 +49,30 @@ function Field({ id, label, required, error, children }: {
 export function ExamGradeForm({ mode }: { mode: "create" | "edit" }) {
   const navigate = useNavigate();
   const { id }   = useParams<{ id: string }>();
-  const numId    = Number(id ?? 0);
-  const existing = mode === "edit" ? GRADE_SCALE.find((g) => g.id === numId) : undefined;
+  const [params] = useSearchParams();
+  const scalesQuery = useGradeScales();
+  const scales   = scalesQuery.data ?? [];
+  const existing = mode === "edit" ? scales.flatMap((sc) => sc.bands).find((g) => g.id === id) : undefined;
+  const scale    = scales.find((sc) => sc.id === (existing?.scaleId ?? params.get("scale"))) ?? scales[0];
+  const GRADE_SCALE = scale?.bands ?? [];
+  const saveBand = useSaveBand();
 
-  const [form, setForm] = useState<FormData>(() => {
-    if (existing) {
-      return {
+  const [form, setForm] = useState<FormData>(defaultForm);
+  const [loaded, setLoaded] = useState(mode === "create");
+  useEffect(() => {
+    if (existing && !loaded) {
+      setForm({
         gradeName:    existing.gradeName,
         gradePoint:   String(existing.gradePoint),
         percentFrom:  String(existing.percentFrom),
         percentUpto:  String(existing.percentUpto),
         resultStatus: existing.resultStatus,
         comment:      existing.comment,
-        colorLabel:   existing.colorLabel,
-        status:       existing.status,
-      };
+        colorLabel:   existing.colorLabel || "blue",
+      });
+      setLoaded(true);
     }
-    return defaultForm();
-  });
+  }, [existing, loaded]);
   const [errors, setErrors] = useState<Errors>({});
   const [saving, setSaving] = useState(false);
 
@@ -78,7 +85,7 @@ export function ExamGradeForm({ mode }: { mode: "create" | "edit" }) {
     const from = Number(form.percentFrom);
     const upto = Number(form.percentUpto);
     const overlap = GRADE_SCALE.find((g) => {
-      if (g.id === numId) return false;
+      if (g.id === id) return false;
       return !(upto < g.percentFrom || from > g.percentUpto);
     });
     if (overlap) return `Range ${from}–${upto}% overlaps with grade ${overlap.gradeName} (${overlap.percentFrom}–${overlap.percentUpto}%).`;
@@ -91,7 +98,6 @@ export function ExamGradeForm({ mode }: { mode: "create" | "edit" }) {
     if (form.gradePoint === "") e.gradePoint  = "Grade point is required.";
     if (form.percentFrom === "") e.percentFrom = "From percentage is required.";
     if (form.percentUpto === "") e.percentUpto = "Upto percentage is required.";
-    if (!form.comment.trim())   e.comment     = "Comment is required.";
     if (Number(form.percentFrom) > Number(form.percentUpto)) {
       e.percentFrom = "From must be ≤ Upto.";
     }
@@ -108,11 +114,28 @@ export function ExamGradeForm({ mode }: { mode: "create" | "edit" }) {
 
   async function handleSave() {
     if (!validate()) return;
+    if (!scale) { toast.error("Create a grade scale first."); return; }
     setSaving(true);
-    await new Promise((res) => setTimeout(res, 600));
-    setSaving(false);
-    toast.success(mode === "create" ? "Grade scale added!" : "Grade scale updated!");
-    navigate("/exams/grades");
+    try {
+      await saveBand.mutateAsync({
+        id: mode === "edit" ? id : undefined,
+        body: {
+          scale: scale.id, grade: form.gradeName.trim(), gpa: form.gradePoint,
+          min_percent: form.percentFrom, max_percent: form.percentUpto,
+          is_pass: form.resultStatus === "Pass", comment: form.comment.trim(), color: form.colorLabel,
+        },
+      });
+      toast.success(mode === "create" ? "Grade added." : "Grade updated.");
+      navigate("/exams/grades");
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (scalesQuery.isLoading || (mode === "edit" && !loaded && !scalesQuery.isError)) {
+    return <PremiumSkeleton className="mx-auto h-96 max-w-2xl rounded-2xl" />;
   }
 
   return (
@@ -124,7 +147,7 @@ export function ExamGradeForm({ mode }: { mode: "create" | "edit" }) {
             {mode === "create" ? "Add Grade Scale" : "Edit Grade Scale"}
           </h1>
           <p className="text-[12px] text-muted-foreground mt-0.5">
-            {mode === "create" ? "Define a new grade level" : `Editing grade ${existing?.gradeName ?? ""}`}
+            {scale ? `${scale.name} · ` : ""}{mode === "create" ? "Define a new grade level" : `Editing grade ${existing?.gradeName ?? ""}`}
           </p>
         </div>
         <div className="flex gap-2">
@@ -157,7 +180,7 @@ export function ExamGradeForm({ mode }: { mode: "create" | "edit" }) {
             <Input id="percentUpto" type="number" min={0} max={100} value={form.percentUpto}
               onChange={(e) => set("percentUpto", e.target.value)} className="h-9 text-[12px]" placeholder="e.g. 89" />
           </Field>
-          <Field id="comment" label="Comment" required error={errors.comment}>
+          <Field id="comment" label="Comment" error={errors.comment}>
             <Input id="comment" value={form.comment} onChange={(e) => set("comment", e.target.value)}
               placeholder="e.g. Excellent, Very Good, Pass" className="h-9 text-[12px]" />
           </Field>
@@ -193,22 +216,6 @@ export function ExamGradeForm({ mode }: { mode: "create" | "edit" }) {
           </div>
         </div>
 
-        {/* Status toggle */}
-        <div className="mt-4 flex items-center gap-3">
-          <span className="text-[12px] font-medium text-foreground">Status</span>
-          <button type="button"
-            onClick={() => set("status", form.status === "active" ? "inactive" : "active")}
-            className={cn(
-              "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
-              form.status === "active" ? "bg-emerald-500" : "bg-muted",
-            )}>
-            <span className={cn(
-              "pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow ring-0 transition-transform",
-              form.status === "active" ? "translate-x-4" : "translate-x-0",
-            )} />
-          </button>
-          <span className="text-[12px] text-muted-foreground capitalize">{form.status}</span>
-        </div>
 
         {/* Live preview */}
         {form.gradeName && (

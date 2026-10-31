@@ -3,22 +3,17 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RTooltip } from "r
 import { ChartTooltip } from "@/components/charts/ChartTooltip";
 import { Reveal } from "@/components/motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Student } from "@/data/studentsData";
-import { CLASS_OPTIONS } from "@/data/studentsData";
+import type { Student } from "@/api/types/students";
 
-const CLASS_COLORS: Record<string, string> = {
-  "Grade 8": "#2a78d6",
-  "Grade 9": "#1baf7a",
-  "Grade 10": "#8b5cf6",
-};
+const PALETTE = ["#2a78d6", "#1baf7a", "#8b5cf6", "#f59e0b", "#ef4444", "#0ea5e9", "#ec4899", "#14b8a6"];
 
 export function StudentsOverviewDonut({ students }: { students: Student[] }) {
   const total = students.length;
-  const byClass = CLASS_OPTIONS.map((c) => ({
-    label: c,
-    value: students.filter((s) => s.className === c).length,
-    color: CLASS_COLORS[c] ?? "#94a3b8",
-  }));
+  const counts = new Map<string, number>();
+  for (const s of students) counts.set(s.className, (counts.get(s.className) ?? 0) + 1);
+  const byClass = [...counts.entries()]
+    .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+    .map(([label, value], i) => ({ label, value, color: PALETTE[i % PALETTE.length] }));
 
   return (
     <Reveal className="h-full">

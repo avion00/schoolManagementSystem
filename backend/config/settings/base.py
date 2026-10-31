@@ -24,6 +24,7 @@ DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
 DJANGO_APPS = [
+    "daphne",  # ASGI runserver (HTTP + WebSockets); must precede staticfiles
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -51,6 +52,14 @@ LOCAL_APPS = [
     "apps.attendance",
     "apps.exams",
     "apps.fees",
+    "apps.timetable",
+    "apps.communications",
+    "apps.messaging",
+    "apps.files",
+    "apps.lms",
+    "apps.finance",
+    "apps.helpdesk",
+    "apps.orgsettings",
     "apps.reports",
     "apps.portal",
 ]
@@ -134,6 +143,12 @@ USE_TZ = True
 # ---------------------------------------------------------------------------
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Uploads are private: never add MEDIA_URL to urls.py — files are served only
+# through the permission-checked /api/v1/files/<id>/download/ endpoint.
+MEDIA_ROOT = Path(env("MEDIA_ROOT", default=str(BASE_DIR / "media")))
+FILE_UPLOAD_MAX_MB = env.int("FILE_UPLOAD_MAX_MB", default=10)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ---------------------------------------------------------------------------
@@ -154,12 +169,12 @@ REST_FRAMEWORK = {
         "rest_framework.filters.SearchFilter",
         "rest_framework.filters.OrderingFilter",
     ),
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_SCHEMA_CLASS": "apps.core.schema.AutoSchema",
     "DEFAULT_THROTTLE_CLASSES": (
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
     ),
-    "DEFAULT_THROTTLE_RATES": {"anon": "30/min", "user": "1000/min"},
+    "DEFAULT_THROTTLE_RATES": {"anon": "30/min", "user": "1000/min", "auth": "10/min"},
 }
 
 SIMPLE_JWT = {
@@ -184,6 +199,36 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "Multi-tenant school management platform API.",
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    # Registers the cookie/JWT auth scheme extension.
+    "EXTENSIONS_TO_LOAD": ["apps.core.schema"],
+    # Many models have a `status` field; give each choice set a stable name.
+    "ENUM_NAME_OVERRIDES": {
+        "StudentStatusEnum": "apps.students.models.Student.Status",
+        "GuardianStatusEnum": "apps.guardians.models.Guardian.Status",
+        "TeacherStatusEnum": "apps.teachers.models.Teacher.Status",
+        "StaffAttendanceStatusEnum": "apps.teachers.models.StaffAttendance.Status",
+        "AttendanceStatusEnum": "apps.attendance.models.Attendance.Status",
+        # active / inactive / suspended (classes and routine entries share it)
+        "ActiveInactiveSuspendedEnum": "apps.academics.models.ClassLevel.Status",
+        "SubjectStatusEnum": "apps.academics.models.Subject.Status",
+        "SyllabusUnitStatusEnum": "apps.academics.models.SyllabusUnit.Status",
+        "ExamStatusEnum": "apps.exams.models.Exam.Status",
+        "InvoiceStatusEnum": "apps.fees.models.Invoice.Status",
+        "FeeDiscountStatusEnum": "apps.fees.models.FeeDiscount.Status",
+        "NoticeStatusEnum": "apps.communications.models.Notice.Status",
+        "NoticeCategoryEnum": "apps.communications.models.Notice.Category",
+        "NotificationCategoryEnum": "apps.communications.models.Notification.Category",
+        "SubjectCategoryEnum": "apps.academics.models.Subject.Category",
+        "TicketStatusEnum": "apps.helpdesk.models.Ticket.Status",
+        "TicketCategoryEnum": "apps.helpdesk.models.Ticket.Category",
+        "ExpenseStatusEnum": "apps.finance.models.Expense.Status",
+        "ExpenseCategoryEnum": "apps.finance.models.Expense.Category",
+        "VendorCategoryEnum": "apps.finance.models.Vendor.Category",
+        "PayrollRunStatusEnum": "apps.finance.models.PayrollRun.Status",
+        "AssignmentStatusEnum": "apps.lms.models.Assignment.Status",
+        "SubmissionStatusEnum": "apps.lms.models.Submission.Status",
+        "LessonPlanStatusEnum": "apps.lms.models.LessonPlan.Status",
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -196,3 +241,29 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = env.list(
     "CSRF_TRUSTED_ORIGINS", default=["http://localhost:5173", "http://127.0.0.1:5173"]
 )
+
+# ---------------------------------------------------------------------------
+# Domain rules
+# ---------------------------------------------------------------------------
+# Users without attendance.manage.all may only enter/edit attendance this many
+# days back (school.md §7.8: past attendance is locked).
+# (Fallback only: each school sets attendance.lock_after_days in its settings.)
+ATTENDANCE_EDIT_WINDOW_DAYS = env.int("ATTENDANCE_EDIT_WINDOW_DAYS", default=7)
+
+# Where password-reset links point (the SPA route that accepts uid + token).
+FRONTEND_URL = env("FRONTEND_URL", default="http://127.0.0.1:5173")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@school.local")
+
+# ---------------------------------------------------------------------------
+# Channels (WebSockets). In-memory layer works for a single dev process; set
+# REDIS_URL in production so events reach sockets on every worker.
+# ---------------------------------------------------------------------------
+if env("REDIS_URL", default=""):
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {"hosts": [env("REDIS_URL")]},
+        }
+    }
+else:
+    CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}

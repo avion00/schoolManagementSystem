@@ -9,29 +9,13 @@ import { PremiumCard } from "@/components/ui/PremiumCard";
 import { ExamSummaryCards } from "@/components/exams/ExamSummaryCards";
 import { ExamStatusBadge }  from "@/components/exams/ExamStatusBadge";
 import { GradeBadge }       from "@/components/exams/GradeBadge";
-import {
-  EXAM_SCHEDULES, EXAM_RESULTS, GRADE_SCALE, EXAM_STATS,
-} from "@/data/examsData";
+import { useExamSchedule, useGradeScales, useLatestResults } from "@/api/exams";
+import { errorMessage } from "@/api/http";
+import { todayIso } from "@/api/attendance";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
-
-// ── Derived datasets ──────────────────────────────────────────────────────────
-const upcomingExams = EXAM_SCHEDULES
-  .filter((e) => ["scheduled", "published"].includes(e.status))
-  .sort((a, b) => a.date.localeCompare(b.date))
-  .slice(0, 6);
-
-const pendingMarks = EXAM_SCHEDULES
-  .filter((e) => e.status === "completed" && !e.marksEntered)
-  .slice(0, 5);
-
-const recentResults = EXAM_RESULTS.slice(0, 5);
-
-const classPerf = [
-  { className: "Grade 6 A", passRate: 90, avgGpa: 3.12, students: 35 },
-  { className: "Grade 7 A", passRate: 82, avgGpa: 2.95, students: 33 },
-  { className: "Grade 8 A", passRate: 88, avgGpa: 3.05, students: 31 },
-  { className: "Grade 9 A", passRate: 76, avgGpa: 2.78, students: 30 },
-];
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 function SectionHeader({ title, viewPath, icon: Icon }: { title: string; viewPath?: string; icon: React.FC<{className?: string}> }) {
@@ -67,6 +51,47 @@ function QuickAction({ label, icon: Icon, color, onClick }: {
 // ─── Page ────────────────────────────────────────────────────────────────────
 export function ExamsDashboardPage() {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const canManage = hasPermission("exam.create");
+  const query = useExamSchedule();
+  const scales = useGradeScales().data ?? [];
+  const today = todayIso();
+  const schedule = query.data?.schedule ?? [];
+  const exams = query.data?.exams ?? [];
+  const conflicts = new Set((query.data?.clashes ?? []).map((c) => c.paperId)).size;
+
+  const upcomingExams = schedule
+    .filter((e) => e.date >= today && (e.status === "draft" || e.status === "scheduled"))
+    .slice(0, 6);
+  const pendingMarks = schedule
+    .filter((e) => e.date && e.date < today && e.marksEntered === 0 && !e.isLocked && e.status !== "cancelled")
+    .slice(0, 5);
+  const latest = exams.filter((e) => e.isPublished)
+    .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""))[0];
+  const latestClasses = [...new Map(schedule.filter((p) => p.examRecordId === latest?.id)
+    .map((p) => [p.classLevelId, { id: p.classLevelId, name: p.className }])).values()];
+  const latestResults = useLatestResults(latest, latestClasses);
+  const classPerf = latestResults.data?.performance ?? [];
+  const recentResults = latestResults.data?.top ?? [];
+  const scale = scales.find((sc) => sc.id === latest?.gradeScaleId) ?? scales[0];
+  const GRADE_SCALE = scale?.bands ?? [];
+  const passRates = classPerf.map((c) => c.passRate).filter((v): v is number => v !== null);
+  const stats = {
+    total: exams.length,
+    upcoming: exams.filter((e) => e.status === "draft" || e.status === "scheduled").length,
+    completed: exams.filter((e) => e.status === "completed" || e.status === "published").length,
+    resultsPublished: exams.filter((e) => e.isPublished).length,
+    passRate: passRates.length ? Math.round(passRates.reduce((s, v) => s + v, 0) / passRates.length) : null,
+    conflicts,
+    resultsLabel: latest ? latest.name : "No published results",
+  };
+  const years = [...new Set(exams.map((e) => e.academicYear).filter(Boolean))];
+
+  if (query.isLoading) return <PremiumSkeleton className="h-96 w-full rounded-2xl" />;
+  if (query.isError) {
+    return <PremiumEmptyState title="Couldn't load exams" description={errorMessage(query.error)}
+      action={<Button size="sm" variant="outline" onClick={() => query.refetch()}>Try again</Button>} />;
+  }
 
   return (
     <div className="space-y-6">
@@ -74,15 +99,17 @@ export function ExamsDashboardPage() {
       <Reveal className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Exam Management</h1>
-          <p className="text-[13px] text-muted-foreground mt-0.5">Academic Year 2026/27 · Manage schedules, marks, results, and reports</p>
+          <p className="text-[13px] text-muted-foreground mt-0.5">{years.length ? `${years.join(", ")} · ` : ""}Manage schedules, marks, results, and reports</p>
         </div>
+        {canManage && (
         <Button size="sm" className="h-9 gap-1.5 rounded-xl text-[12px]" onClick={() => navigate("/exams/schedule/new")}>
-          <Plus className="h-3.5 w-3.5" />Add Exam
+          <Plus className="h-3.5 w-3.5" />Add Paper
         </Button>
+        )}
       </Reveal>
 
       {/* KPI summary cards */}
-      <ExamSummaryCards />
+      <ExamSummaryCards stats={stats} />
 
       {/* Main content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -106,7 +133,7 @@ export function ExamsDashboardPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[12px] font-semibold text-foreground truncate">{ex.subject}</p>
-                      <p className="text-[11px] text-muted-foreground">{ex.className} {ex.section} · {ex.startTime} – {ex.endTime} · {ex.room}</p>
+                      <p className="text-[11px] text-muted-foreground">{[ex.className, ex.startTime && `${ex.startTime} – ${ex.endTime}`, ex.room].filter(Boolean).join(" · ")}</p>
                     </div>
                     <div className="shrink-0 flex items-center gap-2">
                       <ExamStatusBadge status={ex.status} />
@@ -127,7 +154,7 @@ export function ExamsDashboardPage() {
                     className="flex items-center justify-between rounded-lg border border-amber-100 bg-amber-50/60 dark:border-amber-900 dark:bg-amber-950/20 p-3">
                     <div>
                       <p className="text-[12px] font-medium text-foreground">{ex.subject}</p>
-                      <p className="text-[11px] text-muted-foreground">{ex.className} {ex.section} · {ex.examId} · {ex.date}</p>
+                      <p className="text-[11px] text-muted-foreground">{[ex.className, ex.examName, ex.date].filter(Boolean).join(" · ")}</p>
                     </div>
                     <Button size="sm" variant="outline"
                       className="h-7 text-[11px] border-amber-300 text-amber-700 hover:bg-amber-100"
@@ -142,20 +169,23 @@ export function ExamsDashboardPage() {
 
           {/* Class Performance */}
           <PremiumCard hoverable className="p-5">
-            <SectionHeader title="Class Performance" icon={BarChart2} />
+            <SectionHeader title={latest ? `Class Performance · ${latest.name}` : "Class Performance"} icon={BarChart2} />
+            {latestResults.isLoading && <PremiumSkeleton className="h-24 w-full rounded-xl" />}
+            {!latest && <p className="text-[12px] text-muted-foreground text-center py-6">No published results yet.</p>}
             <div className="space-y-3">
               {classPerf.map((cp) => (
                 <div key={cp.className}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[12px] font-medium text-foreground">{cp.className}</span>
                     <div className="flex items-center gap-3 text-[11px]">
-                      <span className="text-muted-foreground">GPA <strong className="text-foreground">{cp.avgGpa}</strong></span>
-                      <span className={cn("font-semibold", cp.passRate >= 85 ? "text-emerald-600" : "text-amber-600")}>{cp.passRate}% pass</span>
+                      <span className="text-muted-foreground">{cp.students} students</span>
+                      <span className="text-muted-foreground">GPA <strong className="text-foreground">{cp.avgGpa ?? "—"}</strong></span>
+                      <span className={cn("font-semibold", (cp.passRate ?? 0) >= 85 ? "text-emerald-600" : "text-amber-600")}>{cp.passRate === null ? "—" : `${cp.passRate}% pass`}</span>
                     </div>
                   </div>
                   <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div className={cn("h-full rounded-full transition-all", cp.passRate >= 85 ? "bg-emerald-500" : "bg-amber-500")}
-                      style={{ width: `${cp.passRate}%` }} />
+                    <div className={cn("h-full rounded-full transition-all", (cp.passRate ?? 0) >= 85 ? "bg-emerald-500" : "bg-amber-500")}
+                      style={{ width: `${cp.passRate ?? 0}%` }} />
                   </div>
                 </div>
               ))}
@@ -169,7 +199,7 @@ export function ExamsDashboardPage() {
           <PremiumCard hoverable className="p-5">
             <h2 className="text-[14px] font-semibold text-foreground mb-3">Quick Actions</h2>
             <div className="grid grid-cols-2 gap-2">
-              <QuickAction label="Add Exam"      icon={Plus}        color="bg-indigo-500" onClick={() => navigate("/exams/schedule/new")} />
+              <QuickAction label="Exam Schedule" icon={CalendarDays} color="bg-indigo-500" onClick={() => navigate("/exams/schedule")} />
               <QuickAction label="Marks Entry"   icon={PenLine}     color="bg-amber-500"  onClick={() => navigate("/exams/marks-entry")} />
               <QuickAction label="View Results"  icon={BarChart2}   color="bg-emerald-500" onClick={() => navigate("/exams/results")} />
               <QuickAction label="Report Cards"  icon={FileText}    color="bg-violet-500" onClick={() => navigate("/exams/report-cards")} />
@@ -180,20 +210,23 @@ export function ExamsDashboardPage() {
 
           {/* Recent Results */}
           <PremiumCard hoverable className="p-5">
-            <SectionHeader title="Recent Results" viewPath="/exams/results" icon={TrendingUp} />
+            <SectionHeader title="Top Results" viewPath="/exams/results" icon={TrendingUp} />
+            {recentResults.length === 0 && !latestResults.isLoading && (
+              <p className="text-[12px] text-muted-foreground text-center py-4">No published results yet.</p>
+            )}
             <div className="space-y-2">
-              {recentResults.map((r) => (
-                <div key={r.id} className="flex items-center gap-3 py-2 border-b border-border/30 last:border-0">
+              {recentResults.map((r, i) => (
+                <div key={r.studentId} className="flex items-center gap-3 py-2 border-b border-border/30 last:border-0">
                   {/* Rank medal */}
                   <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
-                    r.rank === 1 ? "bg-amber-400 text-white" :
-                    r.rank === 2 ? "bg-slate-400 text-white" :
-                    r.rank === 3 ? "bg-orange-400 text-white" : "bg-muted text-muted-foreground")}>
-                    {r.rank}
+                    i === 0 ? "bg-amber-400 text-white" :
+                    i === 1 ? "bg-slate-400 text-white" :
+                    i === 2 ? "bg-orange-400 text-white" : "bg-muted text-muted-foreground")}>
+                    {i + 1}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-medium text-foreground truncate">{r.studentName}</p>
-                    <p className="text-[10px] text-muted-foreground">{r.percentage}% · GPA {r.gpa.toFixed(2)}</p>
+                    <p className="text-[12px] font-medium text-foreground truncate">{r.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{r.className} · {r.percentage}%{r.gpa !== null ? ` · GPA ${r.gpa.toFixed(2)}` : ""}</p>
                   </div>
                   <GradeBadge grade={r.grade} />
                 </div>
@@ -204,6 +237,7 @@ export function ExamsDashboardPage() {
           {/* Grade Scale summary */}
           <PremiumCard hoverable className="p-5">
             <SectionHeader title="Grade Scale" viewPath="/exams/grades" icon={Award} />
+            {GRADE_SCALE.length === 0 && <p className="text-[12px] text-muted-foreground text-center py-4">No grade scale set up.</p>}
             <div className="space-y-1.5">
               {GRADE_SCALE.map((g) => (
                 <div key={g.id} className="flex items-center gap-2">
@@ -212,23 +246,23 @@ export function ExamsDashboardPage() {
                     <div className="h-full bg-indigo-400 rounded-full"
                       style={{ width: `${((g.percentUpto - g.percentFrom) / 100) * 100}%`, marginLeft: `${g.percentFrom}%` }} />
                   </div>
-                  <span className="text-[10px] text-muted-foreground w-16 text-right">{g.percentFrom}–{g.percentUpto}%</span>
+                  <span className="text-[10px] text-muted-foreground w-16 text-right">{g.percentFrom}–{Math.round(g.percentUpto)}%</span>
                 </div>
               ))}
             </div>
           </PremiumCard>
 
           {/* Conflict warning */}
-          {EXAM_STATS.conflicts > 0 && (
+          {stats.conflicts > 0 && (
             <PremiumCard className="p-5 border-rose-200 bg-rose-50/60 dark:border-rose-800 dark:bg-rose-950/20">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-[13px] font-semibold text-rose-700 dark:text-rose-300">
-                    {EXAM_STATS.conflicts} Schedule Conflict{EXAM_STATS.conflicts > 1 ? "s" : ""}
+                    {stats.conflicts} Schedule Conflict{stats.conflicts > 1 ? "s" : ""}
                   </p>
                   <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-0.5">
-                    Invigilator assigned to multiple exams at the same time.
+                    Papers sharing a room, invigilator or class at the same time.
                   </p>
                   <Button size="sm" variant="outline"
                     className="mt-2 h-7 text-[11px] border-rose-300 text-rose-700 hover:bg-rose-100"

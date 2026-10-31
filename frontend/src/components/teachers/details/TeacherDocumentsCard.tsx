@@ -1,7 +1,8 @@
 import { Download, Eye, FileText } from "lucide-react";
 
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { TeacherDocument } from "@/data/teacherDetailsData";
+import type { TeacherDocument } from "@/api/types/teachers";
 
 const STATUS_CFG = {
   Verified: "bg-emerald-50 text-emerald-700 ring-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400",
@@ -10,6 +11,13 @@ const STATUS_CFG = {
 };
 
 export function TeacherDocumentsCard({ documents }: { documents: TeacherDocument[] }) {
+  if (documents.length === 0) {
+    return (
+      <DetailCard icon={FileText} title="Documents">
+        <PremiumEmptyState title="No documents on file." className="py-6" />
+      </DetailCard>
+    );
+  }
   return (
     <DetailCard
       icon={FileText}

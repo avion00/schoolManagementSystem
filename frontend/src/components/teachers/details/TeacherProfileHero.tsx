@@ -5,7 +5,7 @@ import { TeacherAvatar } from "@/components/teachers/TeacherAvatar";
 import { TeacherStatusBadge } from "@/components/teachers/TeacherStatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { Teacher } from "@/data/teachersData";
+import type { Teacher } from "@/api/types/teachers";
 
 export function TeacherProfileHero({ teacher }: { teacher: Teacher }) {
   const navigate = useNavigate();

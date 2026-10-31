@@ -2,7 +2,8 @@ import { useEffect, useRef } from "react";
 
 import { MessageBubble } from "@/components/messages/MessageBubble";
 import { TypingIndicator } from "@/components/messages/TypingIndicator";
-import { chatUserById, type ChatMessage } from "@/data/messagesData";
+import { chatUserById } from "@/lib/messagesService";
+import { type ChatMessage } from "@/api/types/messages";
 
 function dateLabel(iso: string) {
   const d = new Date(iso);

@@ -13,8 +13,11 @@ import { SubjectDocumentsCard }     from "@/components/subjects/details/SubjectD
 import { SubjectActivityTimeline }  from "@/components/subjects/details/SubjectActivityTimeline";
 import { Button }                   from "@/components/ui/button";
 import { PremiumTabs, type PremiumTabOption } from "@/components/ui/PremiumTabs";
-import { SUBJECTS }                 from "@/data/subjectsData";
-import { SUBJECT_DETAIL_MOCK }      from "@/data/subjectDetailData";
+import { errorMessage } from "@/api/http";
+import { useSubjectDetail } from "@/api/subjects";
+import { PremiumCard } from "@/components/ui/PremiumCard";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
 
 const TABS: PremiumTabOption[] = [
   { value: "overview",  label: "Overview"  },
@@ -31,9 +34,16 @@ export function SubjectDetailsPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState("overview");
 
-  const sub = SUBJECTS.find((s) => s.id === Number(id));
+  const detail = useSubjectDetail(id);
+  if (detail.isLoading) return <PremiumSkeleton className="h-96 w-full rounded-2xl" />;
+  const notFound = (detail.error as { response?: { status?: number } } | null)?.response?.status === 404;
+  if (detail.isError && !notFound) {
+    return <PremiumEmptyState title="Couldn't load this subject" description={errorMessage(detail.error)} />;
+  }
+  const mock = detail.data;
+  const sub = mock?.subject;
 
-  if (!sub) {
+  if (!sub || !mock) {
     return (
       <div className="flex flex-col items-center justify-center py-32 text-muted-foreground">
         <p className="text-lg font-medium">Subject not found.</p>
@@ -43,8 +53,6 @@ export function SubjectDetailsPage() {
       </div>
     );
   }
-
-  const mock = SUBJECT_DETAIL_MOCK;
 
   return (
     <div className="space-y-6 pb-12">
@@ -85,7 +93,11 @@ export function SubjectDetailsPage() {
 
       {/* Reports */}
       {tab === "reports" && (
-        <SubjectPerformanceCard perf={mock.performance} />
+        mock.performance ? <SubjectPerformanceCard perf={mock.performance} /> : (
+          <PremiumCard className="p-5">
+            <PremiumEmptyState title="No published results yet" description="Performance appears once exams with this subject are published." className="py-6" />
+          </PremiumCard>
+        )
       )}
 
       {/* Documents */}

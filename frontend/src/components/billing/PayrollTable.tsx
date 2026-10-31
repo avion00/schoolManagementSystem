@@ -1,12 +1,13 @@
-import { CheckCircle2, Eye, MoreHorizontal, Printer, Users } from "lucide-react";
+import { Eye, MoreHorizontal, Printer, Users } from "lucide-react";
 
 import { BillingStatusBadge } from "@/components/billing/BillingStatusBadge";
 import { Button } from "@/components/ui/button";
 import { PremiumDataTable, type PremiumDataTableColumn, type PremiumDataTablePagination } from "@/components/ui/PremiumDataTable";
 import { PremiumDropdownMenu, type PremiumMenuEntry } from "@/components/ui/PremiumDropdownMenu";
-import type { Payroll } from "@/data/billingData";
+import type { Payroll } from "@/api/types/billing";
+import { monthLabel, useMoney } from "@/api/billing";
 
-export type PayrollAction = "view" | "payslip" | "mark-paid" | "print-payslip";
+export type PayrollAction = "payslip" | "adjust";
 
 export function PayrollTable({
   payroll,
@@ -19,6 +20,7 @@ export function PayrollTable({
   pagination,
   hasActiveFilter,
   onResetFilters,
+  canAdjust,
 }: {
   payroll: Payroll[];
   onAction: (row: Payroll, action: PayrollAction) => void;
@@ -30,19 +32,20 @@ export function PayrollTable({
   pagination: PremiumDataTablePagination;
   hasActiveFilter: boolean;
   onResetFilters: () => void;
+  canAdjust: boolean;
 }) {
+  const money = useMoney();
   const columns: PremiumDataTableColumn<Payroll>[] = [
     { key: "employeeId", header: "Employee ID", width: "w-[130px]", sortable: true, render: (p) => <span className="font-mono text-[12px] font-medium text-foreground">{p.employeeId}</span> },
     { key: "staffName", header: "Staff Name", width: "w-[160px]", sortable: true, render: (p) => <span className="text-[12.5px] font-medium text-foreground">{p.staffName}</span> },
-    { key: "role", header: "Role", width: "w-[120px]", sortable: true, render: (p) => <span className="text-[12px] text-muted-foreground">{p.role}</span> },
     { key: "department", header: "Department", width: "w-[140px]", render: (p) => <span className="text-[12px] text-muted-foreground">{p.department}</span> },
-    { key: "basicSalary", header: "Basic", width: "w-[100px]", sortable: true, render: (p) => <span className="text-[12px] tabular-nums text-muted-foreground">${p.basicSalary.toLocaleString()}</span> },
-    { key: "allowance", header: "Allowance", width: "w-[100px]", render: (p) => <span className="text-[12px] tabular-nums text-emerald-600 dark:text-emerald-400">+${p.allowance.toLocaleString()}</span> },
-    { key: "deduction", header: "Deduction", width: "w-[100px]", render: (p) => <span className="text-[12px] tabular-nums text-rose-600 dark:text-rose-400">-${p.deduction.toLocaleString()}</span> },
-    { key: "netSalary", header: "Net Salary", width: "w-[110px]", sortable: true, render: (p) => <span className="text-[12.5px] font-semibold tabular-nums text-foreground">${p.netSalary.toLocaleString()}</span> },
-    { key: "month", header: "Month", width: "w-[100px]", render: (p) => <span className="whitespace-nowrap text-[12px] text-muted-foreground">{p.month}</span> },
+    { key: "basicSalary", header: "Basic", width: "w-[100px]", sortable: true, render: (p) => <span className="text-[12px] tabular-nums text-muted-foreground">{money(p.basicSalary)}</span> },
+    { key: "allowance", header: "Allowance", width: "w-[100px]", render: (p) => <span className="text-[12px] tabular-nums text-emerald-600 dark:text-emerald-400">+{money(p.allowance)}</span> },
+    { key: "deduction", header: "Deduction", width: "w-[100px]", render: (p) => <span className="text-[12px] tabular-nums text-rose-600 dark:text-rose-400">-{money(p.deduction)}</span> },
+    { key: "netSalary", header: "Net Salary", width: "w-[110px]", sortable: true, render: (p) => <span className="text-[12.5px] font-semibold tabular-nums text-foreground">{money(p.netSalary)}</span> },
+    { key: "month", header: "Month", width: "w-[100px]", render: (p) => <span className="whitespace-nowrap text-[12px] text-muted-foreground">{monthLabel(p.month)}</span> },
     { key: "status", header: "Status", width: "w-[100px]", sortable: true, render: (p) => <BillingStatusBadge status={p.status} /> },
-    { key: "paymentDate", header: "Payment Date", width: "w-[110px]", render: (p) => <span className="whitespace-nowrap text-[12px] text-muted-foreground">{p.paymentDate ?? "—"}</span> },
+    { key: "absentDays", header: "Absent", width: "w-[80px]", align: "center", render: (p) => <span className="text-[12px] text-muted-foreground">{p.absentDays}</span> },
   ];
 
   return (
@@ -50,7 +53,6 @@ export function PayrollTable({
       columns={columns}
       rows={payroll}
       rowKey={(p) => p.id}
-      selectable
       selectedKeys={selected}
       onSelectionChange={onSelectionChange}
       sortField={sortField}
@@ -61,17 +63,10 @@ export function PayrollTable({
       emptyDescription={hasActiveFilter ? "Try adjusting your search or filters." : "No payroll has been generated yet."}
       emptyAction={hasActiveFilter ? <Button variant="outline" size="sm" onClick={onResetFilters}>Clear filters</Button> : undefined}
       pagination={pagination}
-      bulkActions={(_count, clear) => (
-        <>
-          <Button variant="ghost" size="sm" className="ml-auto text-muted-foreground" onClick={clear}>Deselect all</Button>
-        </>
-      )}
       rowActions={(row) => {
         const items: PremiumMenuEntry[] = [
-          { label: "View", icon: Eye, onClick: () => onAction(row, "view") },
-          { label: "Generate payslip", icon: Eye, onClick: () => onAction(row, "payslip") },
-          { label: "Print payslip", icon: Printer, onClick: () => onAction(row, "print-payslip") },
-          { label: "Mark paid", icon: CheckCircle2, onClick: () => onAction(row, "mark-paid") },
+          { label: "View payslip", icon: Printer, onClick: () => onAction(row, "payslip") },
+          ...(row.status === "Draft" && canAdjust ? [{ label: "Bonus / deduction", icon: Eye, onClick: () => onAction(row, "adjust") }] : []),
         ];
         return (
           <PremiumDropdownMenu

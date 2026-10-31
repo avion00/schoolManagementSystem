@@ -3,7 +3,7 @@ import { Briefcase } from "lucide-react";
 
 import { Reveal } from "@/components/motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Parent } from "@/data/parentsData";
+import type { Parent } from "@/api/types/parents";
 import { cn } from "@/lib/utils";
 
 const ROW_TONES = [

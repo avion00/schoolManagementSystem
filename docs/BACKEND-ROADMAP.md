@@ -1,0 +1,121 @@
+# Roadmap
+
+Plan for completing the platform end to end (backend, then wiring the frontend to it, then production). Status is kept up to date as work lands.
+
+**Legend:** ✅ done · 🚧 in progress · ⬜ not started
+
+## Guiding principles
+
+- **The frontend is the contract.** Most of the 78 frontend pages run on mock data in
+  `frontend/src/data/*.ts`. Those TypeScript types describe what the API must return.
+- **Build on the existing foundation.** Every tenant module uses `TenantModelViewSet`, which
+  provides tenant isolation, per-action RBAC, soft delete and audit logging.
+- **Tests come with every change.** pytest runs with two-tenant fixtures so every module is
+  checked for cross-tenant leaks.
+- **Money and grades are never silently mutated.** Payments are reversed rather than edited,
+  invoices are cancelled rather than deleted, and marks lock before results are published.
+- **Work happens on one branch per phase or module**, committed locally until we decide to push.
+
+---
+
+## Phase 0: Hardening and test harness ✅
+
+| Item | Status |
+|---|---|
+| pytest + pytest-django, test settings, two-tenant fixtures | ✅ |
+| ruff linting, GitHub Actions CI (lint, migration check, tests) | ✅ |
+| Dashboard reports gated by `report.view` / `fee.view` / `audit.view` | ✅ |
+| Permission catalog lives in code (`apps/rbac/catalog.py`) and syncs on `migrate` | ✅ |
+| Duplicate tenant-scoped values (admission number, codes…) return 400 instead of 500 | ✅ |
+| RBAC privilege escalation blocked (role assignment, overrides, role edits, account takeover) | ✅ |
+| Soft-deleted roles stop granting permissions | ✅ |
+| Fees: positive amounts, no overpayment, immutable payments, server-assigned numbers, row locking | ✅ |
+| Invoice items tenant-scoped (IDOR and 500 fixed), totals derived from items | ✅ |
+| Exams: marks range and class checks, lock freezes marks and subjects, publish requires lock | ✅ |
+| Auth: login throttling works, refresh refused for deactivated users | ✅ |
+| Audit logs record before/after diffs | ✅ |
+| Permission resolution memoised per request | ✅ |
+
+## Phase 1: Finish existing modules to match the frontend ✅
+
+| Module | Scope | Status |
+|---|---|---|
+| Students and guardians | Several guardians per student (`StudentGuardian`, existing data migrated), extra guardian and student fields, server-assigned guardian codes and registration numbers, parent logins, **parent portal** (`/me/children/...`), status-change and promotion history, staff overview endpoint, CSV export. Document uploads move to the uploads work in Phase 2 | ✅ |
+| Teachers | Profile and employment fields, teacher logins, `student.view.class` enforced (teachers see only their sections), one class teacher per section, staff attendance (bulk register, monthly sheet, summary), **teacher portal** (`/me/teacher/...`: dashboard, classes with attendance/marks progress, class roster, own attendance). Salary goes to the Payroll module | ✅ |
+| Academics | Class metadata (code, medium, shift, status, building, room), section code/room/**capacity enforced** on enrolment and promotion, subject type/category/status/marking scheme, `ClassSubject` curriculum per year (exam papers default their marks from it), `SyllabusUnit` with teacher progress updates, class and subject overview endpoints, delete protection for in-use records | ✅ |
+| Attendance | Holiday calendar (no attendance on holidays), no future dates, teachers limited to their own sections, edit window for past days (`ATTENDANCE_EDIT_WINDOW_DAYS`, bypassed by `attendance.manage.all`), section register, monthly sheet, student report, class comparison, stats (today, monthly rate, weekly change, 6-month trend). Absence alerts to guardians come with Notifications | ✅ |
+| Exams | Exam codes/types/status, exam rooms, paper schedule (time, room, invigilators) with **clash detection** (room, invigilator, class), component marks (theory/practical/internal), non-overlapping grade bands with pass/fail, **results engine** (grade, GPA, pass/fail, class and section rank, incomplete detection) shared by staff and portals, bulk marks entry and marks sheet scoped to what the teacher teaches, publish blocked while marks are missing (`force` overrides), report card and admit card endpoints (JSON; the frontend prints them) | ✅ |
+| Fees | Item quantity × unit price, fee structure frequency, **bulk invoice generation** per billing period (safe to re-run), **two-person discount approval** that reduces the amount payable, automatic overdue status plus `mark_overdue_invoices` command (run daily), student fee roster, **ledger** with running balance, reports (summary by method, collection trend, defaulters), more payment methods and who received each payment | ✅ |
+| API quality | OpenAPI schema generates with 0 warnings and 0 errors (was 299 warnings, 108 errors) and is validated in CI. User list loads in a fixed number of queries (no per-row queries). Regression tests guard both | ✅ |
+
+## Phase 2: New modules ✅
+
+| Module | Scope | Status |
+|---|---|---|
+| Timetable / class routine | Period slots per shift (no overlaps, breaks), routine entries by section × day × period, **clash checks by clock time** (section slot, teacher, room, across shifts), weekly grids by section/teacher/room, conflict report, stats; weekly timetable and "today" (completed/ongoing/upcoming) for students, parents and teachers. Rooms are shared with exams | ✅ |
+| Notices and notifications | Notices with drafts, scheduling (`dispatch_scheduled_notices`), publish/archive, audiences (role groups narrowed by class/section), pinning, expiry, read receipts and acknowledgements with recipient stats; in-app notification inbox (unread count, read, read-all, archive); automatic notifications for notice publish, **student absence → guardians**, results published → students and parents, discount decision → requester. Email/SMS delivery arrives with Celery (Phase 3) | ✅ |
+| Messaging | Direct chats (one per pair), groups with permissions, **contact policy from real profiles** (students/parents reach only their own teachers directly, otherwise a message request the recipient approves, rejects or blocks), unread counts and seen status, 15-minute edits, soft delete, reactions, pins, reporting and moderation queue, conversation lock, audited admin view and export, broadcasts (recipients hidden from each other, optional replies), **live updates over WebSockets** (Channels, cookie-authenticated, origin-checked). Attachments arrive with the uploads work in LMS | ✅ |
+| LMS | **Private file uploads** (size limit, extension allowlist, magic-byte content check, random storage names, permission-checked download with `nosniff` + sandbox CSP, audited, orphan purge job); assignments/homework (draft → publish → close, late policy, attachments, grading with feedback or return-for-changes); student submissions with To do / Late / Submitted / Graded / Missing status; learning materials (files or links); lesson plans with principal review; teachers limited to classes and subjects they teach; notifications to students and guardians on publish and grading | ✅ |
+| Finance operations | Vendors with purchase/outstanding totals; expenses with receipts and **two-person approval** (pending → approved/rejected → paid, frozen once decided); salary structures (bank details visible only with `payroll.manage`); monthly **payroll runs** that deduct days absent in staff attendance, allow bonus/deduction adjustments, keep adjustments when regenerated, need approval by someone other than the preparer, and record paid salary expenses; teacher payslips in the portal; income vs expense summary | ✅ |
+| Help desk | Tickets from any user (TKT codes, category, department, related student), **SLA first-response targets by priority** with on track / due soon / overdue / met / breached, public replies and agent-only internal notes, attachments, assignment to help desk staff, status workflow, resolve / close / reopen (7-day window for requesters), ratings, activity timeline, notifications, stats (open, overdue, unassigned, average first response, SLA met %) | ✅ |
+| Settings and account | School profile with logo; organization settings (notifications, fees, attendance, exams, security, appearance) stored sparsely over code defaults and **validated** (unknown keys, types, ranges); attendance lock period and notification toggles take effect; **login lockout** from the security settings; profile edit; change password (signs out other devices); **forgot-password by email** (single-use links, same answer for unknown emails); **active sessions** with device/IP and immediate revocation (session id in the JWT) | ✅ |
+
+## Phase 3: Frontend integration 🚧
+
+The SPA was built on mock data (`frontend/src/data/*.ts`). Each module moves to a typed API
+layer in `frontend/src/api/`: types generated from the backend's OpenAPI schema
+(`npm run api:types`), TanStack Query hooks, and mappers from API responses to the shapes the
+pages already use, with unit tests. A module's mock arrays are deleted when it's wired, so the
+type-checker shows anything still using fake data.
+
+| Module | Status |
+|---|---|
+| Foundation (generated types, HTTP helpers, Vitest, dev env) | ✅ |
+| Students: list, details, add/edit form with guardians, photo, documents (upload/verify), status changes, CSV export | ✅ |
+| Parents / guardians: list, details (children, attendance, results, fee records), add/edit with a real student picker and staff notes | ✅ |
+| Teachers: list (salary shown only with payroll access), details (schedule, attendance, exam duties, payroll and payslips), add/edit with class/subject **assignment editor**, salary structure, career fields | ✅ |
+| Classes: list, details (sections with attendance, students with fee status, teachers, timetable, performance from the latest exam, fees, exam papers), add/edit with sections and curriculum | ✅ |
+| Subjects (list, details with mappings/teachers/syllabus/performance, form with class mappings) and class routine (list, weekly grid with real breaks, conflict flags from the server, print view, add/edit by section·day·period with clash messages, bell-schedule manager) | ✅ |
+| Attendance: dashboard (today's sections, staff today, 6-month trend, holidays), daily student register and staff register with real saves, monthly sheet (holidays and weekends from settings, CSV export), class comparison, student history over any range, reports (per-student summary via new `attendance/student-summary/`, low-attendance list, status split) | ✅ |
+| Exams: dashboard (upcoming papers, papers awaiting marks, class performance and top results from the latest published exam), paper schedule with server clash flags and CSV export, paper form (pick or create the exam; marks split; room and invigilators; server clash messages), grade scales and bands, marks entry (component or single-total papers, absent, bulk save, read-only when locked), results with **lock → publish** workflow (missing-marks prompt), report cards (attendance, class size) and admit cards (symbol numbers). `seed_exams` adds a demo grade scale, rooms and paper timetable | ✅ |
+| Billing: overview (this month's figures, collections by method, dues, open payroll, alerts, activity), student fee roster with statement/invoice/payment actions, fee structures, invoices (single with line items, **bill a class** from structures), invoice page (payments, reversals, discount request/approval, cancel), receipts, expenses (record with bill upload, approve/reject by someone else, mark paid), vendors, **payroll runs** (generate, adjust payslips, approve, pay, printable payslips), reports with real CSV export, billing settings. All amounts use the school's currency. Backend: late fees are now applied by the daily overdue job and turned-off payment methods are refused. `seed_finance` adds demo finance data | ✅ |
+| Notices and notifications: notice board (cards/table, filters, counts), notice form (real classes/sections targeting, file attachments, draft / schedule / publish now, acknowledgement), notice page (recipients with read and acknowledged state, publish, archive, duplicate, downloads, printable notice with the school letterhead), notification inbox (read/unread, archive/restore, mark all read, approvals link to where they're decided) and a real unread dot in the header. Backend: notice attachments with audience-only downloads, read/acknowledged counts, recipient roles, mark-unread and unarchive. Email delivery for notices comes with the production mail setup (Phase 4) | ✅ |
+| Messages: the chat UI now runs on a client-side store filled from the messaging API and kept live over the WebSocket (new, edited and deleted messages, reactions, read receipts, typing; reconnects with back-off and catches up). Real contact search with the server's who-can-message rules (message requests when approval is needed), direct and group chats, file and image attachments (upload, download, preview), reactions, pins, reporting, leave/lock, group members, broadcasts to real audiences, request approval, moderation (dismiss, remove message, lock, export evidence) and audited transcript export (CSV/JSON). Backend: message attachments with members-only downloads | ✅ |
+| Help desk (admin): ticket inbox, filters, SLA badges from the server, real assignment to help desk staff, replies and internal notes with attachments, status moves (open / waiting / escalated / resolved / closed / reopen), bulk actions, and logging tickets on behalf of a caller. Backend: `tickets/agents/` and agent-created tickets for another requester. Unused help-center mock components removed | ✅ |
+| Settings and account: school profile (with logo upload, used on every printed document), academic years (add, set current, delete), notification events and email channel, attendance days off and editing window, password and lockout rules, fee settings, theme; my profile, change password (optionally signing out other devices) and signed-in devices. Screens show only settings the server enforces; backups are documented as a server-level job | ✅ |
+| Dashboards: one staff dashboard from real figures (attention items, KPIs, income vs expenses, notices, upcoming papers, quick actions by permission); accountants land on the billing overview | ✅ |
+| Student portal: dashboard, today, profile, attendance, timetable, homework (submit with text or files, see marks and feedback), materials, results, fees, notices, messages, help tickets, account. Pages for features with no backend (library, hostel, transport, events, clubs, certificates, study planner, leave requests) were removed instead of showing invented data | ✅ |
+| Teacher portal: dashboard, today, timetable, my classes with rosters (message a guardian who has a login), homework (draft → publish → close, submissions, grading), materials, lesson plans (submit for review), notices, messages, help, account with payslips and own attendance. Attendance, marks entry and the exam schedule reuse the staff screens, with the section picker limited to the teacher's own sections. Backend: an assignment's academic year defaults to the current one | ✅ |
+| Parent portal (new): children overview, a page per child (attendance, results, homework, fees, timetable), notices, messages with teachers, help, account | ✅ |
+
+## Phase 4: Production readiness (customer go-live)
+
+Decided 2026-10-26: no module goes live on mock data, so Phase 3 finishes first. Target is a
+single Linux VPS running Docker Compose.
+
+| Item | Status |
+|---|---|
+| Production settings: env-only secrets, `DEBUG` off, HTTPS/HSTS, secure cookies, allowed hosts/CSRF from env, `check --deploy` clean | ✅ |
+| PostgreSQL required in production (`DATABASE_URL`), Redis for the cache (shared login throttling) and Channels. Background jobs run in a `scheduler` container (`run_scheduler`): every minute it publishes scheduled notices and sends queued emails; nightly it handles overdue invoices and late fees, purges orphaned uploads and flushes expired tokens. This replaces the planned Celery setup, which would add moving parts for no gain at this size | ✅ |
+| Email: notifications are queued for email when the school's email channel is on (or the notice asks for email) and sent by the scheduler, never twice, with failures recorded and retryable; SMTP via `EMAIL_URL` | ✅ |
+| Docker images (backend on Daphne; frontend built and served by **Caddy**, which also handles automatic Let's Encrypt TLS and WebSocket proxying), Compose stack in `deploy/` | ✅ |
+| Health (`/health/`) and readiness (`/ready/`: database + cache) endpoints, JSON logs on stdout, optional Sentry | ✅ |
+| Static files collected into a shared volume; uploads in a private volume, served only through the API; 25 MB proxy body limit | ✅ |
+| Nightly Postgres dump + uploads archive with retention (`backup` service), documented restore procedure | ✅ |
+| First-customer bootstrap (`bootstrap_school`): organization, school, roles and a Principal with a one-time password; the app makes them set their own at first sign-in | ✅ |
+| Deploy runbook (`docs/DEPLOY.md`): server prep, first deploy, email, updates, rollback, backups/restore, go-live security checklist | ✅ |
+| Later: row-level security, MFA, SaaS billing/entitlements (`BLUEPRINT-PREMIUM.md`) | ⬜ |
+
+### App-wide clean-ups
+- Summary cards across 24 pages showed hard-coded "+8.2% vs last month" trends and sparklines;
+  the shared KPI card now renders trends/sparklines only from real series, and the invented
+  ones are removed.
+
+### Known gaps (no backend yet, shown honestly in the UI)
+- Student CSV **import**, transport and hostel, awards, teacher remarks.
+- Student list loads all rows client-side (fine for a few thousand students); move to server-side
+  pagination + a stats endpoint for very large schools.
+
+## Open questions for the repo owner
+
+- Should we stop tracking `backend/db.sqlite3` in git and rebuild it with `seed_demo` instead?

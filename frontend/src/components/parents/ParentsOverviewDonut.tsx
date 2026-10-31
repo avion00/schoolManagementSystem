@@ -4,7 +4,7 @@ import { CATEGORICAL_COLORS } from "@/components/charts/palette";
 import { ChartTooltip } from "@/components/charts/ChartTooltip";
 import { Reveal } from "@/components/motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RELATION_OPTIONS, type Parent } from "@/data/parentsData";
+import { RELATION_OPTIONS, type Parent } from "@/api/types/parents";
 
 export function ParentsOverviewDonut({ parents }: { parents: Parent[] }) {
   const total = parents.length;

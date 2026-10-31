@@ -1,5 +1,5 @@
 import { ClipboardList, GraduationCap, Receipt, Wallet } from "lucide-react";
-import type { SummaryCards } from "@/data/parentDetailsData";
+import type { SummaryCards } from "@/api/types/parents";
 
 function SummaryCard({
   icon: Icon, label, value, color,
@@ -25,7 +25,7 @@ export function ParentSummaryCards({ cards }: { cards: SummaryCards }) {
       <SummaryCard
         icon={Wallet}
         label="Due Fees"
-        value={`NPR ${cards.dueFees.toLocaleString("en-IN")}`}
+        value={cards.dueFees === null ? "—" : `NPR ${cards.dueFees.toLocaleString("en-IN")}`}
         color="text-rose-600 dark:text-rose-400"
       />
       <SummaryCard

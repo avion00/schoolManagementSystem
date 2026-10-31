@@ -7,7 +7,14 @@ import { VendorsTable } from "@/components/billing/VendorsTable";
 import { VendorsToolbar, type VendorsFilters } from "@/components/billing/VendorsToolbar";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { VENDORS } from "@/data/billingData";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { VendorForm } from "@/components/billing/forms/VendorForm";
+import { useDeleteVendor, useVendors } from "@/api/billing";
+import { errorMessage } from "@/api/http";
+import type { Vendor } from "@/api/types/billing";
+import { useAuth } from "@/lib/auth";
 
 const PAGE_SIZE = 10;
 type SortField = "vendorId" | "vendorName" | "category" | "totalPurchases" | "outstandingBalance" | "status";
@@ -16,6 +23,12 @@ type SortDir = "asc" | "desc";
 const EMPTY_FILTERS: VendorsFilters = { search: "", category: "all" };
 
 export function BillingVendorsPage() {
+  const query = useVendors();
+  const VENDORS = useMemo(() => query.data ?? [], [query.data]);
+  const remove = useDeleteVendor();
+  const { hasPermission } = useAuth();
+  const canManage = hasPermission("finance.expense.manage");
+  const [form, setForm] = useState<{ open: boolean; vendor?: Vendor }>({ open: false });
   const [filters, setFilters] = useState<VendorsFilters>(EMPTY_FILTERS);
   const [sortField, setSortField] = useState<SortField>("vendorName");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
@@ -43,10 +56,10 @@ export function BillingVendorsPage() {
     const q = filters.search.trim().toLowerCase();
     return VENDORS.filter((v) => {
       if (filters.category !== "all" && v.category !== filters.category) return false;
-      if (q && !`${v.vendorId} ${v.vendorName}`.toLowerCase().includes(q)) return false;
+      if (q && !`${v.vendorId} ${v.vendorName} ${v.contactPerson} ${v.phone}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [filters]);
+  }, [filters, VENDORS]);
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -73,13 +86,19 @@ export function BillingVendorsPage() {
           </>
         }
         description="Manage suppliers and vendor accounts."
-        actions={
-          <Button size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => toast.info("Add vendor form — coming soon.")}>
+        actions={canManage ? (
+          <Button size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => setForm({ open: true })}>
             <Plus className="h-4 w-4" /> Add Vendor
           </Button>
-        }
+        ) : undefined}
       />
 
+      {query.isError && (
+        <PremiumEmptyState title="Couldn't load vendors" description={errorMessage(query.error)}
+          action={<Button size="sm" variant="outline" onClick={() => query.refetch()}>Try again</Button>} />
+      )}
+      {query.isLoading && <PremiumSkeleton className="h-72 w-full rounded-2xl" />}
+      {query.isSuccess && (<>
       <VendorsSummaryCards vendors={VENDORS} />
 
       <VendorsToolbar filters={filters} onFiltersChange={updateFilters} hasActiveFilter={hasActiveFilter} onReset={resetFilters} />
@@ -94,7 +113,23 @@ export function BillingVendorsPage() {
         pagination={{ page: safePage, pageSize: PAGE_SIZE, total: sorted.length, onPage: (p) => { setPage(p); setSelected(new Set()); }, itemLabel: "vendors" }}
         hasActiveFilter={hasActiveFilter}
         onResetFilters={resetFilters}
+        onEdit={canManage ? (v) => setForm({ open: true, vendor: v }) : undefined}
+        onDelete={canManage ? (v) => {
+          if (!window.confirm(`Delete vendor ${v.vendorName}?`)) return;
+          remove.mutate(v.id, { onSuccess: () => toast.success("Vendor deleted."), onError: (e) => toast.error(errorMessage(e)) });
+        } : undefined}
       />
+      </>)}
+
+      <Dialog open={form.open} onOpenChange={(o) => !o && setForm({ open: false })}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{form.vendor ? "Edit Vendor" : "Add Vendor"}</DialogTitle>
+            <DialogDescription>{form.vendor?.vendorId ?? "A supplier the school buys from."}</DialogDescription>
+          </DialogHeader>
+          <VendorForm key={form.vendor?.id ?? "new"} vendor={form.vendor} onCancel={() => setForm({ open: false })} onSaved={() => setForm({ open: false })} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

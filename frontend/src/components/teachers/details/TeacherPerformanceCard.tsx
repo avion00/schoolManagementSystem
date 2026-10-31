@@ -1,7 +1,7 @@
 import { TrendingUp } from "lucide-react";
 
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { TeacherPerformance } from "@/data/teacherDetailsData";
+import type { TeacherPerformance } from "@/api/types/teachers";
 
 function MetricBar({
   label,

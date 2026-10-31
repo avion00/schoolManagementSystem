@@ -2,15 +2,18 @@ import { Users } from "lucide-react";
 
 import { AttendanceStatusBadge } from "@/components/attendance/AttendanceStatusBadge";
 import { PremiumDataTable, type PremiumDataTableColumn } from "@/components/ui/PremiumDataTable";
-import { TEACHER_JULY_ATT, calcRate, countStatuses, type TeacherRef } from "@/data/attendanceData";
+import { calcRate, countStatuses, type TeacherMonthlyAttendance, type TeacherRef } from "@/api/types/attendance";
 
 export function TeacherAttendanceTable({
   rows,
-  workingDaysSoFar,
+  attendance,
+  today,
 }: {
   rows: TeacherRef[];
-  workingDaysSoFar: number;
+  attendance: TeacherMonthlyAttendance[];
+  today: number; // day of month, for the "Today" column
 }) {
+  const TEACHER_JULY_ATT = attendance;
   const columns: PremiumDataTableColumn<TeacherRef>[] = [
     { key: "employeeId", header: "Emp. ID", width: "w-[100px]", render: (t) => <span className="font-mono text-xs text-muted-foreground">{t.employeeId}</span> },
     {
@@ -25,8 +28,8 @@ export function TeacherAttendanceTable({
     {
       key: "today", header: "Today", width: "w-[110px]", align: "center", render: (t) => {
         const att = TEACHER_JULY_ATT.find((a) => a.teacherId === t.id);
-        const status = att?.records[6] ?? "present";
-        return <AttendanceStatusBadge status={status} />;
+        const status = att?.records[today];
+        return status ? <AttendanceStatusBadge status={status} /> : <span className="text-xs text-muted-foreground">Not marked</span>;
       },
     },
     {
@@ -60,7 +63,7 @@ export function TeacherAttendanceTable({
     {
       key: "rate", header: "Rate", width: "w-[90px]", align: "center", render: (t) => {
         const att = TEACHER_JULY_ATT.find((a) => a.teacherId === t.id);
-        const rate = calcRate(att?.records ?? {}, workingDaysSoFar);
+        const rate = calcRate(att?.records ?? {});
         return (
           <span className={
             rate >= 90 ? "text-sm font-bold text-emerald-600" : rate >= 75 ? "text-sm font-bold text-amber-600" : "text-sm font-bold text-rose-600"

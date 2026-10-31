@@ -1,6 +1,6 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Award, CheckCircle2, Plus, TrendingDown, TrendingUp } from "lucide-react";
-import { CATEGORICAL_COLORS, STATUS_COLORS } from "@/components/charts/palette";
 import { Reveal } from "@/components/motion";
 import { Button } from "@/components/ui/button";
 import { KPITrendCard } from "@/components/ui/KPITrendCard";
@@ -8,14 +8,15 @@ import { METRIC_TONES } from "@/components/ui/MetricCard";
 import { PremiumCard } from "@/components/ui/PremiumCard";
 import { ExamGradeTable } from "@/components/exams/ExamGradeTable";
 import { GradeBadge }     from "@/components/exams/GradeBadge";
-import { GRADE_SCALE }    from "@/data/examsData";
+import { useGradeScales, useSaveScale } from "@/api/exams";
+import { errorMessage } from "@/api/http";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSelect } from "@/components/ui/PremiumSelect";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-const SPARK = {
-  up: [{ value: 5 }, { value: 5 }, { value: 6 }, { value: 6 }, { value: 6 }, { value: 7 }, { value: 7 }],
-  upSlow: [{ value: 4 }, { value: 4 }, { value: 5 }, { value: 5 }, { value: 5 }, { value: 5 }, { value: 5 }],
-  down: [{ value: 3 }, { value: 3 }, { value: 2 }, { value: 2 }, { value: 2 }, { value: 1 }, { value: 1 }],
-};
 
 const COLOR_BG: Record<string, string> = {
   emerald: "bg-emerald-500", green: "bg-green-500", teal: "bg-teal-500",
@@ -25,7 +26,15 @@ const COLOR_BG: Record<string, string> = {
 
 export function ExamGradesPage() {
   const navigate = useNavigate();
-  const activeGrades = GRADE_SCALE.filter((g) => g.status === "active");
+  const query = useGradeScales();
+  const saveScale = useSaveScale();
+  const { hasPermission } = useAuth();
+  const canManage = hasPermission("exam.create");
+  const [scaleId, setScaleId] = useState("");
+  const scales = query.data ?? [];
+  const scale = scales.find((sc) => sc.id === scaleId) ?? scales[0];
+  // Low to high for the visual bar.
+  const GRADE_SCALE = [...(scale?.bands ?? [])].sort((a, b) => a.percentFrom - b.percentFrom);
   const passGrades   = GRADE_SCALE.filter((g) => g.resultStatus === "Pass");
   const failGrades   = GRADE_SCALE.filter((g) => g.resultStatus === "Fail");
 
@@ -36,36 +45,55 @@ export function ExamGradesPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Exam Grades</h1>
           <p className="text-[13px] text-muted-foreground mt-0.5">
-            {GRADE_SCALE.length} grade levels · {activeGrades.length} active
+            {scales.length} scale{scales.length === 1 ? "" : "s"} · {GRADE_SCALE.length} grade levels{scale ? ` in ${scale.name}` : ""}
           </p>
         </div>
-        <Button size="sm" className="h-9 gap-1.5 rounded-xl text-[12px]" onClick={() => navigate("/exams/grades/new")}>
-          <Plus className="h-3.5 w-3.5" />Add Grade
-        </Button>
+        <div className="flex items-center gap-2">
+          {scales.length > 1 && (
+            <PremiumSelect value={scale?.id ?? ""} onChange={setScaleId} className="w-48"
+              options={scales.map((sc) => ({ value: sc.id, label: sc.name }))} />
+          )}
+          {canManage && (
+          <Button size="sm" variant="outline" className="h-9 rounded-xl text-[12px]" onClick={() => {
+            const name = window.prompt("Name for the new grade scale");
+            if (!name?.trim()) return;
+            saveScale.mutate(name.trim(), {
+              onSuccess: (sc) => { setScaleId(sc.id); toast.success("Grade scale created."); },
+              onError: (e) => toast.error(errorMessage(e)),
+            });
+          }}>New Scale</Button>
+          )}
+          {canManage && scale && (
+          <Button size="sm" className="h-9 gap-1.5 rounded-xl text-[12px]" onClick={() => navigate(`/exams/grades/new?scale=${scale.id}`)}>
+            <Plus className="h-3.5 w-3.5" />Add Grade
+          </Button>
+          )}
+        </div>
       </Reveal>
+
+      {query.isError && <PremiumEmptyState title="Couldn't load grade scales" description={errorMessage(query.error)} />}
+      {query.isLoading && <PremiumSkeleton className="h-72 w-full rounded-2xl" />}
+      {query.isSuccess && scales.length === 0 && (
+        <PremiumEmptyState title="No grade scales yet" description="Create a scale, then add its grade bands. Exams use a scale to grade results." />
+      )}
+      {scale && (<>
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Reveal delay={0}>
           <KPITrendCard
-            label="Total Grades"
+            label="Grade Levels"
             value={GRADE_SCALE.length}
             icon={Award}
             iconCls={METRIC_TONES.blue}
-            trend={{ value: "+1.0%", up: true, compareLabel: "vs last term" }}
-            sparklineData={SPARK.up}
-            sparklineColor={CATEGORICAL_COLORS[0]}
           />
         </Reveal>
         <Reveal delay={40}>
           <KPITrendCard
-            label="Active"
-            value={activeGrades.length}
+            label="Top GPA"
+            value={GRADE_SCALE.length ? Math.max(...GRADE_SCALE.map((g) => g.gradePoint)).toFixed(2) : "—"}
             icon={CheckCircle2}
             iconCls={METRIC_TONES.green}
-            trend={{ value: "0.0%", up: true, compareLabel: "vs last term" }}
-            sparklineData={SPARK.upSlow}
-            sparklineColor={STATUS_COLORS.good}
           />
         </Reveal>
         <Reveal delay={80}>
@@ -74,9 +102,6 @@ export function ExamGradesPage() {
             value={passGrades.length}
             icon={TrendingUp}
             iconCls={METRIC_TONES.green}
-            trend={{ value: "+2.5%", up: true, compareLabel: "vs last term" }}
-            sparklineData={SPARK.up}
-            sparklineColor={STATUS_COLORS.good}
           />
         </Reveal>
         <Reveal delay={120}>
@@ -85,9 +110,6 @@ export function ExamGradesPage() {
             value={failGrades.length}
             icon={TrendingDown}
             iconCls={METRIC_TONES.red}
-            trend={{ value: "-3.0%", up: false, compareLabel: "vs last term" }}
-            sparklineData={SPARK.down}
-            sparklineColor={STATUS_COLORS.critical}
           />
         </Reveal>
       </div>
@@ -97,7 +119,7 @@ export function ExamGradesPage() {
         <h2 className="text-[13px] font-semibold text-foreground mb-4">Grade Scale Visual</h2>
         <div className="relative h-10 rounded-xl overflow-hidden flex">
           {GRADE_SCALE.map((g) => {
-            const width = g.percentUpto - g.percentFrom + 1;
+            const width = Math.max(0, Math.round(g.percentUpto) - g.percentFrom) + 1;
             return (
               <div
                 key={g.id}
@@ -112,7 +134,7 @@ export function ExamGradesPage() {
         </div>
         <div className="flex justify-between mt-1 text-[10px] text-muted-foreground px-0.5">
           <span>0%</span>
-          {GRADE_SCALE.map((g) => <span key={g.id}>{g.percentUpto}%</span>)}
+          {GRADE_SCALE.map((g) => <span key={g.id}>{Math.round(g.percentUpto)}%</span>)}
         </div>
       </PremiumCard>
 
@@ -146,8 +168,9 @@ export function ExamGradesPage() {
           <Award className="h-4 w-4 text-muted-foreground" />
           <h2 className="text-[13px] font-semibold text-foreground">All Grade Scales</h2>
         </div>
-        <ExamGradeTable grades={GRADE_SCALE} />
+        <ExamGradeTable grades={[...GRADE_SCALE].reverse()} canManage={canManage} />
       </PremiumCard>
+      </>)}
     </div>
   );
 }

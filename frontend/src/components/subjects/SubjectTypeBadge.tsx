@@ -1,4 +1,4 @@
-import type { SubjectType } from "@/data/subjectsData";
+import type { SubjectType } from "@/api/types/subjects";
 
 const CFG: Record<SubjectType, string> = {
   "Theory":             "bg-blue-50 text-blue-700 ring-blue-500/30 dark:bg-blue-950/40 dark:text-blue-400",

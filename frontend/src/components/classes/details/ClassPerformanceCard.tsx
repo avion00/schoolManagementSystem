@@ -1,6 +1,6 @@
 import { LineChart } from "lucide-react";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { PerformanceSummary } from "@/data/classDetailData";
+import type { PerformanceSummary } from "@/api/types/classes";
 
 const SUBJECT_COLORS = [
   "bg-blue-500","bg-violet-500","bg-emerald-500","bg-amber-500","bg-rose-500","bg-orange-500",

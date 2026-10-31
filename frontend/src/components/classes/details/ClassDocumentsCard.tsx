@@ -1,7 +1,7 @@
 import { Download, Eye, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { ClassDocument } from "@/data/classDetailData";
+import type { ClassDocument } from "@/api/types/classes";
 
 const STATUS_CFG = {
   Available: "bg-emerald-50 text-emerald-700 ring-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400",

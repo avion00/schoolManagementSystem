@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { ExamMeta, ExamScore } from "@/data/studentDetailsData";
+import type { ExamMeta, ExamScore } from "@/api/types/students";
 import { cn } from "@/lib/utils";
 
 function GradeChip({ grade }: { grade: string }) {

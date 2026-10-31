@@ -1,9 +1,9 @@
 import { BookOpen, GraduationCap, Users, Clock, BarChart2, CheckCircle2, AlertTriangle, Layers, type LucideIcon } from "lucide-react";
 import { PremiumCard } from "@/components/ui/PremiumCard";
-import type { SubjectData }  from "@/data/subjectsData";
-import type { SubjectDetailMock } from "@/data/subjectDetailData";
+import type { SubjectData }  from "@/api/types/subjects";
+import type { SubjectDetailView } from "@/api/types/subjects";
 
-interface Props { sub: SubjectData; mock: SubjectDetailMock }
+interface Props { sub: SubjectData; mock: SubjectDetailView }
 
 function StatCard({
   icon: Icon, label, value, sub, color,
@@ -55,13 +55,13 @@ export function SubjectOverviewCards({ sub, mock }: Props) {
       <StatCard icon={Layers}       label="Assigned Classes" value={activeMappings}      sub={`${sub.assignedClasses.length} grade groups`} color="bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400" />
       <StatCard icon={Users}        label="Teachers Assigned" value={mock.teachers.length} sub="primary + assistants"                        color="bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400" />
       <StatCard icon={GraduationCap}label="Total Students"   value={totalStudents}       sub="across all sections"                          color="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400" />
-      <StatCard icon={Clock}        label="Weekly Periods"   value={sub.weeklyPeriods}   sub={`${sub.examDuration} exam`}                   color="bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400" />
+      <StatCard icon={Clock}        label="Weekly Periods"   value={sub.weeklyPeriods}   sub={sub.examDuration ? `${sub.examDuration} exam` : "per week"}                   color="bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400" />
       <StatCard icon={BookOpen}     label="Syllabus Units"   value={`${completed} / ${mock.syllabusUnits.length}`} sub="units completed"  color="bg-teal-100 text-teal-600 dark:bg-teal-900/40 dark:text-teal-400" />
-      <StatCard icon={BarChart2}    label="Class Average"    value={`${mock.performance.averageScore}%`} sub="last examination"           color="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400" />
-      <StatCard icon={CheckCircle2} label="Pass Rate"        value={`${mock.performance.passRate}%`}     sub="passing students"           color="bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400" />
-      <StatCard icon={AlertTriangle}label="Needs Improvement" value={mock.performance.needsImprovement} sub="students flagged"            color="bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400" />
+      <StatCard icon={BarChart2}    label="Class Average"    value={mock.performance ? `${mock.performance.averageScore}%` : "—"} sub="last examination"           color="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400" />
+      <StatCard icon={CheckCircle2} label="Pass Rate"        value={mock.performance ? `${mock.performance.passRate}%` : "—"}     sub="passing students"           color="bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400" />
+      <StatCard icon={AlertTriangle}label="Needs Improvement" value={mock.performance ? mock.performance.needsImprovement : "—"} sub="students flagged"            color="bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400" />
       <ProgressCard label="Syllabus Progress" value={donePeriods} max={totalPeriods}           color="bg-violet-500" />
-      <ProgressCard label="Pass Rate"         value={mock.performance.passRate} max={100}      color="bg-emerald-500" />
+      <ProgressCard label="Pass Rate"         value={mock.performance?.passRate ?? 0} max={100}      color="bg-emerald-500" />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { Bell, BookOpen, Calendar, DollarSign, GraduationCap, PartyPopper, Users } from "lucide-react";
 
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { ParentNotice } from "@/data/parentDetailsData";
+import type { ParentNotice } from "@/api/types/parents";
 
 const CATEGORY_CFG: Record<ParentNotice["category"], { cls: string; icon: typeof BookOpen }> = {
   Academic: { cls: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400",     icon: BookOpen    },

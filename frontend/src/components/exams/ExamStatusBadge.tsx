@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { ExamStatus } from "@/data/examsData";
+import type { ExamStatus } from "@/api/types/exams";
 
 const STATUS_CFG: Record<ExamStatus, { label: string; cls: string }> = {
   draft:     { label: "Draft",     cls: "bg-muted text-muted-foreground ring-border/30" },

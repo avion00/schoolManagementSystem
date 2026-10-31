@@ -1,9 +1,11 @@
 import { AlertTriangle, BarChart2, BookOpen, CheckCircle2, Clock, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { EXAM_STATS, EXAM_RESULTS } from "@/data/examsData";
 import { cn } from "@/lib/utils";
 
-const EXAM_RESULTS_COUNT = EXAM_RESULTS.length;
+export interface ExamStats {
+  total: number; upcoming: number; completed: number; resultsPublished: number;
+  passRate: number | null; conflicts: number; resultsLabel: string;
+}
 
 interface StatCardProps {
   label: string; value: string | number; sub?: string;
@@ -27,14 +29,14 @@ function StatCard({ label, value, sub, icon, color, highlight }: StatCardProps) 
   );
 }
 
-export function ExamSummaryCards() {
+export function ExamSummaryCards({ stats: EXAM_STATS }: { stats: ExamStats }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-      <StatCard label="Total Exams"       value={EXAM_STATS.total}            sub="Academic 2026/27"             icon={<BookOpen className="h-5 w-5" />}      color="bg-indigo-500"  />
-      <StatCard label="Upcoming"          value={EXAM_STATS.upcoming}         sub="Scheduled / published"        icon={<Clock className="h-5 w-5" />}         color="bg-blue-500"    />
+      <StatCard label="Total Exams"       value={EXAM_STATS.total}            sub="All exams"             icon={<BookOpen className="h-5 w-5" />}      color="bg-indigo-500"  />
+      <StatCard label="Upcoming"          value={EXAM_STATS.upcoming}         sub="Draft / scheduled"        icon={<Clock className="h-5 w-5" />}         color="bg-blue-500"    />
       <StatCard label="Completed"         value={EXAM_STATS.completed}        sub="All exams done"               icon={<CheckCircle2 className="h-5 w-5" />}  color="bg-emerald-500" />
       <StatCard label="Results Published" value={EXAM_STATS.resultsPublished} sub="Visible to students"          icon={<BarChart2 className="h-5 w-5" />}     color="bg-violet-500"  />
-      <StatCard label="Pass Rate"         value={`${EXAM_STATS.passRate}%`}   sub={`${EXAM_RESULTS_COUNT} results`} icon={<TrendingUp className="h-5 w-5" />} color="bg-teal-500"    />
+      <StatCard label="Pass Rate"         value={EXAM_STATS.passRate === null ? "—" : `${EXAM_STATS.passRate}%`} sub={EXAM_STATS.resultsLabel} icon={<TrendingUp className="h-5 w-5" />} color="bg-teal-500"    />
       <StatCard label="Conflicts"         value={EXAM_STATS.conflicts}        sub="Schedule conflicts"           icon={<AlertTriangle className="h-5 w-5" />} color={EXAM_STATS.conflicts > 0 ? "bg-rose-500" : "bg-slate-400"} highlight={EXAM_STATS.conflicts > 0} />
     </div>
   );

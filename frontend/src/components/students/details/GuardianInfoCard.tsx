@@ -1,7 +1,7 @@
 import { Users } from "lucide-react";
 
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { GuardianInfo } from "@/data/studentDetailsData";
+import type { GuardianInfo } from "@/api/types/students";
 
 function Row({ label, value }: { label: string; value?: string | null }) {
   return (

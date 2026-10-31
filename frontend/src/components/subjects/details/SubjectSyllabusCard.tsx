@@ -1,6 +1,7 @@
 import { BookOpen, CheckCircle2, Circle, Clock } from "lucide-react";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { SyllabusUnit, SyllabusStatus } from "@/data/subjectDetailData";
+import type { SyllabusUnit, SyllabusStatus } from "@/api/types/subjects";
 
 const STATUS_CFG: Record<SyllabusStatus, { cls: string; icon: typeof CheckCircle2; label: string }> = {
   "Completed":   { cls: "text-emerald-600 dark:text-emerald-400", icon: CheckCircle2, label: "Completed"   },
@@ -15,6 +16,13 @@ const STATUS_BAR: Record<SyllabusStatus, string> = {
 };
 
 export function SubjectSyllabusCard({ syllabusUnits }: { syllabusUnits: SyllabusUnit[] }) {
+  if (syllabusUnits.length === 0) {
+    return (
+      <DetailCard icon={BookOpen} title="Syllabus Progress">
+        <PremiumEmptyState title="No syllabus units yet." className="py-6" />
+      </DetailCard>
+    );
+  }
   const total     = syllabusUnits.reduce((a, u) => a + u.estimatedPeriods, 0);
   const completed = syllabusUnits.filter((u) => u.status === "Completed").reduce((a, u) => a + u.estimatedPeriods, 0);
   const inProg    = syllabusUnits.filter((u) => u.status === "In Progress").reduce((a, u) => a + u.estimatedPeriods, 0);

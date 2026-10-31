@@ -1,9 +1,7 @@
-import { useState } from "react";
 import {
   Activity, Building2, ChevronLeft, ClipboardList, MessageSquare, Mail, Paperclip, Phone, Settings2, StickyNote, UserRound,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { toast } from "sonner";
 
 import { RelatedRecordsCard } from "@/components/helpdesk/RelatedRecordsCard";
 import { SlaBadge } from "@/components/helpdesk/SlaBadge";
@@ -17,10 +15,10 @@ import { TicketStatusBadge } from "@/components/helpdesk/TicketStatusBadge";
 import { Button } from "@/components/ui/button";
 import { DetailCard } from "@/components/ui/DetailCard";
 import { PremiumCard } from "@/components/ui/PremiumCard";
-import {
-  ASSIGNEE_DIRECTORY, SUPPORT_TICKETS,
-  type SupportTicket, type TicketPriority, type TicketStatus,
-} from "@/data/helpDeskData";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { useTicketHandlers } from "@/components/helpdesk/useTicketHandlers";
+import { useTicket } from "@/api/helpdesk";
+import { errorMessage } from "@/api/http";
 
 function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
@@ -29,78 +27,22 @@ function formatDateTime(iso: string) {
 export function HelpTicketDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [ticket, setTicket] = useState<SupportTicket | undefined>(() => SUPPORT_TICKETS.find((t) => String(t.id) === id));
+  const query = useTicket(id);
+  const ticket = query.data;
+  const h = useTicketHandlers(ticket ? [ticket] : []);
+  const sendMessage = h.sendMessage;
+  const assign = h.assignTicket;
+  const statusChange = h.statusChange;
+  const escalate = h.escalateTicket;
 
+  if (query.isLoading) return <PremiumSkeleton className="h-96 w-full rounded-2xl" />;
   if (!ticket) {
     return (
       <PremiumCard className="flex flex-col items-center gap-3 py-16 text-center">
-        <p className="text-[13px] font-medium text-foreground">Ticket not found</p>
+        <p className="text-[13px] font-medium text-foreground">{query.isError ? errorMessage(query.error) : "Ticket not found"}</p>
         <Button variant="outline" size="sm" onClick={() => navigate("/help")}>Back to Help Desk</Button>
       </PremiumCard>
     );
-  }
-
-  function update(patch: Partial<SupportTicket> | ((t: SupportTicket) => SupportTicket)) {
-    setTicket((prev) => {
-      if (!prev) return prev;
-      return typeof patch === "function" ? patch(prev) : { ...prev, ...patch };
-    });
-  }
-
-  function sendMessage(_ticketId: number, body: string, isInternal: boolean, attachmentName?: string) {
-    const now = new Date().toISOString();
-    const attachments = attachmentName ? [{ id: Date.now(), name: attachmentName, size: "—", type: "File" }] : [];
-    update((t) => ({
-      ...t,
-      updatedAt: now,
-      messages: isInternal ? t.messages : [...t.messages, { id: Date.now(), author: "Super Admin", authorRole: "Support Team", body, isInternal: false, timestamp: now, attachments }],
-      internalNotes: isInternal ? [...t.internalNotes, { id: Date.now(), author: "Super Admin", authorRole: "Support Team", body, isInternal: true, timestamp: now, attachments }] : t.internalNotes,
-      activities: [...t.activities, { id: Date.now(), action: isInternal ? "Internal note added" : "Admin replied", by: "Super Admin", at: now }],
-    }));
-    console.log("Ticket message:", { body, isInternal, attachmentName });
-    toast.success(isInternal ? "Internal note added." : "Reply sent.");
-  }
-
-  function assign(_ticketId: number, assigneeName: string, dueDate: string, priority: TicketPriority, note: string, notify: boolean) {
-    const assignee = ASSIGNEE_DIRECTORY.find((a) => a.name === assigneeName) ?? null;
-    const now = new Date().toISOString();
-    update((t) => ({
-      ...t,
-      assignedTo: assignee,
-      priority,
-      status: t.status === "New" || t.status === "Open" ? "Assigned" : t.status,
-      updatedAt: now,
-      internalNotes: note ? [...t.internalNotes, { id: Date.now(), author: "Super Admin", authorRole: "Support Team", body: note, isInternal: true, timestamp: now, attachments: [] }] : t.internalNotes,
-      activities: [...t.activities, { id: Date.now(), action: `Assigned to ${assigneeName}${assignee ? ` (${assignee.department})` : ""}`, by: "Super Admin", at: now }],
-    }));
-    console.log("Assigned ticket:", { assigneeName, dueDate, priority, note, notify });
-  }
-
-  function statusChange(_ticketId: number, status: TicketStatus, resolution?: { summary: string; category: string; notifyRequester: boolean }) {
-    const now = new Date().toISOString();
-    update((t) => ({
-      ...t,
-      status,
-      updatedAt: now,
-      resolutionSummary: resolution?.summary ?? t.resolutionSummary,
-      resolutionCategory: resolution?.category ?? t.resolutionCategory,
-      messages: resolution ? [...t.messages, { id: Date.now(), author: "Super Admin", authorRole: "Support Team", body: resolution.summary, isInternal: false, timestamp: now, attachments: [] }] : t.messages,
-      activities: [...t.activities, { id: Date.now(), action: `Status changed to ${status}`, by: "Super Admin", at: now }],
-    }));
-    console.log("Status changed:", { status, resolution });
-  }
-
-  function escalate(_ticketId: number, target: string, reason: string, dueDate: string, markUrgent: boolean) {
-    const now = new Date().toISOString();
-    update((t) => ({
-      ...t,
-      status: "Escalated",
-      priority: markUrgent ? "Urgent" : t.priority,
-      escalationReason: reason,
-      updatedAt: now,
-      activities: [...t.activities, { id: Date.now(), action: `Escalated to ${target} — ${reason}`, by: "Super Admin", at: now }],
-    }));
-    console.log("Escalated ticket:", { target, reason, dueDate, markUrgent });
   }
 
   const r = ticket.requester;
@@ -177,18 +119,20 @@ export function HelpTicketDetailsPage() {
             <div className="space-y-2 text-[12px]">
               <div className="flex items-center gap-2 text-foreground"><UserRound className="h-3.5 w-3.5 text-muted-foreground" /> {r.name} <span className="text-muted-foreground">· {r.role}</span></div>
               <div className="flex items-center gap-2 text-muted-foreground"><Mail className="h-3.5 w-3.5" /> {r.email}</div>
-              <div className="flex items-center gap-2 text-muted-foreground"><Phone className="h-3.5 w-3.5" /> {r.phone}</div>
+              {r.phone && <div className="flex items-center gap-2 text-muted-foreground"><Phone className="h-3.5 w-3.5" /> {r.phone}</div>}
               {r.className && <div className="flex items-center gap-2 text-muted-foreground"><Building2 className="h-3.5 w-3.5" /> {r.className} — Section {r.section}</div>}
               {r.relatedChildName && <div className="flex items-center gap-2 text-muted-foreground"><Building2 className="h-3.5 w-3.5" /> Related student: {r.relatedChildName}</div>}
               {r.department && !r.className && <div className="flex items-center gap-2 text-muted-foreground"><Building2 className="h-3.5 w-3.5" /> Department: {r.department}</div>}
-              <Button variant="outline" size="sm" className="mt-1 h-7 text-[11.5px]" onClick={() => toast.info(`Opening profile — ${r.name}`)}>View Profile</Button>
+              {ticket.relatedStudentId && (
+                <Button variant="outline" size="sm" className="mt-1 h-7 text-[11.5px]" onClick={() => navigate(`/students/${ticket.relatedStudentId}`)}>View Student</Button>
+              )}
             </div>
           </DetailCard>
 
           <DetailCard icon={Settings2} title="Manage Ticket">
             <TicketAssignmentPanel
               ticket={ticket}
-              onAssign={(assigneeName, dueDate, priority, note, notify) => assign(ticket.id, assigneeName, dueDate, priority, note, notify)}
+              onAssign={(assigneeName, dueDate, priority, note) => assign(ticket.id, assigneeName, dueDate, priority, note)}
               onStatusChange={(status, resolution) => statusChange(ticket.id, status, resolution)}
               onEscalate={(target, reason, dueDate, markUrgent) => escalate(ticket.id, target, reason, dueDate, markUrgent)}
             />

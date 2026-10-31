@@ -1,15 +1,11 @@
 import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { PremiumTableToolbar } from "@/components/ui/PremiumTableToolbar";
-import {
-  EXAM_TERM_OPTIONS, EXAM_TYPE_OPTIONS, EXAM_STATUS_OPTIONS,
-  CLASS_OPTIONS, SECTION_OPTIONS, ACADEMIC_YEAR_OPTIONS,
-} from "@/data/examsData";
+import { EXAM_TYPE_OPTIONS, EXAM_STATUS_OPTIONS } from "@/api/types/exams";
 
 export interface ScheduleFilters {
   search:    string;
   term:      string;
   className: string;
-  section:   string;
   type:      string;
   status:    string;
   year:      string;
@@ -20,9 +16,11 @@ interface Props {
   onChange:     (key: keyof ScheduleFilters, value: string) => void;
   onClear:      () => void;
   hasActiveFilter: boolean;
+  /** Choices present in the data. */
+  options: { terms: string[]; classes: string[]; years: string[] };
 }
 
-export function ExamScheduleToolbar({ filters, onChange, onClear, hasActiveFilter }: Props) {
+export function ExamScheduleToolbar({ filters, onChange, onClear, hasActiveFilter, options }: Props) {
   return (
     <PremiumTableToolbar
       search={filters.search}
@@ -36,7 +34,7 @@ export function ExamScheduleToolbar({ filters, onChange, onClear, hasActiveFilte
             value={filters.term}
             onChange={(v) => onChange("term", v)}
             className="w-36"
-            options={[{ value: "", label: "All terms" }, ...EXAM_TERM_OPTIONS.map((t) => ({ value: t, label: t }))]}
+            options={[{ value: "", label: "All terms" }, ...options.terms.map((t) => ({ value: t, label: t }))]}
           />
           <PremiumSelect
             value={filters.type}
@@ -48,13 +46,7 @@ export function ExamScheduleToolbar({ filters, onChange, onClear, hasActiveFilte
             value={filters.className}
             onChange={(v) => onChange("className", v)}
             className="w-36"
-            options={[{ value: "", label: "All classes" }, ...CLASS_OPTIONS.map((c) => ({ value: c, label: c }))]}
-          />
-          <PremiumSelect
-            value={filters.section}
-            onChange={(v) => onChange("section", v)}
-            className="w-36"
-            options={[{ value: "", label: "All sections" }, ...SECTION_OPTIONS.map((s) => ({ value: s, label: `Section ${s}` }))]}
+            options={[{ value: "", label: "All classes" }, ...options.classes.map((c) => ({ value: c, label: c }))]}
           />
           <PremiumSelect
             value={filters.status}
@@ -66,7 +58,7 @@ export function ExamScheduleToolbar({ filters, onChange, onClear, hasActiveFilte
             value={filters.year}
             onChange={(v) => onChange("year", v)}
             className="w-32"
-            options={[{ value: "", label: "All years" }, ...ACADEMIC_YEAR_OPTIONS.map((y) => ({ value: y, label: y }))]}
+            options={[{ value: "", label: "All years" }, ...options.years.map((y) => ({ value: y, label: y }))]}
           />
         </>
       }

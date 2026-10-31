@@ -1,8 +1,11 @@
 import { Paperclip } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import type { TicketMessage } from "@/data/helpDeskData";
+import type { TicketMessage } from "@/api/types/helpdesk";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { downloadFile } from "@/api/files";
+import { errorMessage } from "@/api/http";
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -35,9 +38,12 @@ export function TicketConversation({ messages, requesterName }: { messages: Tick
               {m.attachments.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {m.attachments.map((a) => (
-                    <span key={a.id} className="inline-flex items-center gap-1 rounded-md bg-background/70 px-2 py-1 text-[11px] text-muted-foreground">
+                    <button key={a.id} type="button" title="Download"
+                      onClick={() => downloadFile({ id: a.id, original_name: a.name, download_url: a.downloadUrl } as Parameters<typeof downloadFile>[0])
+                        .catch((e) => toast.error(errorMessage(e)))}
+                      className="inline-flex items-center gap-1 rounded-md bg-background/70 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground">
                       <Paperclip className="h-3 w-3" /> {a.name}
-                    </span>
+                    </button>
                   ))}
                 </div>
               )}

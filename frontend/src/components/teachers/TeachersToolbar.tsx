@@ -1,11 +1,8 @@
 import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { PremiumTableToolbar } from "@/components/ui/PremiumTableToolbar";
-import {
-  DEPARTMENT_OPTIONS,
-  EMPLOYMENT_TYPE_OPTIONS,
-  STATUS_OPTIONS,
-  SUBJECT_OPTIONS,
-} from "@/data/teachersData";
+import { EMPLOYMENT_TYPE_OPTIONS } from "@/api/types/teachers";
+
+const STATUS_OPTIONS = ["active", "on leave", "inactive", "resigned", "terminated"];
 
 export interface TeachersFilters {
   search: string;
@@ -17,11 +14,15 @@ export interface TeachersFilters {
 }
 
 export function TeachersToolbar({
+  departmentOptions,
+  subjectOptions,
   filters,
   onFiltersChange,
   hasActiveFilter,
   onReset,
 }: {
+  departmentOptions: string[];
+  subjectOptions: string[];
   filters: TeachersFilters;
   onFiltersChange: (next: Partial<TeachersFilters>) => void;
   hasActiveFilter: boolean;
@@ -40,13 +41,13 @@ export function TeachersToolbar({
             value={filters.filterDept}
             onChange={(v) => onFiltersChange({ filterDept: v })}
             className="w-40"
-            options={[{ value: "all", label: "All departments" }, ...DEPARTMENT_OPTIONS.map((d) => ({ value: d, label: d }))]}
+            options={[{ value: "all", label: "All departments" }, ...departmentOptions.map((d) => ({ value: d, label: d }))]}
           />
           <PremiumSelect
             value={filters.filterSubject}
             onChange={(v) => onFiltersChange({ filterSubject: v })}
             className="w-40"
-            options={[{ value: "all", label: "All subjects" }, ...SUBJECT_OPTIONS.map((s) => ({ value: s, label: s }))]}
+            options={[{ value: "all", label: "All subjects" }, ...subjectOptions.map((s) => ({ value: s, label: s }))]}
           />
           <PremiumSelect
             value={filters.filterStatus}

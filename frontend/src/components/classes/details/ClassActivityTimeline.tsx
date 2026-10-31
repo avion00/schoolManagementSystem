@@ -1,6 +1,7 @@
 import { BookOpen, CalendarCheck, ClipboardList, FilePlus, GraduationCap, History, LayoutGrid, Settings, Users } from "lucide-react";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { ClassActivity } from "@/data/classDetailData";
+import type { ClassActivity } from "@/api/types/classes";
 
 const TYPE_CFG: Record<ClassActivity["type"], { icon: typeof BookOpen; bg: string; text: string }> = {
   create:     { icon: LayoutGrid,    bg: "bg-violet-100 dark:bg-violet-950/50",  text: "text-violet-600 dark:text-violet-400" },
@@ -20,6 +21,13 @@ function timeLabel(ts: string) {
 }
 
 export function ClassActivityTimeline({ activities }: { activities: ClassActivity[] }) {
+  if (activities.length === 0) {
+    return (
+      <DetailCard icon={History} title="Activity Timeline">
+        <PremiumEmptyState title="No recent activity." className="py-6" />
+      </DetailCard>
+    );
+  }
   return (
     <DetailCard icon={History} title="Activity Timeline">
         <ol className="space-y-0">

@@ -1,28 +1,25 @@
 import { useMemo } from "react";
-import {
-  ROUTINES, MORNING_PERIODS, DAY_PERIODS,
-  type RoutineEntry, type Day,
-} from "@/data/classRoutineData";
+import { useRoutineData } from "@/api/routine";
+import type { RoutineEntry, Day } from "@/api/types/routine";
 
 const SCHOOL_DAYS: Day[] = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday"];
 
 interface Props {
   className: string;
   section:   string;
-  academicYear: string;
+  academicYear?: string;
 }
 
 export function PrintableClassRoutine({ className, section, academicYear }: Props) {
+  const { routine } = useRoutineData();
+  const ROUTINES = routine.entries;
   const filtered = useMemo(
-    () => ROUTINES.filter(
-      (r) => r.className === className && r.section === section
-          && r.academicYear === academicYear && r.status === "active",
-    ),
-    [className, section, academicYear],
+    () => ROUTINES.filter((r) => r.className === className && r.section === section && r.status === "active"),
+    [className, section, ROUTINES],
   );
 
   const shift = filtered[0]?.shift ?? "Morning";
-  const periods = shift === "Morning" ? MORNING_PERIODS : DAY_PERIODS;
+  const periods = routine.periodsFor(shift).filter((p) => !p.isBreak);
 
   // build matrix
   const matrix = new Map<Day, Map<number, RoutineEntry>>();

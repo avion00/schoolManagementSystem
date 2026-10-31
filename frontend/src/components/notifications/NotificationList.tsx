@@ -5,23 +5,21 @@ import type { LucideIcon } from "lucide-react";
 import { NotificationEmptyState } from "@/components/notifications/NotificationEmptyState";
 import { NotificationItem } from "@/components/notifications/NotificationItem";
 import { Button } from "@/components/ui/button";
-import type { AppNotification } from "@/data/notificationsData";
+import type { AppNotification } from "@/api/types/notifications";
 
 const PAGE_SIZE = 15;
 
 export function NotificationList({
-  notifications, selectedIds, onToggleSelect, onOpen, onToggleRead, onArchive, onDelete, onApprove, onReject,
+  notifications, selectedIds, onToggleSelect, onOpen, onToggleRead, onArchive, onRestore,
   emptyIcon, emptyTitle, emptyDescription, onResetFilters,
 }: {
   notifications: AppNotification[];
-  selectedIds: number[];
-  onToggleSelect: (id: number) => void;
+  selectedIds: string[];
+  onToggleSelect: (id: string) => void;
   onOpen: (n: AppNotification) => void;
   onToggleRead: (n: AppNotification) => void;
   onArchive: (n: AppNotification) => void;
-  onDelete: (n: AppNotification) => void;
-  onApprove: (n: AppNotification) => void;
-  onReject: (n: AppNotification) => void;
+  onRestore: (n: AppNotification) => void;
   emptyIcon: LucideIcon;
   emptyTitle: string;
   emptyDescription: string;
@@ -49,9 +47,7 @@ export function NotificationList({
             onOpen={() => onOpen(n)}
             onToggleRead={() => onToggleRead(n)}
             onArchive={() => onArchive(n)}
-            onDelete={() => onDelete(n)}
-            onApprove={() => onApprove(n)}
-            onReject={() => onReject(n)}
+            onRestore={() => onRestore(n)}
           />
         </div>
       ))}

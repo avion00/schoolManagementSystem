@@ -5,8 +5,8 @@ import { toast } from "sonner";
 import { StudentStatusBadge } from "@/components/students/StudentStatusBadge";
 import { Button } from "@/components/ui/button";
 import { PremiumCard } from "@/components/ui/PremiumCard";
-import type { StudentDetailMock } from "@/data/studentDetailsData";
-import type { Student } from "@/data/studentsData";
+import type { StudentDetailView } from "@/api/types/students";
+import type { Student } from "@/api/types/students";
 import { cn } from "@/lib/utils";
 
 function initials(name: string) {
@@ -16,7 +16,7 @@ function initials(name: string) {
 
 interface Props {
   student: Student;
-  mock: StudentDetailMock;
+  mock: StudentDetailView;
 }
 
 export function StudentProfileHero({ student, mock }: Props) {

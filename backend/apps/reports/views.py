@@ -1,4 +1,9 @@
-"""Aggregation endpoints for the Principal dashboard (principal-dashboard.md §1)."""
+"""Aggregation endpoints for the Principal dashboard (principal-dashboard.md §1).
+
+Access needs `report.view`; each block is additionally gated by the permission
+that guards its underlying data (finance → fee.view, audit → audit.view, student
+records → student.view.all). Blocks the caller can't see are returned as null.
+"""
 from datetime import timedelta
 from decimal import Decimal
 
@@ -10,13 +15,19 @@ from rest_framework.views import APIView
 
 from apps.attendance.models import Attendance
 from apps.audit.models import AuditLog
+from apps.core.permissions import HasPermission
 from apps.fees.models import Invoice, Payment
+from apps.rbac.services import user_permission_codes
 from apps.students.models import Student
 from apps.teachers.models import Teacher
 
 
-class DashboardSummaryView(APIView):
-    permission_classes = [IsAuthenticated]
+class _ReportView(APIView):
+    permission_classes = [IsAuthenticated, HasPermission]
+    required_permission = "report.view"
+
+
+class DashboardSummaryView(_ReportView):
 
     def get(self, request):
         user = request.user
@@ -56,21 +67,21 @@ class DashboardSummaryView(APIView):
             .values("action", "actor__email", "object_type", "created_at")
         )
 
+        perms = user_permission_codes(user)
+        can_fees = "fee.view" in perms
         return Response({
             "students": students,
             "teachers": teachers,
             "attendance_today_pct": attendance_pct,
             "attendance_marked_today": total_marked,
-            "fee_collected_this_month": float(collected),
-            "outstanding_dues": float(dues),
-            "recent_activity": recent_audit,
+            "fee_collected_this_month": float(collected) if can_fees else None,
+            "outstanding_dues": float(dues) if can_fees else None,
+            "recent_activity": recent_audit if "audit.view" in perms else None,
         })
 
 
-class DashboardAnalyticsView(APIView):
+class DashboardAnalyticsView(_ReportView):
     """Time-series + table data for the dashboard-01 style layout."""
-
-    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
@@ -181,12 +192,14 @@ class DashboardAnalyticsView(APIView):
             .order_by("-issue_date", "-created_at")[:5]
         ]
 
+        perms = user_permission_codes(user)
+        can_fees = "fee.view" in perms
         return Response({
-            "fees_series": fees_series,
-            "fees_week": fees_week,
+            "fees_series": fees_series if can_fees else None,
+            "fees_week": fees_week if can_fees else None,
             "attendance_series": attendance_series,
-            "fees_change_pct": fees_change_pct,
+            "fees_change_pct": fees_change_pct if can_fees else None,
             "students_change_pct": students_change_pct,
-            "recent_students": recent_students,
-            "recent_invoices": recent_invoices,
+            "recent_students": recent_students if "student.view.all" in perms else None,
+            "recent_invoices": recent_invoices if can_fees else None,
         })

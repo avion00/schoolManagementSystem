@@ -1,9 +1,9 @@
-import { Archive, CheckCheck, RefreshCw, Search, Settings, Trash2 } from "lucide-react";
+import { Archive, CheckCheck, RefreshCw, Search, Settings } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
-  CATEGORY_OPTIONS, CHANNEL_OPTIONS, PRIORITY_OPTIONS, STATUS_OPTIONS, TYPE_OPTIONS,
-} from "@/data/notificationsData";
+  CATEGORY_OPTIONS, PRIORITY_OPTIONS, STATUS_OPTIONS, TYPE_OPTIONS,
+} from "@/api/types/notifications";
 import { cn } from "@/lib/utils";
 
 export interface NotificationFilters {
@@ -11,12 +11,11 @@ export interface NotificationFilters {
   priority: string;
   status: string;
   type: string;
-  channel: string;
   dateRange: "all" | "today" | "7d" | "30d";
 }
 
 export const DEFAULT_NOTIFICATION_FILTERS: NotificationFilters = {
-  category: "all", priority: "all", status: "all", type: "all", channel: "all", dateRange: "all",
+  category: "all", priority: "all", status: "all", type: "all", dateRange: "all",
 };
 
 const selectClass = "h-8 rounded-lg border border-input bg-background px-2.5 text-[12px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring";
@@ -34,7 +33,7 @@ function FilterSelect({ value, onChange, options, placeholder }: {
 
 export function NotificationToolbar({
   search, onSearchChange, filters, onFiltersChange, selectedCount,
-  onMarkAllRead, onArchiveSelected, onDeleteSelected, onRefresh, onOpenSettings,
+  onMarkAllRead, onArchiveSelected, onRefresh, onOpenSettings,
 }: {
   search: string;
   onSearchChange: (v: string) => void;
@@ -43,7 +42,6 @@ export function NotificationToolbar({
   selectedCount: number;
   onMarkAllRead: () => void;
   onArchiveSelected: () => void;
-  onDeleteSelected: () => void;
   onRefresh: () => void;
   onOpenSettings: () => void;
 }) {
@@ -59,7 +57,7 @@ export function NotificationToolbar({
           <input
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search notifications, module, user, ID..."
+            placeholder="Search notifications…"
             className="h-8 w-full rounded-lg border border-input bg-background pl-8 pr-3 text-[12px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           />
         </div>
@@ -70,9 +68,6 @@ export function NotificationToolbar({
           </Button>
           <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[12px]" disabled={selectedCount === 0} onClick={onArchiveSelected}>
             <Archive className="h-3.5 w-3.5" /> Archive{selectedCount > 0 ? ` (${selectedCount})` : ""}
-          </Button>
-          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[12px] text-destructive hover:text-destructive" disabled={selectedCount === 0} onClick={onDeleteSelected}>
-            <Trash2 className="h-3.5 w-3.5" /> Delete{selectedCount > 0 ? ` (${selectedCount})` : ""}
           </Button>
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={onRefresh} title="Refresh">
             <RefreshCw className="h-3.5 w-3.5" />
@@ -88,7 +83,6 @@ export function NotificationToolbar({
         <FilterSelect value={filters.priority} onChange={(v) => set("priority", v)} placeholder="All Priorities" options={PRIORITY_OPTIONS} />
         <FilterSelect value={filters.status} onChange={(v) => set("status", v)} placeholder="All Statuses" options={STATUS_OPTIONS} />
         <FilterSelect value={filters.type} onChange={(v) => set("type", v)} placeholder="All Types" options={TYPE_OPTIONS} />
-        <FilterSelect value={filters.channel} onChange={(v) => set("channel", v)} placeholder="All Channels" options={CHANNEL_OPTIONS} />
         <select value={filters.dateRange} onChange={(e) => set("dateRange", e.target.value as NotificationFilters["dateRange"])} className={selectClass}>
           <option value="all">Any Date</option>
           <option value="today">Today</option>

@@ -1,6 +1,6 @@
 import { Check, CheckCheck } from "lucide-react";
 
-import type { MessageDeliveryStatus } from "@/data/messagesData";
+import type { MessageDeliveryStatus } from "@/api/types/messages";
 import { cn } from "@/lib/utils";
 
 export function ReadReceipt({ status }: { status: MessageDeliveryStatus }) {

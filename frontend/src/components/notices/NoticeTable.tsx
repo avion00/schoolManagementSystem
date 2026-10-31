@@ -2,18 +2,23 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { PremiumDataTable, type PremiumDataTableColumn } from "@/components/ui/PremiumDataTable";
 import { RowActionMenu } from "@/components/ui/RowActionMenu";
 import { NoticeStatusBadge }   from "@/components/notices/NoticeStatusBadge";
 import { NoticePriorityBadge } from "@/components/notices/NoticePriorityBadge";
-import type { Notice } from "@/data/noticesData";
+import type { Notice } from "@/api/types/notices";
+import { useNoticeActions } from "@/api/notices";
+import { errorMessage } from "@/api/http";
+import { useAuth } from "@/lib/auth";
 
 const PAGE_SIZE = 12;
 type SortKey = "id" | "title" | "category" | "priority" | "status" | "publishDate" | "publishedBy";
 
 export function NoticeTable({ notices }: { notices: Notice[] }) {
   const navigate = useNavigate();
+  const actions = useNoticeActions();
+  const { hasPermission } = useAuth();
+  const canManage = hasPermission("notice.manage");
   const [sort,      setSort]      = useState<SortKey>("id");
   const [dir,       setDir]       = useState<1 | -1>(-1); // newest first
   const [page,      setPage]      = useState(1);
@@ -28,7 +33,7 @@ export function NoticeTable({ notices }: { notices: Notice[] }) {
 
   const sorted = [...notices].sort((a, b) => {
     let av: string | number = "", bv: string | number = "";
-    if (sort === "id")           { av = a.id;           bv = b.id; }
+    if (sort === "id")           { av = a.createdAt;    bv = b.createdAt; }  // "id" column = newest first
     else if (sort === "title")   { av = a.title;        bv = b.title; }
     else if (sort === "category"){ av = a.category;     bv = b.category; }
     else if (sort === "priority"){ av = a.priority;     bv = b.priority; }
@@ -67,11 +72,8 @@ export function NoticeTable({ notices }: { notices: Notice[] }) {
     { key: "status", header: "Status", sortable: true, render: (n) => <NoticeStatusBadge status={n.status} /> },
     {
       key: "read", header: "Read", align: "center", render: (n) => (
-        n.stats.totalRecipients > 0 ? (
-          <span className="text-[12px]">
-            <span className="font-medium text-emerald-600">{n.stats.read}</span>
-            <span className="text-muted-foreground text-[10px]">/{n.stats.totalRecipients}</span>
-          </span>
+        n.status !== "Draft" ? (
+          <span className="text-[12px] font-medium text-emerald-600">{n.stats.read}</span>
         ) : (
           <span className="text-muted-foreground text-[12px]">—</span>
         )
@@ -84,7 +86,6 @@ export function NoticeTable({ notices }: { notices: Notice[] }) {
       columns={columns}
       rows={slice}
       rowKey={(n) => n.id}
-      selectable
       selectedKeys={selected}
       onSelectionChange={setSelected}
       sortField={sort}
@@ -100,18 +101,16 @@ export function NoticeTable({ notices }: { notices: Notice[] }) {
         onPage: setPage,
         itemLabel: "notices",
       }}
-      bulkActions={(_count, clear) => (
-        <>
-          <Button variant="ghost" size="sm" className="ml-auto text-muted-foreground" onClick={clear}>Deselect all</Button>
-        </>
-      )}
       rowActions={(n) => (
         <RowActionMenu
           entityLabel="notice"
           onView={() => navigate(`/notices/${n.id}`)}
-          onEdit={() => navigate(`/notices/${n.id}/edit`)}
-          onPrint={() => window.print()}
-          onDelete={() => toast.info("Delete notice — coming soon")}
+          onEdit={canManage && n.status !== "Archived" ? () => navigate(`/notices/${n.id}/edit`) : undefined}
+          onDelete={canManage && n.status === "Draft" ? () => {
+            if (!window.confirm(`Delete the draft "${n.title}"?`)) return;
+            actions.remove(n.id).then(() => toast.success("Draft deleted.")).catch((e) => toast.error(errorMessage(e)));
+          } : undefined}
+          deleteLabel="Delete draft"
         />
       )}
     />

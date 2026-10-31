@@ -6,7 +6,9 @@ import { PremiumBadge } from "@/components/ui/PremiumBadge";
 import { PremiumDataTable, type PremiumDataTableColumn } from "@/components/ui/PremiumDataTable";
 import { RowActionMenu } from "@/components/ui/RowActionMenu";
 import { GradeBadge } from "@/components/exams/GradeBadge";
-import type { GradeScale } from "@/data/examsData";
+import type { GradeBand } from "@/api/types/exams";
+import { useDeleteBand } from "@/api/exams";
+import { errorMessage } from "@/api/http";
 import { cn } from "@/lib/utils";
 
 const COLOR_BAR: Record<string, string> = {
@@ -19,10 +21,11 @@ const COLOR_BAR: Record<string, string> = {
   rose:    "bg-rose-500",
 };
 
-export function ExamGradeTable({ grades }: { grades: GradeScale[] }) {
+export function ExamGradeTable({ grades, canManage }: { grades: GradeBand[]; canManage: boolean }) {
   const navigate = useNavigate();
+  const remove = useDeleteBand();
 
-  const columns: PremiumDataTableColumn<GradeScale>[] = [
+  const columns: PremiumDataTableColumn<GradeBand>[] = [
     { key: "gradeName", header: "Grade", width: "w-[100px]", render: (g) => <GradeBadge grade={g.gradeName} /> },
     { key: "gradePoint", header: "Grade Point", width: "w-[120px]", render: (g) => <span className="font-bold text-foreground">{g.gradePoint.toFixed(2)}</span> },
     {
@@ -39,7 +42,7 @@ export function ExamGradeTable({ grades }: { grades: GradeScale[] }) {
       key: "colorLabel", header: "Color", width: "w-[130px]", render: (g) => (
         <div className="flex items-center gap-2">
           <div className={cn("h-3 w-8 rounded-full", COLOR_BAR[g.colorLabel] ?? "bg-muted")} />
-          <span className="capitalize text-muted-foreground">{g.colorLabel}</span>
+          <span className="capitalize text-muted-foreground">{g.colorLabel || "—"}</span>
         </div>
       ),
     },
@@ -48,12 +51,7 @@ export function ExamGradeTable({ grades }: { grades: GradeScale[] }) {
         <PremiumBadge label={g.resultStatus} tone={g.resultStatus === "Pass" ? "success" : "danger"} />
       ),
     },
-    { key: "comment", header: "Comment", render: (g) => <span className="text-muted-foreground">{g.comment}</span> },
-    {
-      key: "status", header: "Status", width: "w-[100px]", render: (g) => (
-        <PremiumBadge label={g.status.charAt(0).toUpperCase() + g.status.slice(1)} tone={g.status === "active" ? "success" : "neutral"} />
-      ),
-    },
+    { key: "comment", header: "Comment", render: (g) => <span className="text-muted-foreground">{g.comment || "—"}</span> },
   ];
 
   return (
@@ -64,13 +62,19 @@ export function ExamGradeTable({ grades }: { grades: GradeScale[] }) {
       emptyIcon={Award}
       emptyTitle="No grade scales found"
       emptyDescription="No grade levels have been configured yet."
-      rowActions={(g) => (
+      rowActions={canManage ? (g) => (
         <RowActionMenu
           entityLabel="grade"
           onEdit={() => navigate(`/exams/grades/${g.id}/edit`)}
-          onDelete={() => toast.error(`Delete grade ${g.gradeName}? (static — no action taken)`, { duration: 2000 })}
+          onDelete={() => {
+            if (!window.confirm(`Delete grade ${g.gradeName}?`)) return;
+            remove.mutate(g.id, {
+              onSuccess: () => toast.success(`Grade ${g.gradeName} deleted.`),
+              onError: (e) => toast.error(errorMessage(e)),
+            });
+          }}
         />
-      )}
+      ) : undefined}
     />
   );
 }

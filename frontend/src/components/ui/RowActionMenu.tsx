@@ -21,6 +21,8 @@ export function RowActionMenu({
   onDelete,
   entityLabel = "record",
   messageLabel,
+  printLabel,
+  deleteLabel,
 }: {
   onView?: () => void;
   onEdit?: () => void;
@@ -30,6 +32,8 @@ export function RowActionMenu({
   onDelete?: () => void;
   entityLabel?: string;
   messageLabel?: string;
+  printLabel?: string;
+  deleteLabel?: string;
 }) {
   return (
     <PremiumDropdownMenu
@@ -48,10 +52,10 @@ export function RowActionMenu({
         ...(onView ? [{ label: `View ${entityLabel}`, icon: Eye, onClick: onView }] : []),
         ...(onEdit ? [{ label: `Edit ${entityLabel}`, icon: Pencil, onClick: onEdit }] : []),
         "separator" as const,
-        ...(onPrint ? [{ label: "Print profile", icon: Printer, onClick: onPrint }] : []),
+        ...(onPrint ? [{ label: printLabel ?? "Print profile", icon: Printer, onClick: onPrint }] : []),
         ...(onDownload ? [{ label: "Download record", icon: Download, onClick: onDownload }] : []),
         ...(onMessage ? [{ label: messageLabel ?? `Message ${entityLabel}`, icon: MessageSquare, onClick: onMessage }] : []),
-        ...(onDelete ? (["separator" as const, { label: `Delete ${entityLabel}`, icon: Trash2, danger: true, onClick: onDelete }]) : []),
+        ...(onDelete ? (["separator" as const, { label: deleteLabel ?? `Delete ${entityLabel}`, icon: Trash2, danger: true, onClick: onDelete }]) : []),
       ]}
     />
   );

@@ -1,6 +1,7 @@
 import {
-  Archive, Check, CheckCircle2, Eye, MoreVertical, Trash2, X, XCircle,
+  Archive, ArchiveRestore, CheckCircle2, ExternalLink, Eye, MoreVertical, XCircle,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import { NotificationPriorityBadge } from "@/components/notifications/NotificationPriorityBadge";
 import { iconFor } from "@/components/notifications/notificationIcons";
@@ -9,7 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { AppNotification } from "@/data/notificationsData";
+import { isApproval } from "@/api/notifications";
+import type { AppNotification } from "@/api/types/notifications";
 import { cn } from "@/lib/utils";
 
 function timeAgo(iso: string): string {
@@ -24,7 +26,7 @@ function timeAgo(iso: string): string {
 }
 
 export function NotificationItem({
-  notification, selected, onToggleSelect, onOpen, onToggleRead, onArchive, onDelete, onApprove, onReject,
+  notification, selected, onToggleSelect, onOpen, onToggleRead, onArchive, onRestore,
 }: {
   notification: AppNotification;
   selected: boolean;
@@ -32,15 +34,14 @@ export function NotificationItem({
   onOpen: () => void;
   onToggleRead: () => void;
   onArchive: () => void;
-  onDelete: () => void;
-  onApprove: () => void;
-  onReject: () => void;
+  onRestore: () => void;
 }) {
+  const navigate = useNavigate();
   const n = notification;
   const Icon = iconFor(n.category, n.type);
   const isUnread = n.status === "unread";
   const isArchived = n.status === "archived";
-  const showApprovalActions = n.isApproval && !n.approvalDecision && !isArchived;
+  const showOpen = isApproval(n) && !!n.actionUrl && !isArchived;
 
   return (
     <div
@@ -69,23 +70,17 @@ export function NotificationItem({
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
             <span className="rounded-md bg-muted px-1.5 py-0.5">{n.category}</span>
             <NotificationPriorityBadge priority={n.priority} />
-            <span>· {n.relatedModule}</span>
+            {n.relatedModule && <span>· {n.relatedModule}</span>}
             <span>· {timeAgo(n.createdAt)}</span>
-            <span>· by {n.createdBy}</span>
           </div>
         </div>
       </button>
 
       <div className="flex shrink-0 items-start gap-1.5">
-        {showApprovalActions ? (
-          <>
-            <Button size="sm" variant="outline" className="h-7 gap-1 border-emerald-300 text-[11.5px] text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400" onClick={onApprove}>
-              <Check className="h-3.5 w-3.5" /> Approve
-            </Button>
-            <Button size="sm" variant="outline" className="h-7 gap-1 border-rose-300 text-[11.5px] text-rose-700 hover:bg-rose-50 dark:text-rose-400" onClick={onReject}>
-              <X className="h-3.5 w-3.5" /> Reject
-            </Button>
-          </>
+        {showOpen ? (
+          <Button size="sm" variant="outline" className="h-7 gap-1 border-amber-300 text-[11.5px] text-amber-700 hover:bg-amber-50 dark:text-amber-400" onClick={() => { onOpen(); navigate(n.actionUrl); }}>
+            <ExternalLink className="h-3.5 w-3.5" /> Review
+          </Button>
         ) : (
           <Button size="sm" variant="outline" className="h-7 gap-1 text-[11.5px]" onClick={onOpen}>
             <Eye className="h-3.5 w-3.5" /> View
@@ -102,11 +97,13 @@ export function NotificationItem({
               {isUnread ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
               Mark as {isUnread ? "read" : "unread"}
             </DropdownMenuItem>
-            {!isArchived && (
-              <DropdownMenuItem onClick={onArchive}><Archive className="h-3.5 w-3.5" /> Archive</DropdownMenuItem>
+            {n.actionUrl && (
+              <DropdownMenuItem onClick={() => { onOpen(); navigate(n.actionUrl); }}><ExternalLink className="h-3.5 w-3.5" /> Open related page</DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive" onClick={onDelete}><Trash2 className="h-3.5 w-3.5" /> Delete</DropdownMenuItem>
+            {isArchived
+              ? <DropdownMenuItem onClick={onRestore}><ArchiveRestore className="h-3.5 w-3.5" /> Restore</DropdownMenuItem>
+              : <DropdownMenuItem onClick={onArchive}><Archive className="h-3.5 w-3.5" /> Archive</DropdownMenuItem>}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

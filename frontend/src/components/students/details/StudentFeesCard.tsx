@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { FeeStatus, Payment } from "@/data/studentDetailsData";
+import type { FeeStatus, Payment } from "@/api/types/students";
 import { cn } from "@/lib/utils";
 
 function StatusBadge({ status }: { status: FeeStatus["status"] | Payment["status"] }) {

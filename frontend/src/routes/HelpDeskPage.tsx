@@ -1,8 +1,13 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 
-import { CreateTicketModal, type NewTicketFormData } from "@/components/helpdesk/CreateTicketModal";
+import { CreateTicketModal } from "@/components/helpdesk/CreateTicketModal";
+import { useTicketHandlers } from "@/components/helpdesk/useTicketHandlers";
+import { Button } from "@/components/ui/button";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { useTickets } from "@/api/helpdesk";
+import { errorMessage } from "@/api/http";
 import { HelpDeskSummaryCards } from "@/components/helpdesk/HelpDeskSummaryCards";
 import { DEFAULT_TICKET_FILTERS, HelpDeskToolbar, type TicketFilters } from "@/components/helpdesk/HelpDeskToolbar";
 import { SupportAnalytics } from "@/components/helpdesk/SupportAnalytics";
@@ -10,10 +15,7 @@ import { TicketCategoryCards } from "@/components/helpdesk/TicketCategoryCards";
 import { TicketDetailsDrawer } from "@/components/helpdesk/TicketDetailsDrawer";
 import { TicketInboxTable, type TicketAction } from "@/components/helpdesk/TicketInboxTable";
 import { Reveal, SlidingTabs } from "@/components/motion";
-import {
-  ASSIGNEE_DIRECTORY, SUPPORT_TICKETS, createTicketFromForm,
-  type SupportTicket, type TicketPriority, type TicketStatus,
-} from "@/data/helpDeskData";
+import type { SupportTicket, TicketPriority, TicketStatus } from "@/api/types/helpdesk";
 
 const ROLE_TABS = [
   { value: "all", label: "All Tickets" },
@@ -21,21 +23,20 @@ const ROLE_TABS = [
   { value: "Parent", label: "Parents" },
   { value: "Teacher", label: "Teachers" },
   { value: "Staff", label: "Staff" },
-  { value: "Accountant", label: "Accountant" },
-  { value: "Librarian", label: "Library" },
-  { value: "Transport Staff", label: "Transport" },
   { value: "Principal", label: "Principal" },
   { value: "technical", label: "Technical" },
 ];
 
 export function HelpDeskPage() {
   const navigate = useNavigate();
-  const [tickets, setTickets] = useState<SupportTicket[]>(SUPPORT_TICKETS);
+  const query = useTickets();
+  const tickets = useMemo(() => query.data ?? [], [query.data]);
+  const h = useTicketHandlers(tickets);
   const [roleTab, setRoleTab] = useState("all");
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<TicketFilters>(DEFAULT_TICKET_FILTERS);
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [drawerTicketId, setDrawerTicketId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [drawerTicketId, setDrawerTicketId] = useState<string | null>(null);
   const [drawerTab, setDrawerTab] = useState("details");
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -61,7 +62,7 @@ export function HelpDeskPage() {
         if (filters.assignedTo === "unassigned" ? t.assignedTo !== null : t.assignedTo?.name !== filters.assignedTo) return false;
       }
       if (filters.slaStatus !== "all" && t.sla.status !== filters.slaStatus) return false;
-      if (filters.department !== "all" && t.assignedTo?.department !== filters.department) return false;
+      if (filters.department !== "all" && t.department !== filters.department) return false;
       if (filters.source !== "all" && t.source !== filters.source) return false;
       if (filters.dateRange !== "all") {
         const ageMs = Date.now() - new Date(t.createdAt).getTime();
@@ -72,17 +73,10 @@ export function HelpDeskPage() {
     });
   }, [tickets, roleTab, search, filters]);
 
-  function updateTicket(id: number, patch: Partial<SupportTicket> | ((t: SupportTicket) => SupportTicket)) {
-    setTickets((prev) => prev.map((t) => {
-      if (t.id !== id) return t;
-      return typeof patch === "function" ? patch(t) : { ...t, ...patch };
-    }));
-  }
-
-  function toggleSelect(id: number) {
+  function toggleSelect(id: string) {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
-  function toggleSelectAll(ids: number[], checked: boolean) {
+  function toggleSelectAll(ids: string[], checked: boolean) {
     setSelectedIds((prev) => (checked ? Array.from(new Set([...prev, ...ids])) : prev.filter((id) => !ids.includes(id))));
   }
 
@@ -92,118 +86,36 @@ export function HelpDeskPage() {
   }
 
   function quickAction(ticket: SupportTicket, action: TicketAction) {
-    if (action === "escalate") {
-      updateTicket(ticket.id, (t) => ({
-        ...t, status: "Escalated", priority: "Urgent", updatedAt: new Date().toISOString(),
-        activities: [...t.activities, { id: Date.now(), action: "Escalated by Super Admin", by: "Super Admin", at: new Date().toISOString() }],
-      }));
-      console.log("Escalated ticket:", ticket.ticketId);
-      toast.success(`${ticket.ticketId} escalated.`);
-    } else if (action === "close") {
-      updateTicket(ticket.id, (t) => ({
-        ...t, status: "Closed", updatedAt: new Date().toISOString(),
-        activities: [...t.activities, { id: Date.now(), action: "Closed by Super Admin", by: "Super Admin", at: new Date().toISOString() }],
-      }));
-      console.log("Closed ticket:", ticket.ticketId);
-      toast.success(`${ticket.ticketId} closed.`);
-    } else if (action === "delete") {
-      if (!window.confirm(`Delete ${ticket.ticketId}? This cannot be undone.`)) return;
-      setTickets((prev) => prev.filter((t) => t.id !== ticket.id));
-      console.log("Deleted ticket:", ticket.ticketId);
-      toast.success(`${ticket.ticketId} deleted.`);
-    }
+    if (action === "escalate" || action === "close") h.quickAction(ticket, action);
   }
 
-  function sendMessage(ticketId: number, body: string, isInternal: boolean, attachmentName?: string) {
-    const now = new Date().toISOString();
-    const attachments = attachmentName ? [{ id: Date.now(), name: attachmentName, size: "—", type: "File" }] : [];
-    updateTicket(ticketId, (t) => ({
-      ...t,
-      updatedAt: now,
-      messages: isInternal ? t.messages : [...t.messages, { id: Date.now(), author: "Super Admin", authorRole: "Support Team", body, isInternal: false, timestamp: now, attachments }],
-      internalNotes: isInternal ? [...t.internalNotes, { id: Date.now(), author: "Super Admin", authorRole: "Support Team", body, isInternal: true, timestamp: now, attachments }] : t.internalNotes,
-      activities: [...t.activities, { id: Date.now(), action: isInternal ? "Internal note added" : "Admin replied", by: "Super Admin", at: now }],
-    }));
-    console.log("Ticket message:", { ticketId, body, isInternal, attachmentName });
-    toast.success(isInternal ? "Internal note added." : "Reply sent.");
-  }
-
-  function assignTicket(ticketId: number, assigneeName: string, dueDate: string, priority: TicketPriority, note: string, notify: boolean) {
-    const assignee = ASSIGNEE_DIRECTORY.find((a) => a.name === assigneeName) ?? null;
-    const now = new Date().toISOString();
-    updateTicket(ticketId, (t) => ({
-      ...t,
-      assignedTo: assignee,
-      priority,
-      status: t.status === "New" || t.status === "Open" ? "Assigned" : t.status,
-      updatedAt: now,
-      internalNotes: note ? [...t.internalNotes, { id: Date.now(), author: "Super Admin", authorRole: "Support Team", body: note, isInternal: true, timestamp: now, attachments: [] }] : t.internalNotes,
-      activities: [...t.activities, { id: Date.now(), action: `Assigned to ${assigneeName}${assignee ? ` (${assignee.department})` : ""}`, by: "Super Admin", at: now }],
-    }));
-    console.log("Assigned ticket:", { ticketId, assigneeName, dueDate, priority, note, notify });
-  }
-
-  function statusChange(ticketId: number, status: TicketStatus, resolution?: { summary: string; category: string; notifyRequester: boolean }) {
-    const now = new Date().toISOString();
-    updateTicket(ticketId, (t) => ({
-      ...t,
-      status,
-      updatedAt: now,
-      resolutionSummary: resolution?.summary ?? t.resolutionSummary,
-      resolutionCategory: resolution?.category ?? t.resolutionCategory,
-      messages: resolution ? [...t.messages, { id: Date.now(), author: "Super Admin", authorRole: "Support Team", body: resolution.summary, isInternal: false, timestamp: now, attachments: [] }] : t.messages,
-      activities: [...t.activities, { id: Date.now(), action: `Status changed to ${status}`, by: "Super Admin", at: now }],
-    }));
-    console.log("Status changed:", { ticketId, status, resolution });
-  }
-
-  function escalateTicket(ticketId: number, target: string, reason: string, dueDate: string, markUrgent: boolean) {
-    const now = new Date().toISOString();
-    updateTicket(ticketId, (t) => ({
-      ...t,
-      status: "Escalated",
-      priority: markUrgent ? "Urgent" : t.priority,
-      escalationReason: reason,
-      updatedAt: now,
-      activities: [...t.activities, { id: Date.now(), action: `Escalated to ${target} — ${reason}`, by: "Super Admin", at: now }],
-    }));
-    console.log("Escalated ticket:", { ticketId, target, reason, dueDate, markUrgent });
-  }
+  const sendMessage = h.sendMessage;
+  const assignTicket = h.assignTicket;
+  const statusChange = h.statusChange;
+  const escalateTicket = h.escalateTicket;
 
   function bulkAssign(assigneeName: string) {
-    const assignee = ASSIGNEE_DIRECTORY.find((a) => a.name === assigneeName) ?? null;
-    const now = new Date().toISOString();
-    setTickets((prev) => prev.map((t) => (selectedIds.includes(t.id)
-      ? { ...t, assignedTo: assignee, updatedAt: now, activities: [...t.activities, { id: Date.now(), action: `Bulk-assigned to ${assigneeName}`, by: "Super Admin", at: now }] }
-      : t)));
-    console.log("Bulk assign:", selectedIds, assigneeName);
-    toast.success(`${selectedIds.length} ticket(s) assigned to ${assigneeName}.`);
-    setSelectedIds([]);
+    const ids = selectedIds;
+    void h.bulk(ids, (t) => h.assignTo(t, assigneeName), `assigned to ${assigneeName}`).then(() => setSelectedIds([]));
   }
   function bulkPriority(priority: TicketPriority) {
-    setTickets((prev) => prev.map((t) => (selectedIds.includes(t.id) ? { ...t, priority, updatedAt: new Date().toISOString() } : t)));
-    console.log("Bulk priority:", selectedIds, priority);
-    toast.success(`Priority set to ${priority} for ${selectedIds.length} ticket(s).`);
-    setSelectedIds([]);
+    const ids = selectedIds;
+    void h.bulk(ids, (t) => h.moveTo(t, t.status === "New" ? "Open" : t.status, "", priority), `set to ${priority}`)
+      .then(() => setSelectedIds([]));
   }
   function bulkStatus(status: TicketStatus) {
-    setTickets((prev) => prev.map((t) => (selectedIds.includes(t.id) ? { ...t, status, updatedAt: new Date().toISOString() } : t)));
-    console.log("Bulk status:", selectedIds, status);
-    toast.success(`Status set to ${status} for ${selectedIds.length} ticket(s).`);
-    setSelectedIds([]);
+    const ids = selectedIds;
+    void h.bulk(ids, (t) => h.moveTo(t, status), `moved to ${status}`).then(() => setSelectedIds([]));
   }
   function bulkClose() {
-    setTickets((prev) => prev.map((t) => (selectedIds.includes(t.id) ? { ...t, status: "Closed" as TicketStatus, updatedAt: new Date().toISOString() } : t)));
-    console.log("Bulk close:", selectedIds);
-    toast.success(`${selectedIds.length} ticket(s) closed.`);
-    setSelectedIds([]);
+    const ids = selectedIds;
+    void h.bulk(ids, (t) => h.moveTo(t, "Closed"), "closed").then(() => setSelectedIds([]));
   }
 
-  function handleCreateTicket(data: NewTicketFormData) {
-    const ticket = createTicketFromForm(data);
-    setTickets((prev) => [ticket, ...prev]);
-    console.log("Created ticket:", ticket);
-    toast.success(`${ticket.ticketId} created successfully.`);
+  if (query.isLoading) return <PremiumSkeleton className="h-96 w-full rounded-2xl" />;
+  if (query.isError) {
+    return <PremiumEmptyState title="Couldn't load tickets" description={errorMessage(query.error)}
+      action={<Button size="sm" variant="outline" onClick={() => query.refetch()}>Try again</Button>} />;
   }
 
   return (
@@ -258,7 +170,7 @@ export function HelpDeskPage() {
       <CreateTicketModal
         open={createOpen}
         onOpenChange={setCreateOpen}
-        onCreate={handleCreateTicket}
+        onCreated={(id) => setDrawerTicketId(id)}
         onOpenFullPage={() => { setCreateOpen(false); navigate("/help/tickets/new"); }}
       />
     </div>

@@ -1,6 +1,6 @@
 import { BarChart2, TrendingUp } from "lucide-react";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { SubjectPerformance } from "@/data/subjectDetailData";
+import type { SubjectPerformance } from "@/api/types/subjects";
 
 const MEDALS = ["bg-yellow-400 text-yellow-900","bg-slate-300 text-slate-700","bg-amber-600 text-amber-50"];
 

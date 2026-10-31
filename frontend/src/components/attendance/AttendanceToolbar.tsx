@@ -1,7 +1,10 @@
 import { Search, X } from "lucide-react";
 import { Input }  from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CLASS_OPTIONS, SECTION_OPTIONS, MONTH_OPTIONS, YEAR_OPTIONS } from "@/data/attendanceData";
+import { MONTH_OPTIONS } from "@/api/types/attendance";
+
+const thisYear = new Date().getFullYear();
+const YEAR_OPTIONS = [String(thisYear), String(thisYear - 1)];
 
 export interface AttendanceFilters {
   search:    string;
@@ -13,6 +16,8 @@ export interface AttendanceFilters {
 }
 
 interface Props {
+  classOptions?: string[];
+  sectionOptions?: string[];
   filters:   AttendanceFilters;
   onChange:  (f: AttendanceFilters) => void;
   onClear:   () => void;
@@ -45,7 +50,7 @@ function hasFilter(f: AttendanceFilters) {
 }
 
 export function AttendanceToolbar({
-  filters, onChange, onClear,
+  filters, onChange, onClear, classOptions: CLASS_OPTIONS = [], sectionOptions: SECTION_OPTIONS = [],
   showSearch  = true,
   showStatus  = false,
   showClass   = true,
