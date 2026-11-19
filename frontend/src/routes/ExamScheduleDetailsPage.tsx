@@ -4,7 +4,11 @@ import { Button } from "@/components/ui/button";
 import { DetailCard } from "@/components/ui/DetailCard";
 import { PremiumCard }   from "@/components/ui/PremiumCard";
 import { ExamStatusBadge } from "@/components/exams/ExamStatusBadge";
-import { EXAM_SCHEDULES, EXAM_CONFLICT_IDS } from "@/data/examsData";
+import { useExamSchedule } from "@/api/exams";
+import { errorMessage } from "@/api/http";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 
@@ -18,7 +22,7 @@ const STATUS_GRAD: Record<string, string> = {
 };
 
 const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-function dayName(d: string) { return DAY_NAMES[new Date(d).getDay()]; }
+function dayName(d: string) { return d ? DAY_NAMES[new Date(`${d}T00:00`).getDay()] : ""; }
 
 function InfoCard({ icon: Icon, label, value, sub, highlight }: {
   icon: LucideIcon; label: string; value: string; sub?: string; highlight?: boolean;
@@ -43,8 +47,16 @@ function InfoCard({ icon: Icon, label, value, sub, highlight }: {
 export function ExamScheduleDetailsPage() {
   const { id }   = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const exam     = EXAM_SCHEDULES.find((e) => e.id === Number(id));
+  const query    = useExamSchedule();
+  const { hasPermission } = useAuth();
+  const EXAM_SCHEDULES = query.data?.schedule ?? [];
+  const exam     = EXAM_SCHEDULES.find((e) => e.id === id);
 
+  if (query.isLoading) return <PremiumSkeleton className="h-96 w-full rounded-2xl" />;
+  if (query.isError) {
+    return <PremiumEmptyState title="Couldn't load this paper" description={errorMessage(query.error)}
+      action={<Button size="sm" variant="outline" onClick={() => query.refetch()}>Try again</Button>} />;
+  }
   if (!exam) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3">
@@ -56,16 +68,16 @@ export function ExamScheduleDetailsPage() {
     );
   }
 
-  const isConflict  = EXAM_CONFLICT_IDS.has(exam.id);
+  const clashes     = (query.data?.clashes ?? []).filter((c) => c.paperId === exam.id);
+  const conflictIds = new Set((query.data?.clashes ?? []).map((c) => c.paperId));
+  const isConflict  = clashes.length > 0;
+  const canEdit     = hasPermission("exam.create") && !exam.isLocked;
   const grad        = STATUS_GRAD[exam.status] ?? STATUS_GRAD.draft;
   const duration    = exam.duration;
 
-  // Other exams on same date
-  const sameDay = EXAM_SCHEDULES.filter((e) => e.id !== exam.id && e.date === exam.date);
-  // Exams in same room same date same time
-  const roomConflicts = sameDay.filter((e) => e.room === exam.room && e.startTime === exam.startTime);
-  // Invigilator conflicts
-  const invConflicts  = sameDay.filter((e) => e.invigilator === exam.invigilator && e.startTime === exam.startTime);
+  // Other papers on the same date
+  const sameDay = exam.date ? EXAM_SCHEDULES.filter((e) => e.id !== exam.id && e.date === exam.date) : [];
+  const invClash = clashes.some((c) => c.reason.includes("invigilator"));
 
   return (
     <div className="space-y-6">
@@ -83,10 +95,12 @@ export function ExamScheduleDetailsPage() {
                 <AlertTriangle className="h-3.5 w-3.5" />Conflict
               </div>
             )}
+            {canEdit && (
             <Button size="sm" className="h-8 gap-1.5 text-[12px] bg-white/20 hover:bg-white/30 border border-white/20"
               onClick={() => navigate(`/exams/schedule/${exam.id}/edit`)}>
               <Pencil className="h-3.5 w-3.5" />Edit
             </Button>
+            )}
           </div>
         </div>
 
@@ -98,19 +112,19 @@ export function ExamScheduleDetailsPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <ExamStatusBadge status={exam.status} className="bg-white/20 text-white ring-white/30" />
-              <span className="text-white/70 text-[11px]">{exam.examId}</span>
+              <span className="text-white/70 text-[11px]">{exam.examId}{exam.isLocked ? " · Marks locked" : ""}</span>
             </div>
             <h1 className="text-2xl font-bold">{exam.subject}</h1>
             <p className="text-white/80 text-[13px] mt-0.5">
-              {exam.examName} · {exam.term} · {exam.academicYear}
+              {[exam.examName, exam.term, exam.academicYear].filter(Boolean).join(" · ")}
             </p>
           </div>
         </div>
 
         {/* Stats strip */}
         <div className="mt-6 flex flex-wrap gap-6 text-[12px] text-white/80">
-          <div><span className="text-white/60">Date</span> <strong className="text-white ml-1">{exam.date} ({dayName(exam.date)})</strong></div>
-          <div><span className="text-white/60">Time</span> <strong className="text-white ml-1">{exam.startTime} – {exam.endTime}</strong></div>
+          <div><span className="text-white/60">Date</span> <strong className="text-white ml-1">{exam.date ? `${exam.date} (${dayName(exam.date)})` : "Not set"}</strong></div>
+          <div><span className="text-white/60">Time</span> <strong className="text-white ml-1">{exam.startTime ? `${exam.startTime} – ${exam.endTime}` : "Not set"}</strong></div>
           <div><span className="text-white/60">Duration</span> <strong className="text-white ml-1">{duration} min</strong></div>
           <div><span className="text-white/60">Full Marks</span> <strong className="text-white ml-1">{exam.fullMarks}</strong></div>
           <div><span className="text-white/60">Pass Marks</span> <strong className="text-white ml-1">{exam.passMarks}</strong></div>
@@ -127,18 +141,11 @@ export function ExamScheduleDetailsPage() {
           <AlertTriangle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
           <div className="text-[12px]">
             <p className="font-semibold text-rose-700 dark:text-rose-300">Schedule Conflict Detected</p>
-            {invConflicts.length > 0 && (
-              <p className="text-rose-600 dark:text-rose-400 mt-0.5">
-                Invigilator <strong>{exam.invigilator}</strong> is also assigned to{" "}
-                {invConflicts.map((c) => `${c.examId} (${c.subject})`).join(", ")} at the same time.
+            {clashes.map((c) => (
+              <p key={c.otherPaperId + c.reason} className="text-rose-600 dark:text-rose-400 mt-0.5">
+                Clashes with <strong>{c.subject}</strong> ({c.exam}) at {c.time}: {c.reason}.
               </p>
-            )}
-            {roomConflicts.length > 0 && (
-              <p className="text-rose-600 dark:text-rose-400 mt-0.5">
-                Room <strong>{exam.room}</strong> has a double-booking with{" "}
-                {roomConflicts.map((c) => `${c.examId}`).join(", ")}.
-              </p>
-            )}
+            ))}
           </div>
         </div>
       )}
@@ -146,19 +153,25 @@ export function ExamScheduleDetailsPage() {
       {/* Info cards grid */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <InfoCard icon={BookOpen}    label="Subject"      value={exam.subject}     sub={`Type: ${exam.examType}`} />
-        <InfoCard icon={Users}       label="Class"        value={`${exam.className} – ${exam.section}`} sub={`Year: ${exam.academicYear}`} />
-        <InfoCard icon={CalendarDays} label="Date"        value={exam.date}        sub={`${dayName(exam.date)} · ${exam.term}`} />
-        <InfoCard icon={Clock}       label="Time"         value={`${exam.startTime} – ${exam.endTime}`} sub={`${duration} minutes · Report by ${exam.reportingTime}`} />
-        <InfoCard icon={FileText}    label="Room"         value={exam.room}        sub={`Capacity: ${exam.seatCapacity} seats`} />
-        <InfoCard icon={Users}       label="Invigilator"  value={exam.invigilator} sub={exam.assistantInvigilator ? `Asst: ${exam.assistantInvigilator}` : undefined} highlight={invConflicts.length > 0} />
+        <InfoCard icon={Users}       label="Class"        value={exam.className} sub={`All sections · ${exam.academicYear}`} />
+        <InfoCard icon={CalendarDays} label="Date"        value={exam.date || "Not set"} sub={[dayName(exam.date), exam.term].filter(Boolean).join(" · ")} />
+        <InfoCard icon={Clock}       label="Time"         value={exam.startTime ? `${exam.startTime} – ${exam.endTime}` : "Not set"} sub={exam.startTime ? `${duration} minutes${exam.reportingTime ? ` · Report by ${exam.reportingTime}` : ""}` : undefined} />
+        <InfoCard icon={FileText}    label="Room"         value={exam.room || "Not assigned"} sub={exam.seatCapacity !== null ? `Capacity: ${exam.seatCapacity} seats` : undefined} />
+        <InfoCard icon={Users}       label="Invigilator"  value={exam.invigilator || "Not assigned"} sub={exam.assistantInvigilator ? `Asst: ${exam.assistantInvigilator}` : undefined} highlight={invClash} />
         <InfoCard icon={FileText}    label="Marks"        value={`${exam.fullMarks} full / ${exam.passMarks} pass`} sub={`Theory ${exam.theoryMarks} · Practical ${exam.practicalMarks} · Internal ${exam.internalMarks}`} />
-        <InfoCard icon={Users}       label="Subject Teacher" value={exam.subjectTeacher || "—"} sub="Responsible for marks entry" />
+        <InfoCard icon={Users}       label="Marks Entered" value={String(exam.marksEntered)} sub={exam.resultPublished ? "Results published" : exam.isLocked ? "Marks locked" : "Open for entry"} />
       </div>
 
       {/* Instructions */}
       {exam.instructions && (
         <DetailCard icon={FileText} title="Student Instructions">
           <p className="text-[12px] text-muted-foreground leading-relaxed">{exam.instructions}</p>
+        </DetailCard>
+      )}
+
+      {exam.notes && hasPermission("exam.create") && (
+        <DetailCard icon={FileText} title="Internal Notes">
+          <p className="text-[12px] text-muted-foreground leading-relaxed">{exam.notes}</p>
         </DetailCard>
       )}
 
@@ -171,12 +184,12 @@ export function ExamScheduleDetailsPage() {
                 onClick={() => navigate(`/exams/schedule/${e.id}`)}
                 className={cn(
                   "flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-muted/30 transition-colors",
-                  EXAM_CONFLICT_IDS.has(e.id) ? "border-rose-200 bg-rose-50/30" : "border-neutral-200/80 dark:border-neutral-800",
+                  conflictIds.has(e.id) ? "border-rose-200 bg-rose-50/30" : "border-neutral-200/80 dark:border-neutral-800",
                 )}>
                 <ExamStatusBadge status={e.status} />
                 <div className="flex-1 min-w-0">
                   <p className="text-[12px] font-medium text-foreground">{e.subject}</p>
-                  <p className="text-[11px] text-muted-foreground">{e.className} {e.section} · {e.startTime} · {e.room}</p>
+                  <p className="text-[11px] text-muted-foreground">{[e.className, e.startTime, e.room].filter(Boolean).join(" · ")}</p>
                 </div>
                 <span className="text-[11px] text-muted-foreground">{e.invigilator}</span>
               </div>

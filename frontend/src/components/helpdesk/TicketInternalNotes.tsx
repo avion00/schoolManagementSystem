@@ -1,6 +1,6 @@
 import { StickyNote } from "lucide-react";
 
-import type { TicketMessage } from "@/data/helpDeskData";
+import type { TicketMessage } from "@/api/types/helpdesk";
 
 function formatWhen(iso: string) {
   return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });

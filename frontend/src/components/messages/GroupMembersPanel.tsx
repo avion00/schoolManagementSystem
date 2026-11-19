@@ -2,7 +2,8 @@ import { Crown, UserMinus } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { chatUserById, type Conversation } from "@/data/messagesData";
+import { chatUserById } from "@/lib/messagesService";
+import { type Conversation } from "@/api/types/messages";
 
 function initialsOf(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);

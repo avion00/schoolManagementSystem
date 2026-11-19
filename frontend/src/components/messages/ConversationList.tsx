@@ -4,7 +4,8 @@ import { SquarePen } from "lucide-react";
 import { ConversationListItem } from "@/components/messages/ConversationListItem";
 import { SlidingTabs } from "@/components/motion";
 import { Button } from "@/components/ui/button";
-import { CONVERSATION_FILTER_TABS, chatUserById, type ChatRole, type Conversation, type ConversationFilterTab } from "@/data/messagesData";
+import { chatUserById } from "@/lib/messagesService";
+import { CONVERSATION_FILTER_TABS, type ChatRole, type Conversation, type ConversationFilterTab } from "@/api/types/messages";
 import { cn } from "@/lib/utils";
 
 function matchesRoleTab(conv: Conversation, tab: ConversationFilterTab, currentUserId: string): boolean {

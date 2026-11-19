@@ -2,14 +2,20 @@ import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
-import { ExpenseForm, type ExpenseFormData } from "@/components/billing/forms/ExpenseForm";
+import { ExpenseForm } from "@/components/billing/forms/ExpenseForm";
 import { ExpensesSummaryCards } from "@/components/billing/ExpensesSummaryCards";
 import { ExpensesTable, type ExpenseAction } from "@/components/billing/ExpensesTable";
 import { ExpensesToolbar, type ExpensesFilters } from "@/components/billing/ExpensesToolbar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { EXPENSES, type Expense } from "@/data/billingData";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { METHOD_LABEL, useDeleteExpense, useExpenseAction, useExpenses } from "@/api/billing";
+import { downloadFile } from "@/api/files";
+import { errorMessage } from "@/api/http";
+import type { Expense } from "@/api/types/billing";
+import { useAuth } from "@/lib/auth";
 
 const PAGE_SIZE = 10;
 type SortField = "expenseId" | "category" | "vendor" | "amount" | "date" | "status";
@@ -18,7 +24,13 @@ type SortDir = "asc" | "desc";
 const EMPTY_FILTERS: ExpensesFilters = { search: "", category: "all", method: "all", status: "all" };
 
 export function BillingExpensesPage() {
-  const [expenses, setExpenses] = useState<Expense[]>(EXPENSES);
+  const query = useExpenses();
+  const expenses = useMemo(() => query.data ?? [], [query.data]);
+  const act = useExpenseAction();
+  const remove = useDeleteExpense();
+  const { hasPermission } = useAuth();
+  const can = { manage: hasPermission("finance.expense.manage"), approve: hasPermission("finance.expense.approve") };
+  const [editing, setEditing] = useState<Expense | null>(null);
   const [filters, setFilters] = useState<ExpensesFilters>(EMPTY_FILTERS);
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -49,7 +61,7 @@ export function BillingExpensesPage() {
       if (filters.category !== "all" && e.category !== filters.category) return false;
       if (filters.method !== "all" && e.paymentMethod !== filters.method) return false;
       if (filters.status !== "all" && e.status !== filters.status) return false;
-      if (q && !`${e.expenseId} ${e.vendor} ${e.category}`.toLowerCase().includes(q)) return false;
+      if (q && !`${e.expenseId} ${e.vendor} ${e.category} ${e.description}`.toLowerCase().includes(q)) return false;
       return true;
     });
   }, [expenses, filters]);
@@ -68,17 +80,31 @@ export function BillingExpensesPage() {
   const paginated: Expense[] = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   function handleAction(e: Expense, action: ExpenseAction) {
-    if (action === "view") { toast.info(`Viewing ${e.expenseId}`); return; }
-    const nextStatus = action === "approve" ? "Approved" : "Rejected";
-    setExpenses((prev) => prev.map((row) => (row.id === e.id ? { ...row, status: nextStatus } : row)));
-    console.log(`Expense ${action}:`, e.expenseId);
-    toast.success(`${e.expenseId} ${nextStatus.toLowerCase()}.`);
-  }
-
-  function handleAdd(data: ExpenseFormData) {
-    console.log("New expense:", data);
-    toast.success("Expense added successfully.");
-    setAddOpen(false);
+    const fail = (err: unknown) => toast.error(errorMessage(err));
+    switch (action) {
+      case "edit": setEditing(e); break;
+      case "receipt":
+        if (e.attachment) downloadFile(e.attachment as Parameters<typeof downloadFile>[0]).catch(fail);
+        break;
+      case "approve":
+      case "reject": {
+        const remarks = window.prompt(`${action === "approve" ? "Approve" : "Reject"} ${e.expenseId}? Optional remarks:`);
+        if (remarks === null) return;
+        act.mutate({ id: e.id, action, remarks }, { onSuccess: () => toast.success(`${e.expenseId} ${action === "approve" ? "approved" : "rejected"}.`), onError: fail });
+        break;
+      }
+      case "pay": {
+        const options = Object.entries(METHOD_LABEL).map(([v, l]) => `${v} (${l})`).join(", ");
+        const method = window.prompt(`Mark ${e.expenseId} as paid. Payment method — one of: ${options}`, "bank");
+        if (!method || !METHOD_LABEL[method.trim()]) { if (method) toast.error("Unknown payment method."); return; }
+        act.mutate({ id: e.id, action: "pay", paymentMethod: method.trim() }, { onSuccess: () => toast.success(`${e.expenseId} marked as paid.`), onError: fail });
+        break;
+      }
+      case "delete":
+        if (!window.confirm(`Delete ${e.expenseId}?`)) return;
+        remove.mutate(e.id, { onSuccess: () => toast.success(`${e.expenseId} deleted.`), onError: fail });
+        break;
+    }
   }
 
   return (
@@ -93,12 +119,19 @@ export function BillingExpensesPage() {
           </>
         }
         description="Track and approve outgoing school expenses."
-        actions={
+        actions={can.manage ? (
           <Button size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => setAddOpen(true)}>
             <Plus className="h-4 w-4" /> Add Expense
           </Button>
-        }
+        ) : undefined}
       />
+
+      {query.isError && (
+        <PremiumEmptyState title="Couldn't load expenses" description={errorMessage(query.error)}
+          action={<Button size="sm" variant="outline" onClick={() => query.refetch()}>Try again</Button>} />
+      )}
+      {query.isLoading && <PremiumSkeleton className="h-72 w-full rounded-2xl" />}
+      {query.isSuccess && (<>
 
       <ExpensesSummaryCards expenses={expenses} />
 
@@ -115,15 +148,27 @@ export function BillingExpensesPage() {
         pagination={{ page: safePage, pageSize: PAGE_SIZE, total: sorted.length, onPage: (p) => { setPage(p); setSelected(new Set()); }, itemLabel: "expenses" }}
         hasActiveFilter={hasActiveFilter}
         onResetFilters={resetFilters}
+        can={can}
       />
+      </>)}
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Expense</DialogTitle>
-            <DialogDescription>Log a new outgoing school expense.</DialogDescription>
+            <DialogDescription>Log a new outgoing school expense. It needs approval before it's paid.</DialogDescription>
           </DialogHeader>
-          <ExpenseForm onCancel={() => setAddOpen(false)} onSubmit={handleAdd} />
+          <ExpenseForm onCancel={() => setAddOpen(false)} onSaved={() => setAddOpen(false)} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Expense</DialogTitle>
+            <DialogDescription>{editing?.expenseId}</DialogDescription>
+          </DialogHeader>
+          {editing && <ExpenseForm key={editing.id} expense={editing} onCancel={() => setEditing(null)} onSaved={() => setEditing(null)} />}
         </DialogContent>
       </Dialog>
     </div>

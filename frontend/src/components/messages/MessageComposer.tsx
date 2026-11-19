@@ -1,28 +1,16 @@
 import { useRef, useState, type ChangeEvent, type DragEvent, type KeyboardEvent } from "react";
-import { Lock, Mic, Paperclip, Send, Smile, X } from "lucide-react";
+import { Loader2, Lock, Paperclip, Send, Smile, X } from "lucide-react";
+import { toast } from "sonner";
 
 import { AttachmentPreview } from "@/components/messages/AttachmentPreview";
 import { Button } from "@/components/ui/button";
-import type { ChatMessage, ChatUser, MessageAttachment } from "@/data/messagesData";
+import { uploadFile } from "@/api/files";
+import { errorMessage } from "@/api/http";
+import type { ChatMessage, ChatUser, MessageAttachment } from "@/api/types/messages";
+import { mapAttachment } from "@/lib/messagesService";
 import { cn } from "@/lib/utils";
 
 const QUICK_EMOJIS = ["😀", "😂", "👍", "🎉", "❤️", "🙏", "😢", "🔥"];
-
-function kindOf(file: File): MessageAttachment["kind"] {
-  if (file.type.startsWith("image/")) return "image";
-  if (file.type.startsWith("audio/")) return "audio";
-  if (file.type.startsWith("video/")) return "video";
-  if (file.type === "application/pdf") return "pdf";
-  if (file.name.match(/\.(xlsx?|csv)$/i)) return "sheet";
-  if (file.name.match(/\.(docx?|txt)$/i)) return "doc";
-  return "other";
-}
-
-function sizeLabel(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 export function MessageComposer({
   onSend,
@@ -33,7 +21,8 @@ export function MessageComposer({
   disabled = false,
   disabledReason,
 }: {
-  onSend: (body: string, attachments: MessageAttachment[]) => void;
+  /** Resolves when the server has the message; the draft is kept if it fails. */
+  onSend: (body: string, attachments: MessageAttachment[]) => Promise<unknown>;
   onTyping: () => void;
   replyingTo?: ChatMessage;
   replyingToSender?: ChatUser;
@@ -45,26 +34,42 @@ export function MessageComposer({
   const [attachments, setAttachments] = useState<MessageAttachment[]>([]);
   const [showEmojis, setShowEmojis] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(0);
+  const [sending, setSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  function addFiles(files: FileList | null) {
-    if (!files) return;
-    const next = Array.from(files).map((f, i) => ({
-      id: `pending-${Date.now()}-${i}`,
-      name: f.name,
-      kind: kindOf(f),
-      size: sizeLabel(f.size),
-    }));
-    setAttachments((prev) => [...prev, ...next]);
+  // Files upload as soon as they're picked; the message carries their ids.
+  async function addFiles(files: FileList | null) {
+    if (!files?.length) return;
+    const list = Array.from(files);
+    if (attachments.length + list.length > 10) { toast.error("Attach at most 10 files per message."); return; }
+    setUploading((n) => n + list.length);
+    for (const f of list) {
+      try {
+        const stored = await uploadFile(f);
+        setAttachments((prev) => [...prev, mapAttachment(stored)]);
+      } catch (e) {
+        toast.error(`${f.name}: ${errorMessage(e)}`);
+      } finally {
+        setUploading((n) => n - 1);
+      }
+    }
   }
 
-  function handleSend() {
-    if (disabled) return;
+  async function handleSend() {
+    if (disabled || sending || uploading) return;
     if (!text.trim() && attachments.length === 0) return;
-    onSend(text.trim(), attachments);
-    setText("");
-    setAttachments([]);
-    setShowEmojis(false);
+    setSending(true);
+    try {
+      await onSend(text.trim(), attachments);
+      setText("");
+      setAttachments([]);
+      setShowEmojis(false);
+    } catch (e) {
+      toast.error(errorMessage(e, "Message not sent."));
+    } finally {
+      setSending(false);
+    }
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -156,17 +161,14 @@ export function MessageComposer({
           className="max-h-32 flex-1 resize-none rounded-xl border border-input bg-background px-3.5 py-2.5 text-[13.5px] text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-ring"
         />
 
-        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-muted-foreground" aria-label="Voice message (coming soon)" disabled>
-          <Mic className="h-4.5 w-4.5" />
-        </Button>
         <Button
           size="icon"
           className="h-9 w-9 shrink-0"
           onClick={handleSend}
-          disabled={!text.trim() && attachments.length === 0}
-          aria-label="Send message"
+          disabled={(!text.trim() && attachments.length === 0) || sending || uploading > 0}
+          aria-label={uploading ? "Uploading files" : "Send message"}
         >
-          <Send className="h-4 w-4" />
+          {sending || uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
       </div>
     </div>

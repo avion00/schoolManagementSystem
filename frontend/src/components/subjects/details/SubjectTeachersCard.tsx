@@ -1,6 +1,6 @@
 import { Mail, Phone, Users } from "lucide-react";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { SubjectTeacher } from "@/data/subjectDetailData";
+import type { SubjectTeacher } from "@/api/types/subjects";
 
 function initials(name: string) {
   return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();

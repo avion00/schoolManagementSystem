@@ -3,15 +3,20 @@ import { Paperclip, Send } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { uploadFile } from "@/api/files";
+import { errorMessage } from "@/api/http";
 
 export function TicketMessageComposer({
   onSend,
 }: {
-  onSend: (body: string, isInternal: boolean, attachmentName?: string) => void;
+  onSend: (body: string, isInternal: boolean, attachmentIds?: string[]) => void;
 }) {
   const [body, setBody] = useState("");
   const [isInternal, setIsInternal] = useState(false);
-  const [attachmentName, setAttachmentName] = useState<string | undefined>();
+  const [attachment, setAttachment] = useState<{ id: string; name: string } | undefined>();
+  const [uploading, setUploading] = useState(false);
+  const attachmentName = uploading ? "Uploading…" : attachment?.name;
   const [error, setError] = useState<string | null>(null);
   const [shake, setShake] = useState(false);
 
@@ -22,9 +27,9 @@ export function TicketMessageComposer({
       window.setTimeout(() => setShake(false), 450);
       return;
     }
-    onSend(body.trim(), isInternal, attachmentName);
+    onSend(body.trim(), isInternal, attachment ? [attachment.id] : undefined);
     setBody("");
-    setAttachmentName(undefined);
+    setAttachment(undefined);
     setError(null);
   }
 
@@ -62,7 +67,14 @@ export function TicketMessageComposer({
             <Paperclip className="h-3.5 w-3.5" />
             {attachmentName ?? "Attach"}
           </label>
-          <input id="reply-attachment" type="file" className="hidden" onChange={(e) => setAttachmentName(e.target.files?.[0]?.name)} />
+          <input id="reply-attachment" type="file" className="hidden" onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = "";
+            if (!f) return;
+            setUploading(true);
+            uploadFile(f).then((sf) => setAttachment({ id: sf.id, name: sf.original_name }))
+              .catch((err) => toast.error(errorMessage(err))).finally(() => setUploading(false));
+          }} />
           <Button size="sm" className="h-8 gap-1.5 text-[12px]" onClick={handleSend}>
             <Send className="h-3.5 w-3.5" />
             {isInternal ? "Add Note" : "Send Reply"}

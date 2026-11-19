@@ -36,6 +36,17 @@ class School(BaseModel):
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=32, blank=True)
     address = models.TextField(blank=True)
+    principal_name = models.CharField(max_length=120, blank=True)
+    website = models.URLField(blank=True)
+    city = models.CharField(max_length=80, blank=True)
+    state = models.CharField(max_length=80, blank=True)
+    country = models.CharField(max_length=80, blank=True)
+    postal_code = models.CharField(max_length=20, blank=True)
+    registration_number = models.CharField(max_length=60, blank=True)
+    tax_number = models.CharField(max_length=60, blank=True)
+    logo = models.ForeignKey(
+        "files.StoredFile", null=True, blank=True, on_delete=models.SET_NULL, related_name="school_logos"
+    )
 
     class Meta:
         ordering = ["name"]
@@ -81,6 +92,13 @@ class User(UUIDModel, AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     is_active = models.BooleanField(default=True)
     # Set when an admin force-resets the password; UI prompts a change at next login.
     must_change_password = models.BooleanField(default=False)
+    phone = models.CharField(max_length=32, blank=True)
+    timezone = models.CharField(max_length=64, default="Asia/Kathmandu")
+    language = models.CharField(max_length=10, default="en")
+    password_changed_at = models.DateTimeField(null=True, blank=True)
+    # Brute-force protection (limits come from the organization's security settings).
+    failed_login_count = models.PositiveSmallIntegerField(default=0)
+    locked_until = models.DateTimeField(null=True, blank=True)
 
     objects = UserManager()
 
@@ -98,3 +116,17 @@ class User(UUIDModel, AbstractBaseUser, PermissionsMixin, TimeStampedModel):
 
     def get_short_name(self):
         return self.full_name.split(" ")[0] if self.full_name else self.email
+
+
+class UserSession(UUIDModel, TimeStampedModel):
+    """One signed-in device. Its id travels in the JWT as `sid`, so revoking a
+    session cuts off its access token immediately, not just its refresh."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sessions")
+    user_agent = models.CharField(max_length=300, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    last_used_at = models.DateTimeField(auto_now_add=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-last_used_at"]

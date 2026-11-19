@@ -21,7 +21,13 @@ import { DocumentChecklist } from "@/components/students/forms/DocumentChecklist
 import { FormSection } from "@/components/ui/form-section";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CLASS_OPTIONS, SECTION_OPTIONS, STUDENTS } from "@/data/studentsData";
+import { fileObjectUrl, uploadFile } from "@/api/files";
+import { errorMessage, type Schemas } from "@/api/http";
+import {
+  changeStudentStatus, fromGender, toGender, useAcademicOptions, useSaveStudent, useStudentRecord,
+  type GuardianInput,
+} from "@/api/students";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 /* ── Types ────────────────────────────────────────────────────────────────── */
@@ -53,8 +59,8 @@ type Errors = Partial<Record<keyof FormData, string>>;
 const EMPTY: FormData = {
   firstName: "", middleName: "", lastName: "",
   gender: "", dateOfBirth: "", bloodGroup: "",
-  nationality: "", religion: "", studentType: "New", status: "active",
-  academicYear: "2025–2026", admissionDate: "", admissionNo: "", registrationNo: "",
+  nationality: "", religion: "", studentType: "", status: "active",
+  academicYear: "", admissionDate: "", admissionNo: "", registrationNo: "",
   className: "", section: "", roll: "", house: "", previousSchool: "",
   medium: "English", shift: "Morning", classTeacher: "",
   fatherName: "", fatherOccupation: "", fatherPhone: "", fatherEmail: "",
@@ -157,34 +163,11 @@ function TextareaInput({ value, onChange, placeholder, rows = 3 }: {
   );
 }
 
-function ToggleSwitch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
-  return (
-    <label className="flex cursor-pointer items-center gap-2.5">
-      <span
-        role="switch"
-        aria-checked={checked}
-        onClick={() => onChange(!checked)}
-        className={cn(
-          "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          checked ? "bg-primary" : "bg-input",
-        )}
-      >
-        <span
-          className={cn(
-            "pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200",
-            checked ? "translate-x-4" : "translate-x-0",
-          )}
-        />
-      </span>
-      <span className="text-sm font-medium text-foreground">{label}</span>
-    </label>
-  );
-}
 
 /* ── Photo upload ────────────────────────────────────────────────────────── */
 
 function PhotoUpload({ value, onChange, label }: {
-  value: string | null; onChange: (v: string | null) => void; label: string;
+  value: string | null; onChange: (url: string | null, file: File | null) => void; label: string;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   return (
@@ -210,14 +193,14 @@ function PhotoUpload({ value, onChange, label }: {
         className="hidden"
         onChange={(e: ChangeEvent<HTMLInputElement>) => {
           const file = e.target.files?.[0];
-          if (file) onChange(URL.createObjectURL(file));
+          if (file) onChange(URL.createObjectURL(file), file);
         }}
       />
       {value && (
         <button
           type="button"
           className="text-[11px] font-medium text-destructive hover:underline"
-          onClick={() => onChange(null)}
+          onClick={() => onChange(null, null)}
         >
           Remove photo
         </button>
@@ -235,7 +218,6 @@ function validate(f: FormData): Errors {
   if (!f.gender)               e.gender        = "Gender is required";
   if (!f.dateOfBirth)          e.dateOfBirth   = "Date of birth is required";
   if (!f.admissionNo.trim())   e.admissionNo   = "Admission number is required";
-  if (!f.registrationNo.trim())e.registrationNo= "Registration number is required";
   if (!f.className)            e.className     = "Class is required";
   if (!f.section)              e.section       = "Section is required";
   if (!f.fatherName.trim() && !f.guardianName.trim())
@@ -257,6 +239,46 @@ function calcAge(dob: string): string {
   return String(Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000))) + " yrs";
 }
 
+/* ── API record → form ───────────────────────────────────────────────────── */
+
+function recordToForm(r: Schemas["Student"]): FormData {
+  const rel = (name: string) => r.guardians.find((g) => g.relation === name);
+  const father = rel("father");
+  const mother = rel("mother");
+  const other = r.guardians.find((g) => g !== father && g !== mother);
+  return {
+    ...EMPTY,
+    firstName: r.first_name, middleName: r.middle_name ?? "", lastName: r.last_name,
+    gender: toGender(r.gender), dateOfBirth: r.date_of_birth ?? "", bloodGroup: r.blood_group ?? "",
+    nationality: r.nationality ?? "", religion: r.religion ?? "", studentType: r.student_type ?? "",
+    status: r.status,
+    academicYear: r.academic_year, admissionDate: r.admission_date ?? "", admissionNo: r.admission_number,
+    registrationNo: r.registration_number ?? "", className: r.class_level, section: r.section ?? "",
+    roll: r.roll_number ?? "", house: r.house ?? "", previousSchool: r.previous_school ?? "",
+    fatherName: father?.full_name ?? "", fatherOccupation: father?.occupation ?? "",
+    fatherPhone: father?.phone ?? "", fatherEmail: father?.email ?? "",
+    motherName: mother?.full_name ?? "", motherOccupation: mother?.occupation ?? "",
+    motherPhone: mother?.phone ?? "", motherEmail: mother?.email ?? "",
+    guardianName: other?.full_name ?? "", guardianRelation: other?.relation ?? "",
+    guardianPhone: other?.phone ?? "",
+    emergencyContact: [r.emergency_contact_name, r.emergency_contact_phone].filter(Boolean).join(" "),
+    email: r.email ?? "", mobile: r.phone ?? "",
+    presentAddress: r.address ?? "", permanentAddress: r.permanent_address ?? "",
+    sameAddress: !!r.address && r.address === r.permanent_address,
+    city: r.city ?? "", state: r.state ?? "", country: r.country ?? "", postalCode: r.postal_code ?? "",
+    allergies: r.allergies ?? "", medicalConditions: r.medical_conditions ?? "",
+    regularMedication: r.regular_medication ?? "", doctorName: r.doctor_name ?? "",
+    doctorPhone: r.doctor_phone ?? "", emergencyMedicalNote: r.medical_note ?? "",
+    adminNotes: r.admin_notes ?? "",
+  };
+}
+
+/** Split "Name 98xxxxxxx" into contact name / phone (digits and + go to phone). */
+function splitContact(v: string): { name: string; phone: string } {
+  const m = v.trim().match(/^(.*?)[\s,·]*([+\d][\d\s-]{5,})$/);
+  return m ? { name: m[1].trim(), phone: m[2].trim() } : { name: v.trim(), phone: "" };
+}
+
 /* ── Main form ───────────────────────────────────────────────────────────── */
 
 interface Props {
@@ -269,7 +291,12 @@ export function StudentForm({ mode, studentId }: Props) {
   const [form, setForm]     = useState<FormData>(EMPTY);
   const [errors, setErrors] = useState<Errors>({});
   const [photo, setPhoto]   = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoRemoved, setPhotoRemoved] = useState(false);
+  const saving = useSaveStudent();
+  const record = useStudentRecord(mode === "edit" ? studentId : undefined);
+  const options = useAcademicOptions();
+  const { hasPermission } = useAuth();
 
   function set<K extends keyof FormData>(field: K, value: FormData[K]) {
     setForm((prev) => {
@@ -281,38 +308,30 @@ export function StudentForm({ mode, studentId }: Props) {
       if (field === "sameAddress" && value) {
         next.permanentAddress = next.presentAddress;
       }
+      if (field === "className") next.section = "";
       return next;
     });
     // clear error on change
     if (errors[field]) setErrors((e) => ({ ...e, [field]: undefined }));
   }
 
-  // ── Edit mode: pre-fill ──────────────────────────────────────────────
+  // ── Defaults (current year) and edit pre-fill ──────────────────────────
   useEffect(() => {
-    if (mode !== "edit" || !studentId) return;
-    const student = STUDENTS.find((s) => s.id === Number(studentId));
-    if (!student) return;
-    const parts = student.name.trim().split(" ");
-    setForm((prev) => ({
-      ...prev,
-      firstName:       parts[0] ?? "",
-      middleName:      parts.length > 2 ? parts.slice(1, -1).join(" ") : "",
-      lastName:        parts.length > 1 ? parts[parts.length - 1] : "",
-      gender:          student.gender,
-      dateOfBirth:     student.dateOfBirth,
-      admissionNo:     student.admissionNo,
-      registrationNo:  student.registrationNo,
-      className:       student.className,
-      section:         student.section ?? "",
-      roll:            String(student.roll),
-      fatherName:      student.parentName,
-      mobile:          student.mobile,
-      email:           student.email,
-      presentAddress:  student.address,
-      permanentAddress:student.address,
-      status:          student.status,
-    }));
-  }, [mode, studentId]);
+    if (mode === "create" && options.data && !form.academicYear) {
+      const current = options.data.years.find((y) => y.isCurrent) ?? options.data.years[0];
+      if (current) setForm((prev) => ({ ...prev, academicYear: current.id }));
+    }
+  }, [mode, options.data, form.academicYear]);
+
+  useEffect(() => {
+    if (!record.data) return;
+    setForm(recordToForm(record.data));
+    let revoke: string | null = null;
+    if (record.data.photo) {
+      fileObjectUrl(record.data.photo.download_url).then((url) => { revoke = url; setPhoto(url); }).catch(() => {});
+    }
+    return () => { if (revoke) URL.revokeObjectURL(revoke); };
+  }, [record.data]);
 
   // ── Submit ───────────────────────────────────────────────────────────
   async function handleSubmit() {
@@ -324,32 +343,59 @@ export function StudentForm({ mode, studentId }: Props) {
       toast.error("Please fix the highlighted errors before saving.");
       return;
     }
-    setSaving(true);
-    await new Promise((r) => setTimeout(r, 600)); // simulate save
     const fullName = [form.firstName, form.middleName, form.lastName].filter(Boolean).join(" ");
-    console.log("[StudentForm] saved:", { ...form, fullName });
-    toast.success(mode === "create" ? `Student "${fullName}" added successfully!` : `Student "${fullName}" updated successfully!`);
-    setSaving(false);
-    if (mode === "create") {
-      setForm(EMPTY);
-      setErrors({});
-      setPhoto(null);
+    const contact = splitContact(form.emergencyContact);
+    try {
+      let photoId: string | null | undefined;
+      if (photoFile) photoId = (await uploadFile(photoFile)).id;
+      else if (photoRemoved) photoId = null;
+      const payload = {
+        first_name: form.firstName, middle_name: form.middleName, last_name: form.lastName,
+        gender: fromGender(form.gender), date_of_birth: form.dateOfBirth || null,
+        blood_group: form.bloodGroup, nationality: form.nationality, religion: form.religion,
+        student_type: form.studentType,
+        academic_year: form.academicYear, admission_date: form.admissionDate || null,
+        admission_number: form.admissionNo, registration_number: form.registrationNo,
+        class_level: form.className, section: form.section || null, roll_number: form.roll,
+        house: form.house, previous_school: form.previousSchool,
+        email: form.email, phone: form.mobile,
+        address: form.presentAddress, permanent_address: form.permanentAddress,
+        city: form.city, state: form.state, country: form.country, postal_code: form.postalCode,
+        allergies: form.allergies, medical_conditions: form.medicalConditions,
+        regular_medication: form.regularMedication, doctor_name: form.doctorName,
+        doctor_phone: form.doctorPhone, medical_note: form.emergencyMedicalNote,
+        emergency_contact_name: contact.name, emergency_contact_phone: contact.phone,
+        admin_notes: form.adminNotes,
+        ...(photoId !== undefined ? { photo_id: photoId } : {}),
+      };
+      const guardians: GuardianInput[] = [
+        { relation: "father", full_name: form.fatherName, occupation: form.fatherOccupation,
+          phone: form.fatherPhone, email: form.fatherEmail, is_primary: true },
+        { relation: "mother", full_name: form.motherName, occupation: form.motherOccupation,
+          phone: form.motherPhone, email: form.motherEmail, is_primary: !form.fatherName },
+        { relation: form.guardianRelation || "guardian", full_name: form.guardianName,
+          phone: form.guardianPhone, is_primary: !form.fatherName && !form.motherName },
+      ];
+      const saved = await saving.mutateAsync({ id: mode === "edit" ? studentId : undefined, payload, guardians });
+      if (mode === "edit" && record.data && form.status !== record.data.status) {
+        await changeStudentStatus(saved.id, form.status, "Updated from the student form");
+      }
+      toast.success(mode === "create" ? `Student "${fullName}" added.` : `Student "${fullName}" updated.`);
+      navigate(`/students/${saved.id}`);
+    } catch (e) {
+      toast.error(errorMessage(e, "Couldn't save the student."));
     }
   }
 
   function handleReset() {
-    setForm(mode === "edit" && studentId
-      ? (() => {
-          const s = STUDENTS.find((s) => s.id === Number(studentId));
-          if (!s) return EMPTY;
-          const parts = s.name.trim().split(" ");
-          return { ...EMPTY, firstName: parts[0] ?? "", lastName: parts[parts.length - 1] ?? "", gender: s.gender, dateOfBirth: s.dateOfBirth, admissionNo: s.admissionNo, registrationNo: s.registrationNo, className: s.className, section: s.section ?? "", roll: String(s.roll), fatherName: s.parentName, mobile: s.mobile, email: s.email, presentAddress: s.address, permanentAddress: s.address, status: s.status };
-        })()
-      : EMPTY,
-    );
+    setForm(record.data ? recordToForm(record.data) : EMPTY);
     setErrors({});
-    setPhoto(null);
+    setPhotoFile(null);
+    setPhotoRemoved(false);
+    if (!record.data) setPhoto(null);
   }
+
+  const sectionChoices = (options.data?.sections ?? []).filter((sec) => sec.classId === form.className);
 
   // ── Error count per section ──────────────────────────────────────────
   const errCount = {
@@ -414,11 +460,11 @@ export function StudentForm({ mode, studentId }: Props) {
               type="button"
               size="sm"
               className="gap-1.5"
-              disabled={saving}
+              disabled={saving.isPending}
               onClick={handleSubmit}
             >
               <Save className="h-3.5 w-3.5" />
-              {saving ? "Saving…" : mode === "create" ? "Save Student" : "Update Student"}
+              {saving.isPending ? "Saving…" : mode === "create" ? "Save Student" : "Update Student"}
             </Button>
           </div>
         </CardContent>
@@ -482,24 +528,32 @@ export function StudentForm({ mode, studentId }: Props) {
               <TextInput value={form.religion} onChange={(v) => set("religion", v)} placeholder="Optional" />
             </Field>
             <Field label="Student Type">
-              <SelectInput value={form.studentType} onChange={(v) => set("studentType", v)}>
-                <option value="New">New</option>
-                <option value="Transfer">Transfer</option>
-                <option value="Returning">Returning</option>
+              <SelectInput value={form.studentType} onChange={(v) => set("studentType", v)} placeholder="Select type">
+                <option value="new">New</option>
+                <option value="transfer">Transfer</option>
+                <option value="returning">Returning</option>
               </SelectInput>
             </Field>
-            <Field label="Status">
+            {mode === "edit" && hasPermission("student.promote") && (
+            <Field label="Status" hint="Changes are recorded in the student's history">
               <SelectInput value={form.status} onChange={(v) => set("status", v)}>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
+                <option value="suspended">Suspended</option>
                 <option value="transferred">Transferred</option>
                 <option value="graduated">Graduated</option>
+                <option value="left">Left</option>
               </SelectInput>
             </Field>
+            )}
           </div>
 
           {/* Photo */}
-          <PhotoUpload value={photo} onChange={setPhoto} label="Student Photo" />
+          <PhotoUpload
+            value={photo}
+            onChange={(url, file) => { setPhoto(url); setPhotoFile(file); setPhotoRemoved(!url); }}
+            label="Student Photo"
+          />
         </div>
       </FormSection>
 
@@ -514,10 +568,8 @@ export function StudentForm({ mode, studentId }: Props) {
         <div className="space-y-4">
           <div className={g4}>
             <Field label="Academic Year" required>
-              <SelectInput value={form.academicYear} onChange={(v) => set("academicYear", v)}>
-                <option>2025–2026</option>
-                <option>2024–2025</option>
-                <option>2023–2024</option>
+              <SelectInput value={form.academicYear} onChange={(v) => set("academicYear", v)} placeholder="Select year">
+                {(options.data?.years ?? []).map((y) => <option key={y.id} value={y.id}>{y.name}</option>)}
               </SelectInput>
             </Field>
             <Field label="Admission Date">
@@ -527,8 +579,8 @@ export function StudentForm({ mode, studentId }: Props) {
               hint="Format: ADM-2901">
               <TextInput id="admissionNo" value={form.admissionNo} onChange={(v) => set("admissionNo", v)} placeholder="ADM-0001" error={errors.admissionNo} />
             </Field>
-            <Field label="Registration No" required error={errors.registrationNo} id="registrationNo"
-              hint="Unique student identifier">
+            <Field label="Registration No" error={errors.registrationNo} id="registrationNo"
+              hint="Leave blank to assign the next number automatically">
               <TextInput id="registrationNo" value={form.registrationNo} onChange={(v) => set("registrationNo", v)} placeholder="REG-2026-0001" error={errors.registrationNo} />
             </Field>
           </div>
@@ -536,12 +588,12 @@ export function StudentForm({ mode, studentId }: Props) {
           <div className={g4}>
             <Field label="Class" required error={errors.className} id="className">
               <SelectInput value={form.className} onChange={(v) => set("className", v)} placeholder="Select class" error={errors.className}>
-                {CLASS_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                {(options.data?.classes ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </SelectInput>
             </Field>
             <Field label="Section" required error={errors.section} id="section">
               <SelectInput value={form.section} onChange={(v) => set("section", v)} placeholder="Select section" error={errors.section}>
-                {SECTION_OPTIONS.map((s) => <option key={s} value={s}>Section {s}</option>)}
+                {sectionChoices.map((sec) => <option key={sec.id} value={sec.id}>Section {sec.name}</option>)}
               </SelectInput>
             </Field>
             <Field label="Roll Number">
@@ -560,22 +612,6 @@ export function StudentForm({ mode, studentId }: Props) {
           <div className={g4}>
             <Field label="Previous School">
               <TextInput value={form.previousSchool} onChange={(v) => set("previousSchool", v)} placeholder="Optional" />
-            </Field>
-            <Field label="Medium">
-              <SelectInput value={form.medium} onChange={(v) => set("medium", v)}>
-                <option>English</option>
-                <option>Nepali</option>
-                <option>Hindi</option>
-              </SelectInput>
-            </Field>
-            <Field label="Shift">
-              <SelectInput value={form.shift} onChange={(v) => set("shift", v)}>
-                <option>Morning</option>
-                <option>Afternoon</option>
-              </SelectInput>
-            </Field>
-            <Field label="Class Teacher">
-              <TextInput value={form.classTeacher} onChange={(v) => set("classTeacher", v)} placeholder="Teacher name" />
             </Field>
           </div>
         </div>
@@ -752,42 +788,10 @@ export function StudentForm({ mode, studentId }: Props) {
         subtitle="School bus and residential hostel assignment"
         defaultOpen={false}
       >
-        <div className="space-y-5">
-          <ToggleSwitch checked={form.usesTransport} onChange={(v) => set("usesTransport", v)} label="Student uses school transport" />
-          {form.usesTransport && (
-            <div className={g4}>
-              <Field label="Bus Route">
-                <TextInput value={form.busRoute} onChange={(v) => set("busRoute", v)} placeholder="e.g. Route 5" />
-              </Field>
-              <Field label="Pickup Point">
-                <TextInput value={form.pickupPoint} onChange={(v) => set("pickupPoint", v)} placeholder="e.g. Sunset Road" />
-              </Field>
-              <Field label="Driver Name">
-                <TextInput value={form.driverName} onChange={(v) => set("driverName", v)} placeholder="Driver full name" />
-              </Field>
-              <Field label="Driver Phone">
-                <TextInput value={form.driverPhone} onChange={(v) => set("driverPhone", v)} placeholder="+1 000 000 0000" />
-              </Field>
-            </div>
-          )}
-
-          <div className="h-px bg-border/60" />
-
-          <ToggleSwitch checked={form.hostelRequired} onChange={(v) => set("hostelRequired", v)} label="Student requires hostel accommodation" />
-          {form.hostelRequired && (
-            <div className={g3}>
-              <Field label="Hostel Name">
-                <TextInput value={form.hostelName} onChange={(v) => set("hostelName", v)} placeholder="e.g. Boys Hostel A" />
-              </Field>
-              <Field label="Room No">
-                <TextInput value={form.roomNo} onChange={(v) => set("roomNo", v)} placeholder="e.g. R-204" />
-              </Field>
-              <Field label="Warden Contact">
-                <TextInput value={form.wardenContact} onChange={(v) => set("wardenContact", v)} placeholder="+1 000 000 0000" />
-              </Field>
-            </div>
-          )}
-        </div>
+        <p className="rounded-xl bg-muted/50 px-3.5 py-3 text-xs text-muted-foreground">
+          Transport and hostel aren't set up for this school yet. Assignments will be available here
+          once those modules are enabled.
+        </p>
       </FormSection>
 
       {/* ── Section 7: Documents ───────────────────────────────────── */}
@@ -797,7 +801,7 @@ export function StudentForm({ mode, studentId }: Props) {
         subtitle="Upload required admission documents"
         defaultOpen={false}
       >
-        <DocumentChecklist />
+        <DocumentChecklist studentId={mode === "edit" ? studentId : undefined} canVerify={hasPermission("student.update")} />
       </FormSection>
 
       {/* ── Section 8: Remarks ──────────────────────────────────────── */}
@@ -809,13 +813,7 @@ export function StudentForm({ mode, studentId }: Props) {
       >
         <div className="space-y-4">
           <Field label="Admin Notes">
-            <TextareaInput value={form.adminNotes} onChange={(v) => set("adminNotes", v)} placeholder="Internal notes for admin staff" />
-          </Field>
-          <Field label="Special Instructions">
-            <TextareaInput value={form.specialInstructions} onChange={(v) => set("specialInstructions", v)} placeholder="Special requirements or notes" />
-          </Field>
-          <Field label="Principal Remarks">
-            <TextareaInput value={form.principalRemarks} onChange={(v) => set("principalRemarks", v)} placeholder="Principal's remarks or approval notes" />
+            <TextareaInput value={form.adminNotes} onChange={(v) => set("adminNotes", v)} placeholder="Internal notes (staff only)" />
           </Field>
         </div>
       </FormSection>
@@ -831,9 +829,9 @@ export function StudentForm({ mode, studentId }: Props) {
               <RotateCcw className="h-3.5 w-3.5" />
               Reset
             </Button>
-            <Button type="button" size="sm" onClick={handleSubmit} disabled={saving} className="gap-1.5">
+            <Button type="button" size="sm" onClick={handleSubmit} disabled={saving.isPending} className="gap-1.5">
               <Save className="h-3.5 w-3.5" />
-              {saving ? "Saving…" : mode === "create" ? "Save Student" : "Update Student"}
+              {saving.isPending ? "Saving…" : mode === "create" ? "Save Student" : "Update Student"}
             </Button>
           </div>
         </CardContent>

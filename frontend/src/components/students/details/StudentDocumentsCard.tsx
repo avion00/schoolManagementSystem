@@ -1,6 +1,7 @@
 import { Download, Eye, FileText } from "lucide-react";
 import { toast } from "sonner";
 
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
 import { DetailCard } from "@/components/ui/DetailCard";
 import {
   Table,
@@ -16,7 +17,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { StudentDocument } from "@/data/studentDetailsData";
+import type { StudentDocument } from "@/api/types/students";
 import { cn } from "@/lib/utils";
 
 function StatusBadge({ status }: { status: StudentDocument["status"] }) {
@@ -36,6 +37,13 @@ function fmt(d: string) {
 }
 
 export function StudentDocumentsCard({ documents }: { documents: StudentDocument[] }) {
+  if (documents.length === 0) {
+    return (
+      <DetailCard icon={FileText} title="Documents">
+        <PremiumEmptyState title="No documents uploaded yet." className="py-6" />
+      </DetailCard>
+    );
+  }
   return (
     <TooltipProvider delayDuration={300}>
       <DetailCard

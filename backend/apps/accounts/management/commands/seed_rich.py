@@ -21,7 +21,7 @@ from apps.accounts.models import Organization, School
 from apps.attendance.models import Attendance
 from apps.exams.models import Exam, ExamSubject, Mark
 from apps.fees.models import FeeCategory, Invoice, Payment
-from apps.guardians.models import Guardian
+from apps.guardians.models import Guardian, StudentGuardian
 from apps.students.models import Student
 from apps.teachers.models import Teacher
 
@@ -87,10 +87,15 @@ class Command(BaseCommand):
                     "gender": random.choice(GENDERS),
                     "roll_number": str(roll_counter[key]),
                     "academic_year": year, "class_level": cl, "section": sec,
-                    "primary_guardian": random.choice(guardians), "school": school,
-                    "status": "active",
+                    "school": school, "status": "active",
                 },
             )
+            if not st.guardian_links.exists():
+                guardian = random.choice(guardians)
+                StudentGuardian.objects.create(
+                    organization=org, school=school, student=st, guardian=guardian,
+                    relation=guardian.relation, is_primary=True,
+                )
             students.append(st)
         self.stdout.write(self.style.SUCCESS(f"Students: {len(students)}"))
 

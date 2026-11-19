@@ -1,4 +1,4 @@
-import type { NotificationPriority } from "@/data/notificationsData";
+import type { NotificationPriority } from "@/api/types/notifications";
 import { cn } from "@/lib/utils";
 
 const STYLES: Record<NotificationPriority, string> = {

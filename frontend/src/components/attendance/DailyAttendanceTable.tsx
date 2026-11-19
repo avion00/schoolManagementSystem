@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Bell, Save } from "lucide-react";
+import { Save } from "lucide-react";
+import { errorMessage } from "@/api/http";
 import { toast }   from "sonner";
 import { Button }  from "@/components/ui/button";
 import { AttendanceStatusBadge } from "@/components/attendance/AttendanceStatusBadge";
-import type { StudentRef, AttendanceStatus } from "@/data/attendanceData";
-import { STATUS_OPTIONS } from "@/data/attendanceData";
+import type { StudentRef, AttendanceStatus } from "@/api/types/attendance";
+import { STATUS_OPTIONS } from "@/api/types/attendance";
 import { cn } from "@/lib/utils";
 
 interface RowData {
@@ -15,9 +16,13 @@ interface RowData {
 
 interface Props {
   students:     StudentRef[];
-  initialData:  Record<number, AttendanceStatus>; // studentId → status
+  initialData:  Record<string, AttendanceStatus | undefined>; // id → status already on record
   date:         string;
   readOnly?:    boolean;
+  /** Persist the register; resolves when saved. */
+  onSave:       (rows: { id: string; status: AttendanceStatus; note: string }[]) => Promise<unknown>;
+  /** Shown beside the save button (e.g. that guardians are notified automatically). */
+  hint?:        string;
 }
 
 const STATUS_BTN: Record<AttendanceStatus, string> = {
@@ -26,6 +31,8 @@ const STATUS_BTN: Record<AttendanceStatus, string> = {
   late:       "border-amber-300   bg-amber-50   text-amber-700   hover:bg-amber-100",
   "half-day": "border-blue-300    bg-blue-50    text-blue-700    hover:bg-blue-100",
   leave:      "border-violet-300  bg-violet-50  text-violet-700  hover:bg-violet-100",
+  holiday:    "border-border bg-muted text-muted-foreground",
+  excused:    "border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100",
 };
 
 const STATUS_ACTIVE: Record<AttendanceStatus, string> = {
@@ -34,9 +41,11 @@ const STATUS_ACTIVE: Record<AttendanceStatus, string> = {
   late:       "border-amber-500   bg-amber-500   text-white",
   "half-day": "border-blue-500    bg-blue-500    text-white",
   leave:      "border-violet-500  bg-violet-500  text-white",
+  holiday:    "border-muted-foreground bg-muted-foreground text-white",
+  excused:    "border-sky-500 bg-sky-500 text-white",
 };
 
-export function DailyAttendanceTable({ students, initialData, date, readOnly = false }: Props) {
+export function DailyAttendanceTable({ students, initialData, date, readOnly = false, onSave, hint }: Props) {
   const [rows, setRows] = useState<RowData[]>(() =>
     students.map((s) => ({
       student: s,
@@ -58,15 +67,14 @@ export function DailyAttendanceTable({ students, initialData, date, readOnly = f
 
   async function handleSave() {
     setSaving(true);
-    await new Promise((res) => setTimeout(res, 600));
-    setSaving(false);
-    toast.success(`Attendance saved for ${date}`);
-  }
-
-  function notifyAbsent() {
-    const absentCount = rows.filter((r) => r.status === "absent").length;
-    if (absentCount === 0) { toast.info("No absent students to notify."); return; }
-    toast.success(`Notified parents of ${absentCount} absent student${absentCount > 1 ? "s" : ""}.`);
+    try {
+      await onSave(rows.map((r) => ({ id: r.student.id, status: r.status, note: r.note })));
+      toast.success(`Attendance saved for ${date}`);
+    } catch (e) {
+      toast.error(errorMessage(e, "Couldn't save attendance."));
+    } finally {
+      setSaving(false);
+    }
   }
 
   const counts = rows.reduce((acc, r) => {
@@ -156,9 +164,7 @@ export function DailyAttendanceTable({ students, initialData, date, readOnly = f
       {/* Actions */}
       {!readOnly && (
         <div className="flex items-center justify-between">
-          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[12px]" onClick={notifyAbsent}>
-            <Bell className="h-3.5 w-3.5" />Notify Absent Parents
-          </Button>
+          {hint && <p className="mr-auto text-[11px] text-muted-foreground">{hint}</p>}
           <Button size="sm" className="h-8 gap-1.5 text-[12px]" disabled={saving} onClick={handleSave}>
             <Save className="h-3.5 w-3.5" />{saving ? "Saving…" : "Save Attendance"}
           </Button>

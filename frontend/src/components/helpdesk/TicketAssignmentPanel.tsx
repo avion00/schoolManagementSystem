@@ -6,15 +6,15 @@ import { SuccessCheck } from "@/components/motion";
 import { Button } from "@/components/ui/button";
 import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import {
-  ASSIGNEE_DIRECTORY,
   PRIORITY_OPTIONS,
   RESOLUTION_CATEGORY_OPTIONS,
   STATUS_OPTIONS,
   type SupportTicket,
   type TicketPriority,
   type TicketStatus,
-} from "@/data/helpDeskData";
+} from "@/api/types/helpdesk";
 import { cn } from "@/lib/utils";
+import { useAgents } from "@/api/helpdesk";
 
 const inputClass = (hasError?: boolean) => cn(
   "h-8 w-full rounded-lg border border-input bg-background px-2.5 text-[12px] text-foreground focus:outline-none focus:ring-1 focus:ring-ring",
@@ -41,6 +41,7 @@ export function TicketAssignmentPanel({
   onStatusChange: (status: TicketStatus, resolution?: { summary: string; category: string; notifyRequester: boolean }) => void;
   onEscalate: (target: string, reason: string, dueDate: string, markUrgent: boolean) => void;
 }) {
+  const agents = useAgents().data ?? [];
   // ── Assignment ──────────────────────────────────────────────────────────────
   const [assignTo, setAssignTo] = useState(ticket.assignedTo?.name ?? "");
   const [dueDate, setDueDate] = useState("");
@@ -113,7 +114,7 @@ export function TicketAssignmentPanel({
               onChange={(v) => { setAssignTo(v); setAssignError(null); }}
               placeholder="Select assignee"
               className="mt-1"
-              options={ASSIGNEE_DIRECTORY.map((a) => ({ value: a.name, label: `${a.name} — ${a.department}` }))}
+              options={agents.map((a) => ({ value: a.name, label: a.name }))}
             />
             {assignError && <p className="mt-1 text-[11px] text-rose-500">{assignError}</p>}
           </div>

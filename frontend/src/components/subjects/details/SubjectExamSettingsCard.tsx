@@ -1,6 +1,6 @@
 import { ClipboardList } from "lucide-react";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { SubjectData } from "@/data/subjectsData";
+import type { SubjectData } from "@/api/types/subjects";
 
 function Row({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (

@@ -4,12 +4,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PremiumDropdownMenu } from "@/components/ui/PremiumDropdownMenu";
 import {
-  ASSIGNEE_DIRECTORY,
   PRIORITY_OPTIONS,
   STATUS_OPTIONS,
   type TicketPriority,
   type TicketStatus,
-} from "@/data/helpDeskData";
+} from "@/api/types/helpdesk";
+import { useAgents } from "@/api/helpdesk";
 
 /**
  * Bulk-action controls rendered inside PremiumDataTable's built-in
@@ -24,13 +24,14 @@ export function BulkTicketActions({
   onBulkStatus,
   onBulkClose,
 }: {
-  selectedIds: number[];
+  selectedIds: string[];
   onClear: () => void;
   onBulkAssign: (assigneeName: string) => void;
   onBulkPriority: (priority: TicketPriority) => void;
   onBulkStatus: (status: TicketStatus) => void;
   onBulkClose: () => void;
 }) {
+  const agents = useAgents().data ?? [];
   const count = selectedIds.length;
 
   return (
@@ -44,8 +45,8 @@ export function BulkTicketActions({
             Assign Selected
           </Button>
         }
-        items={ASSIGNEE_DIRECTORY.map((a) => ({
-          label: `${a.name} — ${a.department}`,
+        items={agents.map((a) => ({
+          label: a.name,
           onClick: () => onBulkAssign(a.name),
         }))}
       />

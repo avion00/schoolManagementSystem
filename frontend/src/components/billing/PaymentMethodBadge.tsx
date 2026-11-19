@@ -1,12 +1,13 @@
 import { Banknote, CreditCard, Landmark, ScrollText, Smartphone, Wallet, type LucideIcon } from "lucide-react";
 
-import type { PaymentMethod } from "@/data/billingData";
+import type { PaymentMethod } from "@/api/types/billing";
 import { cn } from "@/lib/utils";
 
 const METHOD_ICON: Record<PaymentMethod, LucideIcon> = {
   Cash: Banknote,
   "Bank Transfer": Landmark,
   Card: CreditCard,
+  "Online Payment": Smartphone,
   "Online Wallet": Wallet,
   "Mobile Banking": Smartphone,
   Cheque: ScrollText,

@@ -3,7 +3,8 @@ import { Ban, Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { chatUserById, type MessageRequestItem, type MessageRequestStatus } from "@/data/messagesData";
+import { chatUserById } from "@/lib/messagesService";
+import { type MessageRequestItem, type MessageRequestStatus } from "@/api/types/messages";
 
 const STATUS_VARIANT: Record<MessageRequestStatus, "default" | "success" | "destructive" | "secondary"> = {
   pending: "default", approved: "success", rejected: "destructive", blocked: "destructive",

@@ -1,13 +1,14 @@
-import { Eye, MoreHorizontal, Printer, Receipt, RotateCcw, ShieldCheck } from "lucide-react";
+import { Eye, MoreHorizontal, Printer, Receipt, RotateCcw } from "lucide-react";
 
 import { BillingStatusBadge } from "@/components/billing/BillingStatusBadge";
 import { PaymentMethodBadge } from "@/components/billing/PaymentMethodBadge";
 import { Button } from "@/components/ui/button";
 import { PremiumDataTable, type PremiumDataTableColumn, type PremiumDataTablePagination } from "@/components/ui/PremiumDataTable";
 import { PremiumDropdownMenu, type PremiumMenuEntry } from "@/components/ui/PremiumDropdownMenu";
-import type { Payment } from "@/data/billingData";
+import type { Payment } from "@/api/types/billing";
+import { useMoney } from "@/api/billing";
 
-export type PaymentAction = "view-receipt" | "print-receipt" | "refund" | "verify";
+export type PaymentAction = "view-receipt" | "view-invoice" | "reverse";
 
 export function PaymentsTable({
   payments,
@@ -20,6 +21,7 @@ export function PaymentsTable({
   pagination,
   hasActiveFilter,
   onResetFilters,
+  canReverse,
 }: {
   payments: Payment[];
   onAction: (payment: Payment, action: PaymentAction) => void;
@@ -31,13 +33,15 @@ export function PaymentsTable({
   pagination: PremiumDataTablePagination;
   hasActiveFilter: boolean;
   onResetFilters: () => void;
+  canReverse: boolean;
 }) {
+  const money = useMoney();
   const columns: PremiumDataTableColumn<Payment>[] = [
     { key: "paymentId", header: "Payment ID", width: "w-[130px]", sortable: true, render: (p) => <span className="font-mono text-[12px] font-medium text-foreground">{p.paymentId}</span> },
     { key: "invoiceNo", header: "Invoice No", width: "w-[120px]", render: (p) => <span className="font-mono text-[12px] text-muted-foreground">{p.invoiceNo}</span> },
     { key: "studentName", header: "Student", width: "w-[160px]", sortable: true, render: (p) => <span className="text-[12.5px] font-medium text-foreground">{p.studentName}</span> },
-    { key: "parentName", header: "Parent", width: "w-[150px]", render: (p) => <span className="text-[12px] text-muted-foreground">{p.parentName}</span> },
-    { key: "amount", header: "Amount", width: "w-[100px]", sortable: true, render: (p) => <span className="text-[12.5px] font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">${p.amount.toLocaleString()}</span> },
+    { key: "receivedBy", header: "Received By", width: "w-[150px]", render: (p) => <span className="text-[12px] text-muted-foreground">{p.receivedBy || "—"}</span> },
+    { key: "amount", header: "Amount", width: "w-[100px]", sortable: true, render: (p) => <span className="text-[12.5px] font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{money(p.amount)}</span> },
     { key: "method", header: "Method", width: "w-[140px]", render: (p) => <PaymentMethodBadge method={p.method} /> },
     { key: "transactionId", header: "Transaction ID", width: "w-[120px]", render: (p) => <span className="font-mono text-[11.5px] text-muted-foreground">{p.transactionId}</span> },
     { key: "paymentDate", header: "Date", width: "w-[110px]", sortable: true, render: (p) => <span className="whitespace-nowrap text-[12px] text-muted-foreground">{p.paymentDate}</span> },
@@ -50,7 +54,6 @@ export function PaymentsTable({
       columns={columns}
       rows={payments}
       rowKey={(p) => p.id}
-      selectable
       selectedKeys={selected}
       onSelectionChange={onSelectionChange}
       sortField={sortField}
@@ -61,18 +64,12 @@ export function PaymentsTable({
       emptyDescription={hasActiveFilter ? "Try adjusting your search or filters." : "No payments have been recorded yet."}
       emptyAction={hasActiveFilter ? <Button variant="outline" size="sm" onClick={onResetFilters}>Clear filters</Button> : undefined}
       pagination={pagination}
-      bulkActions={(_count, clear) => (
-        <>
-          <Button variant="ghost" size="sm" className="ml-auto text-muted-foreground" onClick={clear}>Deselect all</Button>
-        </>
-      )}
       rowActions={(payment) => {
         const items: PremiumMenuEntry[] = [
           { label: "View receipt", icon: Eye, onClick: () => onAction(payment, "view-receipt") },
-          { label: "Print receipt", icon: Printer, onClick: () => onAction(payment, "print-receipt") },
-          { label: "Verify", icon: ShieldCheck, onClick: () => onAction(payment, "verify") },
-          "separator",
-          { label: "Refund", icon: RotateCcw, danger: true, onClick: () => onAction(payment, "refund") },
+          { label: "View invoice", icon: Printer, onClick: () => onAction(payment, "view-invoice") },
+          ...(canReverse && payment.status === "Completed" ? ["separator" as const,
+            { label: "Reverse payment", icon: RotateCcw, danger: true, onClick: () => onAction(payment, "reverse") }] : []),
         ];
         return (
           <PremiumDropdownMenu

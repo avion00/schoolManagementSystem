@@ -1,6 +1,6 @@
 import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { PremiumTableToolbar } from "@/components/ui/PremiumTableToolbar";
-import { ACADEMIC_YEAR_OPTIONS, SUBJECT_CATEGORY_OPTIONS, SUBJECT_STATUS_OPTIONS, SUBJECT_TYPE_OPTIONS } from "@/data/subjectsData";
+import { SUBJECT_CATEGORY_OPTIONS, SUBJECT_STATUS_OPTIONS, SUBJECT_TYPE_OPTIONS } from "@/api/types/subjects";
 
 export interface SubjectsFilters {
   search: string;
@@ -11,11 +11,13 @@ export interface SubjectsFilters {
 }
 
 export function SubjectsToolbar({
+  yearOptions,
   filters,
   onFiltersChange,
   hasActiveFilter,
   onReset,
 }: {
+  yearOptions: string[];
   filters: SubjectsFilters;
   onFiltersChange: (next: Partial<SubjectsFilters>) => void;
   hasActiveFilter: boolean;
@@ -52,7 +54,7 @@ export function SubjectsToolbar({
             value={filters.filterYear}
             onChange={(v) => onFiltersChange({ filterYear: v })}
             className="w-36"
-            options={[{ value: "", label: "All Years" }, ...ACADEMIC_YEAR_OPTIONS.map((y) => ({ value: y, label: y }))]}
+            options={[{ value: "", label: "All Years" }, ...yearOptions.map((y) => ({ value: y, label: y }))]}
           />
         </>
       }

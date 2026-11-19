@@ -1,12 +1,18 @@
 import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GradeBadge } from "@/components/exams/GradeBadge";
-import type { ExamResult } from "@/data/examsData";
+import type { ExamResult } from "@/api/types/exams";
+import { useSchools } from "@/api/classes";
+import { useReportCardExtras } from "@/api/exams";
 import { cn } from "@/lib/utils";
 
-interface Props { result: ExamResult; }
+interface Props { result: ExamResult; examId: string; examName: string }
 
-export function ReportCardPreview({ result }: Props) {
+export function ReportCardPreview({ result, examId, examName }: Props) {
+  const school = useSchools().data;
+  const extras = useReportCardExtras(examId, result.studentId).data;
+  const contact = [school?.address, school?.city, school?.phone ? `Tel: ${school.phone}` : ""].filter(Boolean).join(" · ");
+  const fmt = (v: number | null, digits = 1) => (v === null ? "—" : v.toFixed(digits));
   return (
     <div className="space-y-3">
       {/* Print button */}
@@ -24,9 +30,8 @@ export function ReportCardPreview({ result }: Props) {
       >
         {/* Header */}
         <div className="bg-indigo-700 text-white px-8 py-6 text-center">
-          <p className="text-[11px] tracking-widest uppercase opacity-80">Excellence in Education</p>
-          <h1 className="text-xl font-bold mt-1">SchoolOS Academy</h1>
-          <p className="text-[11px] opacity-80 mt-0.5">Kathmandu, Nepal · Tel: 01-441-xxxx</p>
+          <h1 className="text-xl font-bold mt-1">{school?.name ?? ""}</h1>
+          {contact && <p className="text-[11px] opacity-80 mt-0.5">{contact}</p>}
           <div className="mt-4 inline-block rounded-full border-2 border-white/60 px-6 py-1 text-sm font-bold tracking-wide uppercase">
             Progress Report Card
           </div>
@@ -37,12 +42,14 @@ export function ReportCardPreview({ result }: Props) {
           <div className="grid grid-cols-2 gap-x-8 gap-y-1.5">
             <InfoRow label="Student Name"  value={result.studentName}    />
             <InfoRow label="Academic Year" value={result.academicYear}   />
-            <InfoRow label="Reg. No."      value={result.registrationNo} />
-            <InfoRow label="Exam Term"     value={result.examTerm}       />
-            <InfoRow label="Class"         value={`${result.className} – ${result.section}`} />
-            <InfoRow label="Roll No."      value={String(result.roll)}   />
+            <InfoRow label="Reg. No."      value={result.registrationNo || "—"} />
+            <InfoRow label="Exam"          value={[examName, result.examTerm].filter(Boolean).join(" · ")} />
+            <InfoRow label="Class"         value={[result.className, result.section].filter(Boolean).join(" – ")} />
+            <InfoRow label="Roll No."      value={result.roll || "—"}   />
             <InfoRow label="Adm. No."      value={result.admissionNo}    />
-            <InfoRow label="Issue Date"    value={result.publishedDate}  />
+            <InfoRow label="Guardian"      value={extras?.guardian || "—"} />
+            <InfoRow label="Attendance"    value={extras?.attendancePct == null ? "—" : `${extras.attendancePct}% of ${extras.attendanceDays} days`} />
+            <InfoRow label="Issue Date"    value={result.publishedDate || "Not published"} />
           </div>
         </div>
 
@@ -61,15 +68,16 @@ export function ReportCardPreview({ result }: Props) {
             </thead>
             <tbody>
               {result.subjectResults.map((s) => {
-                const pct = Math.round((s.obtainedMarks / s.fullMarks) * 1000) / 10;
+                const pct = s.obtainedMarks === null ? null : Math.round((s.obtainedMarks / s.fullMarks) * 1000) / 10;
+                const obtained = s.result === "absent" ? "Abs" : s.obtainedMarks ?? "—";
                 return (
                   <tr key={s.subject} className="border-b border-border/20">
                     <td className="py-1.5 text-foreground">{s.subject}</td>
                     <td className="py-1.5 text-center text-muted-foreground">{s.fullMarks}</td>
-                    <td className="py-1.5 text-center font-semibold text-foreground">{s.obtainedMarks}</td>
-                    <td className="py-1.5 text-center text-muted-foreground">{pct}%</td>
+                    <td className={cn("py-1.5 text-center font-semibold", s.result === "fail" ? "text-rose-600" : "text-foreground")}>{obtained}</td>
+                    <td className="py-1.5 text-center text-muted-foreground">{pct === null ? "—" : `${pct}%`}</td>
                     <td className="py-1.5 text-center"><GradeBadge grade={s.grade} /></td>
-                    <td className="py-1.5 text-center font-semibold text-indigo-600">{s.gradePoint.toFixed(2)}</td>
+                    <td className="py-1.5 text-center font-semibold text-indigo-600">{fmt(s.gradePoint, 2)}</td>
                   </tr>
                 );
               })}
@@ -79,9 +87,9 @@ export function ReportCardPreview({ result }: Props) {
                 <td className="py-2 font-bold text-foreground">TOTAL</td>
                 <td className="py-2 text-center font-bold">{result.totalFullMarks}</td>
                 <td className="py-2 text-center font-bold text-foreground">{result.totalMarks}</td>
-                <td className="py-2 text-center font-bold">{result.percentage}%</td>
+                <td className="py-2 text-center font-bold">{result.percentage === null ? "—" : `${result.percentage}%`}</td>
                 <td className="py-2 text-center"><GradeBadge grade={result.grade} /></td>
-                <td className="py-2 text-center font-bold text-indigo-600">{result.gpa.toFixed(2)}</td>
+                <td className="py-2 text-center font-bold text-indigo-600">{fmt(result.gpa, 2)}</td>
               </tr>
             </tfoot>
           </table>
@@ -90,16 +98,16 @@ export function ReportCardPreview({ result }: Props) {
         {/* Summary */}
         <div className="px-8 pb-5">
           <div className="grid grid-cols-4 gap-3 mb-4">
-            <SumCard label="Percentage" value={`${result.percentage}%`} />
-            <SumCard label="GPA"        value={result.gpa.toFixed(2)}   />
-            <SumCard label="Class Rank" value={`#${result.rank}`}       />
+            <SumCard label="Percentage" value={result.percentage === null ? "—" : `${result.percentage}%`} />
+            <SumCard label="GPA"        value={fmt(result.gpa, 2)}   />
+            <SumCard label="Class Rank" value={result.rank === null ? "—" : `#${result.rank}${extras?.classSize ? ` of ${extras.classSize}` : ""}`} />
             <SumCard label="Result"     value={result.result} color={result.result === "Pass" ? "emerald" : "rose"} />
           </div>
 
-          {/* Teacher remarks */}
+          {/* Teacher remarks: written by hand on the printed card */}
           <div className="rounded-lg border border-border/40 bg-muted/20 p-3 mb-5">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Teacher's Remarks</p>
-            <p className="text-foreground italic">"{result.teacherRemarks}"</p>
+            <div className="h-8" />
           </div>
 
           {/* Signatures */}
@@ -116,7 +124,7 @@ export function ReportCardPreview({ result }: Props) {
         {/* Footer */}
         <div className="bg-muted/30 px-8 py-3 border-t border-border/40 text-center">
           <p className="text-[10px] text-muted-foreground">
-            This is a computer-generated report card. Published on {result.publishedDate}. Contact the school for any discrepancies.
+            This is a computer-generated report card. {result.publishedDate ? `Published on ${result.publishedDate}.` : "Results not yet published."} Contact the school for any discrepancies.
           </p>
         </div>
       </div>

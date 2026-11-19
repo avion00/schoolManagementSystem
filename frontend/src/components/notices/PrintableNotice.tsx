@@ -1,11 +1,14 @@
-import type { Notice } from "@/data/noticesData";
+import { useLetterhead } from "@/api/classes";
+import type { Notice } from "@/api/types/notices";
 
 export function PrintableNotice({ notice }: { notice: Notice }) {
+  const letterhead = useLetterhead();
   return (
     <div className="hidden print:block bg-white text-black p-10 font-sans">
       {/* School header */}
       <div className="text-center border-b-2 border-black pb-4 mb-6">
-        <h1 className="text-xl font-bold uppercase tracking-widest">SchoolOS Academy</h1>
+        <h1 className="text-xl font-bold uppercase tracking-widest">{letterhead.name}</h1>
+        {letterhead.address && <p className="text-sm text-gray-600 mt-0.5">{letterhead.address}</p>}
         <p className="text-sm text-gray-600 mt-0.5">Official School Notice</p>
       </div>
 
@@ -77,7 +80,7 @@ export function PrintableNotice({ notice }: { notice: Notice }) {
 
       {/* Footer */}
       <p className="text-center text-xs text-gray-500 mt-8 border-t border-gray-200 pt-4">
-        This is an official notice from SchoolOS Academy. For queries contact: info@schoolos.edu
+        This is an official notice from {letterhead.name}.{letterhead.contact ? ` ${letterhead.contact}` : ""}
       </p>
     </div>
   );

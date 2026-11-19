@@ -1,4 +1,4 @@
-import type { TicketStatus } from "@/data/helpDeskData";
+import type { TicketStatus } from "@/api/types/helpdesk";
 import { cn } from "@/lib/utils";
 
 const STYLES: Record<TicketStatus, string> = {

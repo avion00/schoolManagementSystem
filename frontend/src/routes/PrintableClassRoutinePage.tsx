@@ -3,7 +3,7 @@ import { useNavigate }               from "react-router-dom";
 import { ArrowLeft, Printer }        from "lucide-react";
 import { Button }                    from "@/components/ui/button";
 import { PrintableClassRoutine }     from "@/components/classRoutine/PrintableClassRoutine";
-import { ACADEMIC_YEAR_OPTIONS, ROUTINES } from "@/data/classRoutineData";
+import { useRoutineData } from "@/api/routine";
 
 function usePrintStyles() {
   useEffect(() => {
@@ -20,19 +20,17 @@ function usePrintStyles() {
   }, []);
 }
 
-// derive available classes from actual data
-const dataClasses  = [...new Set(ROUTINES.map((r) => r.className))].sort();
-const dataSections = (cls: string) => [...new Set(ROUTINES.filter((r) => r.className === cls).map((r) => r.section))].sort();
-
 export function PrintableClassRoutinePage() {
   usePrintStyles();
   const navigate = useNavigate();
 
-  const [selClass,   setSelClass]   = useState(dataClasses[0] ?? "Grade 6");
-  const [selSection, setSelSection] = useState("A");
-  const [selYear,    setSelYear]    = useState("2026/27");
-
-  const sectionOpts = dataSections(selClass);
+  const { routine } = useRoutineData();
+  const dataClasses = [...new Set(routine.entries.map((r) => r.className))].sort();
+  const [pickedClass, setSelClass] = useState("");
+  const [pickedSection, setSelSection] = useState("");
+  const selClass = pickedClass || dataClasses[0] || "";
+  const sectionOpts = [...new Set(routine.entries.filter((r) => r.className === selClass).map((r) => r.section))].sort();
+  const selSection = pickedSection || sectionOpts[0] || "";
 
   return (
     <div>
@@ -44,17 +42,13 @@ export function PrintableClassRoutinePage() {
         </Button>
 
         <select value={selClass}
-          onChange={(e) => { setSelClass(e.target.value); setSelSection("A"); }}
+          onChange={(e) => { setSelClass(e.target.value); setSelSection(""); }}
           className="h-8 rounded-md border border-input bg-background px-2 text-[12px] text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring">
           {dataClasses.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
         <select value={selSection} onChange={(e) => setSelSection(e.target.value)}
           className="h-8 rounded-md border border-input bg-background px-2 text-[12px] text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring">
           {sectionOpts.map((s) => <option key={s} value={s}>Section {s}</option>)}
-        </select>
-        <select value={selYear} onChange={(e) => setSelYear(e.target.value)}
-          className="h-8 rounded-md border border-input bg-background px-2 text-[12px] text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring">
-          {ACADEMIC_YEAR_OPTIONS.map((y) => <option key={y} value={y}>{y}</option>)}
         </select>
 
         <Button size="sm" className="h-8 gap-1.5 text-[11px]" onClick={() => window.print()}>
@@ -63,7 +57,7 @@ export function PrintableClassRoutinePage() {
         <span className="text-[11px] text-muted-foreground">A4 · Portrait · Use browser print dialog</span>
       </div>
 
-      <PrintableClassRoutine className={selClass} section={selSection} academicYear={selYear} />
+      <PrintableClassRoutine className={selClass} section={selSection} />
     </div>
   );
 }

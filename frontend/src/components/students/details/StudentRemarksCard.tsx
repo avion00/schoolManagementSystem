@@ -1,7 +1,8 @@
 import { MessageSquare } from "lucide-react";
 
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { Remark } from "@/data/studentDetailsData";
+import type { Remark } from "@/api/types/students";
 import { cn } from "@/lib/utils";
 
 const TYPE_CONFIG = {
@@ -15,6 +16,13 @@ function fmt(d: string) {
 }
 
 export function StudentRemarksCard({ remarks }: { remarks: Remark[] }) {
+  if (remarks.length === 0) {
+    return (
+      <DetailCard icon={MessageSquare} title="Teacher Remarks">
+        <PremiumEmptyState title="No remarks yet." className="py-6" />
+      </DetailCard>
+    );
+  }
   return (
     <DetailCard
       icon={MessageSquare}

@@ -1,6 +1,6 @@
 import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { PremiumTableToolbar } from "@/components/ui/PremiumTableToolbar";
-import { PAYMENT_METHOD_OPTIONS, PAYMENT_STATUS_OPTIONS } from "@/data/billingData";
+import { PAYMENT_METHOD_OPTIONS, PAYMENT_STATUS_OPTIONS } from "@/api/types/billing";
 
 export interface PaymentsFilters {
   search: string;

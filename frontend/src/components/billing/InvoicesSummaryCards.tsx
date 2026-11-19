@@ -3,9 +3,11 @@ import { FileText, FileWarning, ReceiptText, Wallet } from "lucide-react";
 import { CATEGORICAL_COLORS, STATUS_COLORS } from "@/components/charts/palette";
 import { Reveal } from "@/components/motion";
 import { KPITrendCard } from "@/components/ui/KPITrendCard";
-import type { Invoice } from "@/data/billingData";
+import type { Invoice } from "@/api/types/billing";
+import { useMoney } from "@/api/billing";
 
 export function InvoicesSummaryCards({ invoices }: { invoices: Invoice[] }) {
+  const money = useMoney();
   const totalAmount = invoices.reduce((s, i) => s + i.amount, 0);
   const totalPaid = invoices.reduce((s, i) => s + i.paid, 0);
   const totalBalance = invoices.reduce((s, i) => s + i.balance, 0);
@@ -15,26 +17,18 @@ export function InvoicesSummaryCards({ invoices }: { invoices: Invoice[] }) {
     {
       label: "Total Invoices", value: invoices.length, icon: FileText, cls: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
       sparkColor: CATEGORICAL_COLORS[0],
-      sparkData: [{ value: 24 }, { value: 26 }, { value: 27 }, { value: 28 }, { value: 29 }, { value: 29 }, { value: 30 }],
-      trend: { value: "+8.7%", up: true, compareLabel: "vs last month" },
     },
     {
-      label: "Total Billed", value: `$${totalAmount.toLocaleString()}`, icon: ReceiptText, cls: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+      label: "Total Billed", value: `${money(totalAmount)}`, icon: ReceiptText, cls: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
       sparkColor: CATEGORICAL_COLORS[4],
-      sparkData: [{ value: 310000 }, { value: 320000 }, { value: 330000 }, { value: 338000 }, { value: 344000 }, { value: 349000 }, { value: 352000 }],
-      trend: { value: "+6.1%", up: true, compareLabel: "vs last month" },
     },
     {
-      label: "Total Collected", value: `$${totalPaid.toLocaleString()}`, icon: Wallet, cls: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+      label: "Total Collected", value: `${money(totalPaid)}`, icon: Wallet, cls: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
       sparkColor: STATUS_COLORS.good,
-      sparkData: [{ value: 180000 }, { value: 190000 }, { value: 195000 }, { value: 200000 }, { value: 205000 }, { value: 208000 }, { value: 211000 }],
-      trend: { value: "+8.4%", up: true, compareLabel: "vs last month" },
     },
     {
-      label: "Outstanding Balance", value: `$${totalBalance.toLocaleString()}`, icon: FileWarning, cls: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+      label: "Outstanding Balance", value: `${money(totalBalance)}`, icon: FileWarning, cls: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
       sparkColor: STATUS_COLORS.critical,
-      sparkData: [{ value: 160000 }, { value: 155000 }, { value: 150000 }, { value: 148000 }, { value: 145000 }, { value: 143000 }, { value: 141000 }],
-      trend: { value: "-4.2%", up: false, compareLabel: "vs last month" },
     },
   ];
 
@@ -47,8 +41,6 @@ export function InvoicesSummaryCards({ invoices }: { invoices: Invoice[] }) {
             value={s.value}
             icon={s.icon}
             iconCls={s.cls}
-            trend={s.trend}
-            sparklineData={s.sparkData}
             sparklineColor={s.sparkColor}
           />
         </Reveal>

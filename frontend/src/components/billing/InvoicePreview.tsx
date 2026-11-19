@@ -2,9 +2,13 @@ import { Printer } from "lucide-react";
 
 import { BillingStatusBadge } from "@/components/billing/BillingStatusBadge";
 import { Button } from "@/components/ui/button";
-import type { Invoice } from "@/data/billingData";
+import type { Invoice } from "@/api/types/billing";
+import { useMoney } from "@/api/billing";
+import { useLetterhead } from "@/api/classes";
 
 export function InvoicePreview({ invoice }: { invoice: Invoice }) {
+  const letterhead = useLetterhead();
+  const money = useMoney();
   const subtotal = invoice.items.reduce((s, it) => s + it.amount, 0);
 
   return (
@@ -20,9 +24,9 @@ export function InvoicePreview({ invoice }: { invoice: Invoice }) {
         <div className="border-b border-border/40 bg-muted/20 px-8 py-6">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-lg font-bold text-foreground">SchoolOS Academy</h1>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">Kathmandu, Nepal · Tel: 01-441-xxxx</p>
-              <p className="text-[11px] text-muted-foreground">accounts@schoolos.academy</p>
+              <h1 className="text-lg font-bold text-foreground">{letterhead.name}</h1>
+              {letterhead.address && <p className="mt-0.5 text-[11px] text-muted-foreground">{letterhead.address}</p>}
+              {letterhead.contact && <p className="text-[11px] text-muted-foreground">{letterhead.contact}</p>}
             </div>
             <div className="text-right">
               <p className="text-sm font-bold uppercase tracking-wide text-foreground">Invoice</p>
@@ -35,11 +39,11 @@ export function InvoicePreview({ invoice }: { invoice: Invoice }) {
         {/* Student / parent info */}
         <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 border-b border-border/40 px-8 py-5">
           <InfoRow label="Student" value={invoice.studentName} />
-          <InfoRow label="Parent / Guardian" value={invoice.parentName} />
           <InfoRow label="Admission No." value={invoice.admissionNo} />
-          <InfoRow label="Class" value={`${invoice.className} – ${invoice.section}`} />
+          <InfoRow label="Billing Period" value={invoice.billingPeriod || "—"} />
+          <InfoRow label="Class" value={[invoice.className, invoice.section].filter(Boolean).join(" – ")} />
           <InfoRow label="Issue Date" value={invoice.issueDate} />
-          <InfoRow label="Due Date" value={invoice.dueDate} />
+          <InfoRow label="Due Date" value={invoice.dueDate || "—"} />
         </div>
 
         {/* Items */}
@@ -58,8 +62,8 @@ export function InvoicePreview({ invoice }: { invoice: Invoice }) {
                 <tr key={it.id} className="border-b border-border/20">
                   <td className="py-1.5 text-foreground">{it.label}</td>
                   <td className="py-1.5 text-center text-muted-foreground">{it.qty}</td>
-                  <td className="py-1.5 text-right text-muted-foreground">${it.unitPrice.toLocaleString()}</td>
-                  <td className="py-1.5 text-right font-medium text-foreground">${it.amount.toLocaleString()}</td>
+                  <td className="py-1.5 text-right text-muted-foreground">{money(it.unitPrice)}</td>
+                  <td className="py-1.5 text-right font-medium text-foreground">{money(it.amount)}</td>
                 </tr>
               ))}
             </tbody>
@@ -69,7 +73,6 @@ export function InvoicePreview({ invoice }: { invoice: Invoice }) {
             <div className="w-56 space-y-1 text-[12px]">
               <SumRow label="Subtotal" value={subtotal} />
               <SumRow label="Discount" value={-invoice.discount} />
-              <SumRow label="Tax (VAT)" value={0} />
               <div className="my-1 border-t border-border/40" />
               <SumRow label="Total" value={subtotal - invoice.discount} bold />
               <SumRow label="Paid" value={invoice.paid} tone="green" />
@@ -107,11 +110,12 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 function SumRow({ label, value, bold, tone }: { label: string; value: number; bold?: boolean; tone?: "green" | "red" }) {
+  const money = useMoney();
   return (
     <div className={`flex items-center justify-between ${bold ? "font-bold" : ""}`}>
       <span className="text-muted-foreground">{label}</span>
       <span className={tone === "green" ? "text-emerald-600" : tone === "red" ? "text-rose-600" : "text-foreground"}>
-        {value < 0 ? "-" : ""}${Math.abs(value).toLocaleString()}
+        {value < 0 ? "-" : ""}{money(Math.abs(value))}
       </span>
     </div>
   );

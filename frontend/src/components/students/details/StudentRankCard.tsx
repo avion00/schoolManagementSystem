@@ -1,7 +1,7 @@
 import { TrendingUp } from "lucide-react";
 
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { RankInfo } from "@/data/studentDetailsData";
+import type { RankInfo } from "@/api/types/students";
 import { cn } from "@/lib/utils";
 
 function RankBadge({ rank, total, label }: { rank: number; total: number; label: string }) {

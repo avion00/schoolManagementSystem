@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { chatUserById, type ChatUser, type Conversation } from "@/data/messagesData";
+import { chatUserById } from "@/lib/messagesService";
+import { type ChatUser, type Conversation } from "@/api/types/messages";
 import { cn } from "@/lib/utils";
 
 function initialsOf(name: string) {
@@ -35,12 +36,9 @@ export function ChatHeader({
   const otherUserId = isDirect ? conversation.participantIds.find((id) => id !== currentUserId) : undefined;
   const otherUser: ChatUser | undefined = otherUserId ? chatUserById(otherUserId) : undefined;
 
+  // No presence tracking: direct chats show who the other person is.
   const presenceLine = isDirect
-    ? otherUser?.status === "online"
-      ? "Online"
-      : otherUser?.status === "away"
-        ? `Away · last seen ${otherUser.lastSeen}`
-        : `Last seen ${otherUser?.lastSeen ?? "recently"}`
+    ? [otherUser?.role, otherUser?.email].filter(Boolean).join(" · ")
     : `${TYPE_LABEL[conversation.type]} · ${conversation.participantIds.length} members`;
   // For a teacher's parent/student chat, the class/student context is more useful
   // at a glance than raw presence — show it alongside (not instead of) presence.

@@ -2,37 +2,26 @@ import {
   Archive,
   Award,
   BarChart2,
-  BookOpen,
   Building2,
-  Bus,
   CalendarCheck,
   CalendarClock,
   CalendarDays,
-  CalendarOff,
   CircleHelp,
   CircleUser,
-  ClipboardCheck,
   ClipboardList,
   CreditCard,
   Download,
-  FileBadge,
   FileText,
   FolderOpen,
   GraduationCap,
-  Home,
   Landmark,
   Laptop2,
   Layers,
   LayoutDashboard,
-  Library,
-  LineChart,
   Lock,
-  Medal,
   Megaphone,
-  MessageCircleQuestion,
   MessageSquare,
   NotebookPen,
-  PartyPopper,
   PenLine,
   Radio,
   Receipt,
@@ -41,8 +30,6 @@ import {
   ShieldAlert,
   ShieldCheck,
   TrendingDown,
-  TrendingUp,
-  Trophy,
   UserCheck,
   UserRound,
   Users,
@@ -180,73 +167,36 @@ export const studentSidebar: NavGroup[] = [
     label: "My School",
     items: [
       { to: "/student/profile",    label: "My Profile",    icon: UserRound },
-      { to: "/student/attendance", label: "My Attendance",  icon: CalendarCheck },
-      { to: "/student/timetable",  label: "My Timetable",   icon: CalendarDays },
-      { to: "/student/subjects",   label: "My Subjects",    icon: BookOpen },
-      { to: "/student/classmates", label: "My Classmates",  icon: Users },
-      { to: "/student/teachers",   label: "My Teachers",    icon: GraduationCap },
+      { to: "/student/attendance", label: "My Attendance", icon: CalendarCheck },
+      { to: "/student/timetable",  label: "My Timetable",  icon: CalendarDays },
+      { to: "/student/fees",       label: "Fees",          icon: Wallet },
     ],
   },
   {
     label: "Learning",
     items: [
-      { to: "/student/assignments",    label: "Homework & Assignments", icon: ClipboardList },
-      { to: "/student/materials",      label: "Learning Materials",     icon: FolderOpen },
-      { to: "/student/study-planner",  label: "Study Planner",          icon: NotebookPen },
-      { to: "/student/exams",          label: "Exams",                  icon: ClipboardCheck },
-      { to: "/student/results",        label: "Results",                icon: Award },
-      { to: "/student/progress",       label: "Progress",               icon: TrendingUp },
+      { to: "/student/assignments", label: "Homework & Assignments", icon: ClipboardList },
+      { to: "/student/materials",   label: "Learning Materials",     icon: FolderOpen },
+      { to: "/student/results",     label: "Results",                icon: Award },
     ],
   },
   {
     label: "Communication",
     items: [
-      { to: "/student/messages",     label: "Messages",      icon: MessageSquare },
-      { to: "/student/groups",       label: "Class Groups",  icon: UsersRound },
-      { to: "/student/notices",      label: "Notices",       icon: Megaphone },
-      { to: "/student/ask-teacher",  label: "Ask Teacher",   icon: MessageCircleQuestion },
-      { to: "/student/help",         label: "Help Center",   icon: CircleHelp },
-    ],
-  },
-  {
-    label: "Activities",
-    items: [
-      { to: "/student/events",       label: "Events",              icon: PartyPopper },
-      { to: "/student/activities",   label: "Clubs & Activities",  icon: Trophy },
-      { to: "/student/achievements", label: "Achievements",        icon: Medal },
-      { to: "/student/certificates", label: "Certificates",        icon: FileBadge },
-    ],
-  },
-  {
-    label: "Services",
-    items: [
-      { to: "/student/library",        label: "Library",        icon: Library },
-      { to: "/student/leave-request",  label: "Leave Request",  icon: CalendarOff },
-      { to: "/student/transport",      label: "Transport",      icon: Bus },
-      { to: "/student/hostel",         label: "Hostel",         icon: Home },
-      { to: "/student/fees",           label: "Fees",           icon: Wallet },
+      { to: "/student/messages", label: "Messages",    icon: MessageSquare },
+      { to: "/student/notices",  label: "Notices",     icon: Megaphone },
+      { to: "/student/help",     label: "Help Center", icon: CircleHelp },
     ],
   },
   {
     label: "Account",
-    items: [
-      { to: "/student/account",  label: "My Account", icon: CircleUser },
-      { to: "/student/settings", label: "Settings",   icon: Settings },
-    ],
+    items: [{ to: "/student/account", label: "My Account", icon: CircleUser }],
   },
 ];
 
 /**
- * Teacher workspace nav — deliberately excludes Finance/Billing, Access
- * Control, Roles & Permissions, Payroll, and the full school-wide Students
- * list. Every route below lives under /teacher/* so it never collides with
- * the shared admin routes (/students, /attendance, …).
- *
- * Kept deliberately short (6 groups, ~18 items) — Weak/Top/Low-attendance
- * students and Student Performance were merged into one "Student Insights"
- * page, and Homework + Assignments were merged into one "Homework &
- * Assignments" page, so teachers aren't choosing between near-duplicate
- * nav items for the same daily task.
+ * Teacher workspace nav. Attendance, marks and the exam schedule reuse the
+ * staff screens, which the server scopes to the teacher's own sections.
  */
 export const teacherSidebar: NavGroup[] = [
   {
@@ -259,8 +209,7 @@ export const teacherSidebar: NavGroup[] = [
   {
     label: "My Teaching",
     items: [
-      { to: "/teacher/classes",      label: "My Classes",  icon: Layers },
-      { to: "/teacher/students",     label: "My Students",  icon: GraduationCap },
+      { to: "/teacher/classes",      label: "My Classes",   icon: Layers },
       { to: "/teacher/timetable",    label: "Timetable",    icon: CalendarDays },
       { to: "/teacher/lesson-plans", label: "Lesson Plans", icon: NotebookPen },
       { to: "/teacher/materials",    label: "Materials",    icon: FolderOpen },
@@ -269,17 +218,16 @@ export const teacherSidebar: NavGroup[] = [
   {
     label: "Attendance",
     items: [
-      { to: "/teacher/attendance",         label: "Mark Attendance",   icon: CalendarCheck },
-      { to: "/teacher/attendance/reports", label: "Attendance Reports", icon: BarChart2 },
+      { to: "/attendance/daily",   label: "Mark Attendance", icon: CalendarCheck },
+      { to: "/attendance/monthly", label: "Monthly Sheet",   icon: BarChart2 },
     ],
   },
   {
     label: "Academics",
     items: [
       { to: "/teacher/assignments", label: "Homework & Assignments", icon: ClipboardList },
-      { to: "/teacher/marks",       label: "Marks & Gradebook",      icon: Award },
-      { to: "/teacher/exams",       label: "Exams",                  icon: CalendarDays },
-      { to: "/teacher/insights",    label: "Student Insights",       icon: LineChart },
+      { to: "/exams/marks-entry",   label: "Marks Entry",            icon: Award },
+      { to: "/exams/schedule",      label: "Exam Schedule",          icon: CalendarDays },
     ],
   },
   {
@@ -287,22 +235,34 @@ export const teacherSidebar: NavGroup[] = [
     items: [
       { to: "/teacher/messages", label: "Messages",             icon: MessageSquare },
       { to: "/teacher/parents",  label: "Parent Communication", icon: UsersRound },
-      { to: "/teacher/notices",  label: "Notices",               icon: Megaphone },
+      { to: "/teacher/notices",  label: "Notices",              icon: Megaphone },
     ],
   },
   {
     label: "Account",
     items: [
       { to: "/teacher/account", label: "My Account", icon: UserRound },
-      { to: "/teacher/help",    label: "Help",        icon: CircleHelp },
+      { to: "/teacher/help",    label: "Help",       icon: CircleHelp },
     ],
   },
 ];
 
-/**
- * Reserved for a future Parent self-service portal — no Parent login
- * exists yet (parents are managed today only via admin CRUD at /parents),
- * so this stays empty rather than shipping nav items with no routes behind
- * them.
- */
-export const parentSidebar: NavGroup[] = [];
+/** Guardian portal nav: their children, school notices, messages and help. */
+export const parentSidebar: NavGroup[] = [
+  {
+    label: "Overview",
+    items: [{ to: "/parent", label: "My Children", icon: Users }],
+  },
+  {
+    label: "Communication",
+    items: [
+      { to: "/parent/messages", label: "Messages",    icon: MessageSquare },
+      { to: "/parent/notices",  label: "Notices",     icon: Megaphone },
+      { to: "/parent/help",     label: "Help Center", icon: CircleHelp },
+    ],
+  },
+  {
+    label: "Account",
+    items: [{ to: "/parent/account", label: "My Account", icon: CircleUser }],
+  },
+];

@@ -1,4 +1,4 @@
-import type { ParentStatus } from "@/data/parentsData";
+import type { ParentStatus } from "@/api/types/parents";
 
 const CONFIG: Record<ParentStatus, { label: string; ring: string; dot: string; text: string }> = {
   "active":   { label: "Active",   ring: "ring-emerald-500/30", dot: "bg-emerald-500", text: "text-emerald-700 dark:text-emerald-400" },

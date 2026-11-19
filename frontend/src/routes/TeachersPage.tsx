@@ -10,7 +10,12 @@ import { TeachersTable } from "@/components/teachers/TeachersTable";
 import { TeachersToolbar, type TeachersFilters } from "@/components/teachers/TeachersToolbar";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { TEACHERS, type Teacher } from "@/data/teachersData";
+import { errorMessage } from "@/api/http";
+import { useTeachers } from "@/api/teachers";
+import type { Teacher } from "@/api/types/teachers";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { useAuth } from "@/lib/auth";
 
 const PAGE_SIZE = 10;
 type SortField = "employeeId" | "name" | "subject" | "department" | "status";
@@ -43,6 +48,13 @@ export function TeachersPage() {
     else { setSortField(f); setSortDir("asc"); }
     setPage(1);
   }
+
+  const { hasPermission } = useAuth();
+  const teachersQuery = useTeachers(hasPermission("payroll.manage"));
+  const TEACHERS = useMemo(() => teachersQuery.data ?? [], [teachersQuery.data]);
+  const uniq = (xs: string[]) => [...new Set(xs.filter(Boolean))].sort();
+  const departmentOptions = uniq(TEACHERS.map((t) => t.department));
+  const subjectOptions = uniq(TEACHERS.flatMap((t) => [t.subject, ...t.secondarySubjects]));
 
   const hasActiveFilter =
     !!filters.search || filters.filterDept !== "all" || filters.filterSubject !== "all" ||
@@ -94,12 +106,20 @@ export function TeachersPage() {
         }
         description="Manage teaching staff, subjects and class assignments."
         actions={
+          hasPermission("teacher.manage") ? (
           <Button size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => navigate("/teachers/new")}>
             <Plus className="h-4 w-4" /> Add Teacher
           </Button>
+          ) : undefined
         }
       />
 
+      {teachersQuery.isError && (
+        <PremiumEmptyState title="Couldn't load teachers" description={errorMessage(teachersQuery.error)}
+          action={<Button size="sm" variant="outline" onClick={() => teachersQuery.refetch()}>Try again</Button>} />
+      )}
+      {teachersQuery.isLoading && <PremiumSkeleton className="h-72 w-full rounded-2xl" />}
+      {teachersQuery.isSuccess && (<>
       {/* ── Summary ─────────────────────────────────────────────────────── */}
       <TeachersSummaryCards teachers={TEACHERS} />
 
@@ -122,6 +142,8 @@ export function TeachersPage() {
         onFiltersChange={updateFilters}
         hasActiveFilter={hasActiveFilter}
         onReset={resetFilters}
+        departmentOptions={departmentOptions}
+        subjectOptions={subjectOptions}
       />
 
       {/* ── Table ───────────────────────────────────────────────────────── */}
@@ -136,6 +158,7 @@ export function TeachersPage() {
         hasActiveFilter={hasActiveFilter}
         onResetFilters={resetFilters}
       />
+      </>)}
     </div>
   );
 }

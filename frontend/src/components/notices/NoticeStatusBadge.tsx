@@ -1,4 +1,4 @@
-import type { NoticeStatus } from "@/data/noticesData";
+import type { NoticeStatus } from "@/api/types/notices";
 import { cn } from "@/lib/utils";
 
 const STATUS_CFG: Record<NoticeStatus, { label: string; cls: string }> = {

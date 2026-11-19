@@ -1,7 +1,7 @@
 import { Download, Eye, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { SubjectDocument } from "@/data/subjectDetailData";
+import type { SubjectDocument } from "@/api/types/subjects";
 
 const TYPE_COLOR: Record<string, string> = {
   PDF: "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400",

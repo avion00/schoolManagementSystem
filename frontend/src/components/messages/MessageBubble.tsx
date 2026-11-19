@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { ChatMessage, ChatUser } from "@/data/messagesData";
+import type { ChatMessage, ChatUser } from "@/api/types/messages";
 import { cn } from "@/lib/utils";
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "🎉"];
@@ -110,7 +110,7 @@ export function MessageBubble({
           )}
 
           {(message.type === "file" || message.type === "audio") &&
-            message.attachments.map((a) => <AttachmentPreview key={a.id} attachment={a} dense onDownload={() => {}} />)}
+            message.attachments.map((a) => <AttachmentPreview key={a.id} attachment={a} dense />)}
 
           <div className={cn("mt-1 flex items-center gap-1 text-[10.5px]", isOwn ? "justify-end text-primary-foreground/70" : "justify-start text-muted-foreground")}>
             {message.editedAt && <span className="italic">edited</span>}

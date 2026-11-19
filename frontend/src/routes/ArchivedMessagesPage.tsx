@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PremiumCard } from "@/components/ui/PremiumCard";
 import { useConversations } from "@/hooks/useConversations";
-import { chatUserById } from "@/data/messagesData";
+import { chatUserById } from "@/lib/messagesService";
 import { messagesService } from "@/lib/messagesService";
 import { realtimeService } from "@/lib/realtimeService";
 

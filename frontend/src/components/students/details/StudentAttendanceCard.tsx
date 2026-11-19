@@ -10,7 +10,7 @@ import {
 } from "recharts";
 
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { AttendanceMonth, AttendanceSummary } from "@/data/studentDetailsData";
+import type { AttendanceMonth, AttendanceSummary } from "@/api/types/students";
 import { cn } from "@/lib/utils";
 
 function StatPill({

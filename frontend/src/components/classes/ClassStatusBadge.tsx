@@ -1,4 +1,4 @@
-import type { ClassStatus } from "@/data/classesData";
+import type { ClassStatus } from "@/api/types/classes";
 
 const CFG: Record<ClassStatus, { label: string; cls: string }> = {
   active:    { label: "Active",    cls: "bg-emerald-50 text-emerald-700 ring-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400" },

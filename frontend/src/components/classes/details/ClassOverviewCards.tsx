@@ -1,6 +1,6 @@
 import { BookOpen, CalendarCheck, ClipboardList, GraduationCap, Layers, Wallet } from "lucide-react";
-import type { ClassData } from "@/data/classesData";
-import type { ClassDetailMock } from "@/data/classDetailData";
+import type { ClassData } from "@/api/types/classes";
+import type { ClassDetailView } from "@/api/types/classes";
 
 function OverviewCard({ icon: Icon, label, value, sub, color }: {
   icon: typeof Layers; label: string; value: string | number; sub?: string; color: string;
@@ -37,20 +37,20 @@ function ProgressCard({ label, value, max, color = "bg-primary" }: {
   );
 }
 
-export function ClassOverviewCards({ cls, mock }: { cls: ClassData; mock: ClassDetailMock }) {
+export function ClassOverviewCards({ cls, mock }: { cls: ClassData; mock: ClassDetailView }) {
   const { attendance, performance, fees, exams } = mock;
   const upcomingExams = exams.filter((e) => e.status === "Upcoming").length;
-  const dueFeesK = Math.round((fees.due + fees.overdue) / 1000);
+  const dueFeesK = fees ? Math.round(fees.due / 1000) : null;
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <OverviewCard icon={GraduationCap} label="Total Students"   value={cls.totalStudents}  color="text-blue-600 dark:text-blue-400" />
       <OverviewCard icon={Layers}        label="Active Sections"  value={cls.sections.length} color="text-violet-600 dark:text-violet-400" />
-      <OverviewCard icon={CalendarCheck} label="Attendance Avg"   value={`${attendance.presentPct}%`} sub={`${attendance.totalDays} school days`} color="text-emerald-600 dark:text-emerald-400" />
+      <OverviewCard icon={CalendarCheck} label="Attendance Avg"   value={attendance.presentPct === null ? "—" : `${attendance.presentPct}%`} sub={`${attendance.totalDays} school days`} color="text-emerald-600 dark:text-emerald-400" />
       <OverviewCard icon={BookOpen}      label="Active Subjects"  value={cls.subjects.filter((s)=>s.status==="active").length} color="text-amber-600 dark:text-amber-400" />
-      <ProgressCard label="Capacity Used"    value={cls.totalStudents} max={cls.totalCapacity} color="bg-blue-500" />
-      <ProgressCard label="Class Average"    value={performance.classAverage} max={100} color="bg-violet-500" />
-      <OverviewCard icon={Wallet}        label="Due Fees"         value={`NPR ${dueFeesK}K`} color="text-rose-600 dark:text-rose-400" />
+      <ProgressCard label="Capacity Used"    value={cls.totalStudents} max={cls.totalCapacity ?? cls.totalStudents} color="bg-blue-500" />
+      <ProgressCard label="Class Average"    value={performance?.classAverage ?? 0} max={100} color="bg-violet-500" />
+      <OverviewCard icon={Wallet}        label="Due Fees"         value={dueFeesK === null ? "—" : `NPR ${dueFeesK}K`} color="text-rose-600 dark:text-rose-400" />
       <OverviewCard icon={ClipboardList} label="Upcoming Exams"  value={upcomingExams} color="text-orange-600 dark:text-orange-400" />
     </div>
   );

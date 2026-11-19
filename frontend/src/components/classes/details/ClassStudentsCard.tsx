@@ -1,8 +1,9 @@
 import { Eye, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { DetailStudent } from "@/data/classDetailData";
+import type { DetailStudent } from "@/api/types/classes";
 
 const FEE_CFG = {
   Paid:    "bg-emerald-50 text-emerald-700 ring-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400",
@@ -26,6 +27,13 @@ function Badge({ label, cls }: { label: string; cls: string }) {
 }
 
 export function ClassStudentsCard({ students }: { students: DetailStudent[] }) {
+  if (students.length === 0) {
+    return (
+      <DetailCard icon={Users} title="Students">
+        <PremiumEmptyState title="No active students in this class." className="py-6" />
+      </DetailCard>
+    );
+  }
   const navigate = useNavigate();
   return (
     <DetailCard
@@ -54,12 +62,12 @@ export function ClassStudentsCard({ students }: { students: DetailStudent[] }) {
                   <td className="py-2.5 pr-3 font-mono text-muted-foreground">{s.registrationNo}</td>
                   <td className="py-2.5 pr-3 font-medium text-foreground whitespace-nowrap">{s.name}</td>
                   <td className="py-2.5 pr-3 text-muted-foreground">Sec {s.section}</td>
-                  <td className="py-2.5 pr-3 text-muted-foreground">#{s.roll}</td>
+                  <td className="py-2.5 pr-3 text-muted-foreground">{s.roll === null ? "—" : `#${s.roll}`}</td>
                   <td className="py-2.5 pr-3 text-muted-foreground">{s.gender}</td>
                   <td className="py-2.5 pr-3">
-                    <span className={`font-semibold ${attColor(s.attendancePct)}`}>{s.attendancePct}%</span>
+                    <span className={`font-semibold ${attColor(s.attendancePct ?? 0)}`}>{s.attendancePct === null ? "—" : `${s.attendancePct}%`}</span>
                   </td>
-                  <td className="py-2.5 pr-3"><Badge label={s.feeStatus}   cls={FEE_CFG[s.feeStatus]} /></td>
+                  <td className="py-2.5 pr-3"><Badge label={s.feeStatus}   cls={s.feeStatus === "—" ? "bg-muted text-muted-foreground" : FEE_CFG[s.feeStatus]} /></td>
                   <td className="py-2.5 pr-3"><Badge label={s.resultStatus} cls={RESULT_CFG[s.resultStatus]} /></td>
                   <td className="py-2.5">
                     <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100"

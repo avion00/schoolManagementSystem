@@ -1,6 +1,6 @@
 import { CheckCircle2, Clock } from "lucide-react";
 import { PremiumDataTable, type PremiumDataTableColumn } from "@/components/ui/PremiumDataTable";
-import type { RecipientRecord } from "@/data/noticesData";
+import type { RecipientRecord } from "@/api/types/notices";
 import { cn } from "@/lib/utils";
 
 const ROLE_COLORS: Record<string, string> = {

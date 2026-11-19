@@ -1,6 +1,6 @@
 import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { PremiumTableToolbar } from "@/components/ui/PremiumTableToolbar";
-import { PAYROLL_STATUS_OPTIONS } from "@/data/billingData";
+import { PAYROLL_STATUS_OPTIONS } from "@/api/types/billing";
 
 export interface PayrollFilters {
   search: string;

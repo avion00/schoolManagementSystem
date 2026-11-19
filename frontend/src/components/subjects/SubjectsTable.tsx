@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { PremiumBadge } from "@/components/ui/PremiumBadge";
 import { PremiumDataTable, type PremiumDataTableColumn, type PremiumDataTablePagination } from "@/components/ui/PremiumDataTable";
 import { RowActionMenu } from "@/components/ui/RowActionMenu";
-import type { SubjectCategory, SubjectData } from "@/data/subjectsData";
+import type { SubjectCategory, SubjectData } from "@/api/types/subjects";
 
 const CAT_TONE: Record<SubjectCategory, "success" | "warning" | "danger" | "neutral" | "info" | "purple"> = {
   "Compulsory": "purple",
@@ -55,7 +55,7 @@ export function SubjectsTable({
     },
     { key: "type", header: "Type", width: "w-[130px]", sortable: true, render: (s) => <SubjectTypeBadge type={s.type} /> },
     { key: "category", header: "Category", width: "w-[130px]", sortable: true, render: (s) => <PremiumBadge label={s.category} tone={CAT_TONE[s.category]} /> },
-    { key: "primaryTeacher", header: "Primary Teacher", width: "w-[140px]", render: (s) => <span className="text-sm text-foreground">{s.primaryTeacher.name}</span> },
+    { key: "primaryTeacher", header: "Primary Teacher", width: "w-[140px]", render: (s) => <span className="text-sm text-foreground">{s.primaryTeacher?.name ?? "—"}</span> },
     { key: "weeklyPeriods", header: "Periods/Wk", width: "w-[90px]", align: "right", sortable: true, render: (s) => <span className="tabular-nums text-sm">{s.weeklyPeriods}</span> },
     { key: "fullMarks", header: "Full Marks", width: "w-[90px]", align: "right", sortable: true, render: (s) => <span className="tabular-nums text-sm">{s.fullMarks}</span> },
     {

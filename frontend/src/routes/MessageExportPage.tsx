@@ -3,7 +3,7 @@ import { FileDown } from "lucide-react";
 import { MessageExportPanel } from "@/components/messages/MessageExportPanel";
 import { DetailCard } from "@/components/ui/DetailCard";
 import { PremiumCard } from "@/components/ui/PremiumCard";
-import { chatUserById } from "@/data/messagesData";
+import { chatUserById } from "@/lib/messagesService";
 import { useAuth } from "@/lib/auth";
 import { messagesService, resolveCurrentChatUser } from "@/lib/messagesService";
 

@@ -7,6 +7,7 @@ Creates:
   - Organization "Greenwood Group" + School "Greenwood High"
   - Roles: Principal, Teacher, Accountant (with permissions)
   - Users: principal@demo.school / teacher@demo.school / accountant@demo.school
+           student@demo.school / parent@demo.school
   - A platform admin: admin@platform.test
 All demo passwords: Passw0rd!2024
 """
@@ -15,71 +16,16 @@ import datetime
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from apps.academics.models import AcademicYear, ClassLevel, Section, Subject
+from apps.academics.models import AcademicYear, ClassLevel, ClassSubject, Section, Subject
 from apps.accounts.models import Organization, School, User
-from apps.guardians.models import Guardian
+from apps.guardians.models import Guardian, StudentGuardian
+from apps.rbac.catalog import PERMISSIONS, ROLE_PERMISSIONS
 from apps.rbac.models import Permission, Role, RolePermission, UserRole
 from apps.students.models import Student
 from apps.teachers.models import Teacher, TeacherAssignment
+from apps.timetable.models import PeriodSlot, RoutineEntry
 
 DEMO_PASSWORD = "Passw0rd!2024"
-
-PERMISSIONS = [
-    ("student.view.all", "View all students", "student"),
-    ("student.view.class", "View class students", "student"),
-    ("student.create", "Create student", "student"),
-    ("student.update", "Update student", "student"),
-    ("student.delete", "Delete student", "student"),
-    ("student.export", "Export students", "student"),
-    ("attendance.take", "Take attendance", "attendance"),
-    ("attendance.update", "Update attendance", "attendance"),
-    ("attendance.report", "Attendance reports", "attendance"),
-    ("exam.create", "Create exam", "exam"),
-    ("exam.marks.enter", "Enter marks", "exam"),
-    ("exam.marks.lock", "Lock marks", "exam"),
-    ("exam.result.publish", "Publish results", "exam"),
-    ("fee.view", "View fees", "fee"),
-    ("fee.create", "Create fee", "fee"),
-    ("fee.collect", "Collect fee", "fee"),
-    ("fee.refund", "Refund fee", "fee"),
-    ("fee.discount.approve", "Approve fee discount", "fee"),
-    ("role.manage", "Manage roles", "rbac"),
-    ("user.manage", "Manage users", "accounts"),
-    ("report.view", "View reports", "reports"),
-    ("settings.manage", "Manage settings", "settings"),
-    ("academics.view", "View academic structure", "academics"),
-    ("academics.manage", "Manage academic structure", "academics"),
-    ("guardian.view", "View guardians", "guardian"),
-    ("guardian.manage", "Manage guardians", "guardian"),
-    ("teacher.view", "View teachers", "teacher"),
-    ("teacher.manage", "Manage teachers", "teacher"),
-    ("exam.view", "View exams", "exam"),
-    ("audit.view", "View audit logs", "audit"),
-    ("student.view.own", "View own student record", "student"),
-    ("student.update.own", "Edit own profile", "student"),
-    ("attendance.view.own", "View own attendance", "attendance"),
-    ("result.view.own", "View own results", "exam"),
-    ("fee.view.own", "View own fees", "fee"),
-]
-
-ROLE_PERMISSIONS = {
-    "Principal": [code for code, _, _ in PERMISSIONS],  # everything
-    "Teacher": [
-        "student.view.class", "student.view.all", "attendance.take",
-        "attendance.update", "attendance.report", "exam.marks.enter",
-        "report.view", "academics.view", "guardian.view", "teacher.view",
-        "exam.view",
-    ],
-    "Accountant": [
-        "fee.view", "fee.create", "fee.collect", "fee.refund",
-        "fee.discount.approve", "report.view",
-    ],
-    "Student": [
-        "student.view.own", "student.update.own",
-        "attendance.view.own", "result.view.own", "fee.view.own",
-    ],
-}
-
 
 class Command(BaseCommand):
     help = "Seed a demo organization, roles, permissions, and users."
@@ -172,6 +118,12 @@ class Command(BaseCommand):
                 organization=org, school=school, code=s_code, defaults={"name": s_name}
             )
             subjects[s_code] = subj
+        for cl in class_levels.values():
+            for subj in subjects.values():
+                ClassSubject.objects.get_or_create(
+                    organization=org, academic_year=year, class_level=cl, subject=subj,
+                    defaults={"weekly_periods": 5, "school": school},
+                )
         self.stdout.write(self.style.SUCCESS("Academic structure ready."))
 
         # --- Guardians + students ---
@@ -189,17 +141,38 @@ class Command(BaseCommand):
             ("ADM-0003", "01", "Noah", "Smith", "male", "Grade 9", "A", g1),
         ]
         for adm, roll, first, last, gender, cl_name, sec_name, guardian in sample_students:
-            Student.objects.get_or_create(
+            student, _ = Student.objects.get_or_create(
                 organization=org, admission_number=adm,
                 defaults={
                     "first_name": first, "last_name": last, "gender": gender,
                     "roll_number": roll, "academic_year": year,
                     "class_level": class_levels[cl_name],
                     "section": sections[(cl_name, sec_name)],
-                    "primary_guardian": guardian, "school": school,
+                    "school": school,
                 },
             )
+            StudentGuardian.objects.get_or_create(
+                organization=org, student=student, guardian=guardian,
+                defaults={"relation": guardian.relation, "is_primary": True, "school": school},
+            )
         self.stdout.write(self.style.SUCCESS("Guardians + students ready."))
+
+        # --- Parent portal login (Robert Smith -> Liam & Noah) ---
+        pu, created = User.objects.get_or_create(
+            email="parent@demo.school",
+            defaults={"full_name": g1.full_name, "organization": org},
+        )
+        if created:
+            pu.set_password(DEMO_PASSWORD)
+            pu.save()
+        if not g1.user_id:
+            g1.user = pu
+            g1.email = pu.email
+            g1.save(update_fields=["user", "email", "updated_at"])
+        UserRole.objects.get_or_create(user=pu, role=roles["Parent"], school=None)
+        self.stdout.write(self.style.SUCCESS(
+            "Parent login ready: parent@demo.school (Robert Smith: Liam, Noah)"
+        ))
 
         # --- Teacher (linked to teacher login) + assignment ---
         teacher_user = User.objects.filter(email="teacher@demo.school").first()
@@ -217,6 +190,29 @@ class Command(BaseCommand):
             subject=subjects["SCI"], defaults={"is_class_teacher": True},
         )
         self.stdout.write(self.style.SUCCESS("Teacher + assignment ready."))
+
+        # --- Bell schedule + a week's routine for Grade 8 A ---
+        times = [((10, 0), (10, 45)), ((10, 45), (11, 30)), ((11, 30), (12, 0)), ((12, 0), (12, 45))]
+        slots = []
+        for no, (start, end) in enumerate(times, start=1):
+            slot, _ = PeriodSlot.objects.get_or_create(
+                organization=org, shift="day", period_no=no,
+                defaults={"start_time": datetime.time(*start), "end_time": datetime.time(*end),
+                          "is_break": no == 3, "label": "Lunch" if no == 3 else f"Period {no}"},
+            )
+            slots.append(slot)
+        teaching = [s for s in slots if not s.is_break]
+        rotation = list(subjects.values())
+        for d, day in enumerate(["sunday", "monday", "tuesday", "wednesday", "thursday", "friday"]):
+            for p, slot in enumerate(teaching):
+                subject = rotation[(d + p) % len(rotation)]
+                RoutineEntry.objects.get_or_create(
+                    organization=org, academic_year=year, section=sections[("Grade 8", "A")],
+                    day=day, period=slot,
+                    defaults={"subject": subject, "school": school,
+                              "teacher": teacher if subject.code == "SCI" else None},
+                )
+        self.stdout.write(self.style.SUCCESS("Timetable ready (Grade 8 A)."))
 
         # --- Student portal login (linked to a Student record) ---
         liam = Student.objects.filter(organization=org, admission_number="ADM-0001").first()

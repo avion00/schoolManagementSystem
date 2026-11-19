@@ -1,137 +1,89 @@
 import { useState } from "react";
-import { CalendarDays, Plus, CheckCircle, Archive, Pencil } from "lucide-react";
+import { CalendarDays, CheckCircle2, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SettingsSection, SettingsField, ToggleRow, SaveBar } from "./SettingsSection";
-import { ACADEMIC_YEARS } from "@/data/settingsData";
-import type { AcademicYear, AcademicYearStatus } from "@/data/settingsData";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { SettingsSection, SettingsField } from "./SettingsSection";
+import { useSchools } from "@/api/classes";
+import { errorMessage } from "@/api/http";
+import { useAcademicYears } from "@/api/settings";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
-const STATUS_CLS: Record<AcademicYearStatus, string> = {
-  Active:   "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-400/40 dark:bg-emerald-950/40 dark:text-emerald-300",
-  Upcoming: "bg-violet-50  text-violet-700  ring-1 ring-violet-400/40  dark:bg-violet-950/40  dark:text-violet-300",
-  Archived: "bg-slate-100  text-slate-500   ring-1 ring-slate-300/50   dark:bg-slate-800      dark:text-slate-400",
-};
-
+/** Academic years: the current one scopes classes, fees, exams and attendance. */
 export function AcademicYearSettings() {
-  const active  = ACADEMIC_YEARS.find((y) => y.status === "Active")!;
-  const [form, setForm]   = useState<AcademicYear>({ ...active });
-  const [saving, setSaving] = useState(false);
-  const [saved,  setSaved]  = useState(false);
+  const { query, create, update, remove } = useAcademicYears();
+  const school = useSchools().data;
+  const { hasPermission } = useAuth();
+  const canEdit = hasPermission("academics.manage");
+  const [form, setForm] = useState({ name: "", start: "", end: "" });
+  const [error, setError] = useState<string | null>(null);
+  const fail = (e: unknown) => toast.error(errorMessage(e));
+  const years = query.data ?? [];
+  const today = new Date().toISOString().slice(0, 10);
 
-  function set<K extends keyof AcademicYear>(k: K, v: AcademicYear[K]) {
-    setForm((f) => ({ ...f, [k]: v }));
+  function add() {
+    if (!form.name.trim() || !form.start || !form.end) { setError("Name, start and end dates are required."); return; }
+    if (form.end <= form.start) { setError("The end date must be after the start date."); return; }
+    if (!school?.id) { setError("School profile not loaded yet."); return; }
+    setError(null);
+    create.mutate({ school: school.id, name: form.name.trim(), start_date: form.start, end_date: form.end, is_current: years.length === 0 }, {
+      onSuccess: () => { setForm({ name: "", start: "", end: "" }); toast.success("Academic year added."); }, onError: fail,
+    });
   }
 
-  async function handleSave() {
-    setSaving(true); setSaved(false);
-    await new Promise((r) => setTimeout(r, 600));
-    console.log("Academic year saved:", form);
-    setSaving(false); setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-  }
+  if (query.isLoading) return <PremiumSkeleton className="h-72 w-full rounded-2xl" />;
 
   return (
     <div className="space-y-5">
-      {/* Active year config */}
-      <SettingsSection icon={CalendarDays} title="Current Academic Year"
-        subtitle="Manage active year settings">
-        <div className="space-y-4">
+      <SettingsSection icon={CalendarDays} title="Academic Years" subtitle="The current year is used for classes, fees, exams and attendance" noPad>
+        <div className="divide-y divide-border/50">
+          {years.length === 0 && <p className="p-5 text-[12.5px] text-muted-foreground">No academic years yet. Add the current one below.</p>}
+          {years.map((y) => {
+            const status = y.is_current ? "Current" : (y.start_date ?? "") > today ? "Upcoming" : "Past";
+            return (
+              <div key={y.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-semibold text-foreground">{y.name}</p>
+                  <p className="text-[11.5px] text-muted-foreground">{y.start_date} → {y.end_date}</p>
+                </div>
+                <span className={cn("rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+                  status === "Current" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+                    : status === "Upcoming" ? "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300" : "bg-muted text-muted-foreground")}>
+                  {status}
+                </span>
+                {canEdit && !y.is_current && (<>
+                  <Button size="sm" variant="outline" className="h-7 gap-1 text-[11.5px]"
+                    onClick={() => window.confirm(`Make ${y.name} the current academic year?`) && update.mutate({ id: y.id, body: { is_current: true } }, {
+                      onSuccess: () => toast.success(`${y.name} is now the current year.`), onError: fail })}>
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Set current
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-rose-600"
+                    onClick={() => window.confirm(`Delete ${y.name}? Years with classes, students or fees can't be deleted.`) && remove.mutate(y.id, {
+                      onSuccess: () => toast.success("Academic year deleted."), onError: fail })}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </>)}
+              </div>
+            );
+          })}
+        </div>
+      </SettingsSection>
+
+      {canEdit && (
+        <SettingsSection icon={Plus} title="Add Academic Year">
           <div className="grid gap-4 sm:grid-cols-3">
-            <SettingsField label="Academic Year">
-              <Input value={form.year} onChange={(e) => set("year", e.target.value)} className="h-9 text-[13px]" />
-            </SettingsField>
-            <SettingsField label="Start Date">
-              <Input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} className="h-9 text-[13px]" />
-            </SettingsField>
-            <SettingsField label="End Date">
-              <Input type="date" value={form.endDate} onChange={(e) => set("endDate", e.target.value)} className="h-9 text-[13px]" />
-            </SettingsField>
-            <SettingsField label="Attendance Lock Date" hint="Mark attendance read-only after this date">
-              <Input type="date" value={form.attendanceLock} onChange={(e) => set("attendanceLock", e.target.value)} className="h-9 text-[13px]" />
-            </SettingsField>
+            <SettingsField label="Name" required><Input value={form.name} placeholder="e.g. 2083/84" onChange={(e) => setForm({ ...form, name: e.target.value })} className="h-9 text-[13px]" /></SettingsField>
+            <SettingsField label="Starts" required><Input type="date" value={form.start} onChange={(e) => setForm({ ...form, start: e.target.value })} className="h-9 text-[13px]" /></SettingsField>
+            <SettingsField label="Ends" required><Input type="date" value={form.end} onChange={(e) => setForm({ ...form, end: e.target.value })} className="h-9 text-[13px]" /></SettingsField>
           </div>
-
-          <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
-            <ToggleRow
-              label="Admissions Open"
-              sublabel="Allow new student admissions for this year"
-              checked={form.admissionOpen}
-              onChange={(v) => set("admissionOpen", v)}
-            />
-            <ToggleRow
-              label="Result Publishing Enabled"
-              sublabel="Allow exam results to be published"
-              checked={form.resultPublished}
-              onChange={(v) => set("resultPublished", v)}
-            />
-          </div>
-        </div>
-        <SaveBar onSave={handleSave} onReset={() => setForm({ ...active })} saving={saving} saved={saved} />
-      </SettingsSection>
-
-      {/* Years table */}
-      <SettingsSection icon={CalendarDays} title="All Academic Years"
-        subtitle="History and upcoming sessions"
-        action={
-          <Button size="sm" className="h-8 gap-1.5 text-[12px]">
-            <Plus className="h-3.5 w-3.5" /> Add Year
+          {error && <p className="mt-2 text-[11.5px] text-rose-600">{error}</p>}
+          <Button size="sm" className="mt-4 h-8 gap-1.5 text-[12px]" disabled={create.isPending} onClick={add}>
+            <Plus className="h-3.5 w-3.5" /> {create.isPending ? "Adding…" : "Add Year"}
           </Button>
-        }
-        noPad>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="border-b border-border bg-muted/30">
-              <tr>
-                {["Year","Start Date","End Date","Admissions","Results","Status","Actions"].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {ACADEMIC_YEARS.map((y) => (
-                <tr key={y.id} className="hover:bg-muted/20 transition-colors">
-                  <td className="px-4 py-3.5 text-[13px] font-semibold text-foreground">{y.year}</td>
-                  <td className="px-4 py-3.5 text-[12px] text-muted-foreground">{y.startDate}</td>
-                  <td className="px-4 py-3.5 text-[12px] text-muted-foreground">{y.endDate}</td>
-                  <td className="px-4 py-3.5">
-                    <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", y.admissionOpen ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400")}>
-                      {y.admissionOpen ? "Open" : "Closed"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", y.resultPublished ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400")}>
-                      {y.resultPublished ? "Published" : "Pending"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <span className={cn("rounded-full px-2.5 py-0.5 text-[11px] font-semibold", STATUS_CLS[y.status])}>
-                      {y.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <div className="flex gap-1">
-                      {y.status !== "Active" && (
-                        <button title="Activate" className="flex h-7 w-7 items-center justify-center rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors">
-                          <CheckCircle className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                      <button title="Edit" className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      {y.status !== "Archived" && (
-                        <button title="Archive" className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-                          <Archive className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </SettingsSection>
+        </SettingsSection>
+      )}
     </div>
   );
 }

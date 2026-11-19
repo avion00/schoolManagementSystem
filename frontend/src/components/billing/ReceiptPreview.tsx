@@ -2,9 +2,13 @@ import { Printer } from "lucide-react";
 
 import { PaymentMethodBadge } from "@/components/billing/PaymentMethodBadge";
 import { Button } from "@/components/ui/button";
-import type { Payment } from "@/data/billingData";
+import type { Payment } from "@/api/types/billing";
+import { useMoney } from "@/api/billing";
+import { useLetterhead } from "@/api/classes";
 
-export function ReceiptPreview({ payment, receiptNo }: { payment: Payment; receiptNo: string }) {
+export function ReceiptPreview({ payment }: { payment: Payment }) {
+  const letterhead = useLetterhead();
+  const money = useMoney();
   return (
     <div className="space-y-3">
       <div className="flex justify-end print:hidden">
@@ -15,28 +19,31 @@ export function ReceiptPreview({ payment, receiptNo }: { payment: Payment; recei
 
       <div id="receipt-print" className="mx-auto max-w-md overflow-hidden rounded-2xl border border-border/60 bg-white text-[12px] shadow-lg dark:bg-background">
         <div className="border-b border-border/40 bg-muted/20 px-7 py-6 text-center">
-          <h1 className="text-base font-bold text-foreground">SchoolOS Academy</h1>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">Kathmandu, Nepal · Tel: 01-441-xxxx</p>
+          <h1 className="text-base font-bold text-foreground">{letterhead.name}</h1>
+          {(letterhead.address || letterhead.contact) && (
+            <p className="mt-0.5 text-[11px] text-muted-foreground">{[letterhead.address, letterhead.contact].filter(Boolean).join(" · ")}</p>
+          )}
           <div className="mt-3 inline-block rounded-full border-2 border-foreground/20 px-5 py-1 text-[12px] font-bold uppercase tracking-wide text-foreground">
             Payment Receipt
           </div>
+          {payment.status === "Reversed" && (
+            <p className="mt-2 text-[12px] font-semibold text-rose-600">REVERSED{payment.reversedReason ? `: ${payment.reversedReason}` : ""}</p>
+          )}
         </div>
 
         <div className="space-y-1.5 px-7 py-5">
-          <Row label="Receipt No." value={receiptNo} />
-          <Row label="Payment ID" value={payment.paymentId} />
+          <Row label="Receipt No." value={payment.paymentId} />
           <Row label="Invoice No." value={payment.invoiceNo} />
           <Row label="Student" value={payment.studentName} />
-          <Row label="Parent / Guardian" value={payment.parentName} />
-          <Row label="Transaction ID" value={payment.transactionId} />
-          <Row label="Received By" value={payment.receivedBy} />
+          {payment.transactionId && <Row label="Transaction ID" value={payment.transactionId} />}
+          <Row label="Received By" value={payment.receivedBy || "—"} />
           <Row label="Date" value={payment.paymentDate} />
         </div>
 
         <div className="border-y border-border/40 bg-muted/20 px-7 py-4">
           <div className="flex items-center justify-between">
             <span className="text-[11px] text-muted-foreground">Amount Paid</span>
-            <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">${payment.amount.toLocaleString()}</span>
+            <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{money(payment.amount)}</span>
           </div>
           <div className="mt-2 flex items-center justify-between">
             <span className="text-[11px] text-muted-foreground">Payment Method</span>

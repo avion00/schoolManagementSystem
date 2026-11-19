@@ -7,8 +7,9 @@ import {
   Users,
 } from "lucide-react";
 
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { ActivityItem } from "@/data/studentDetailsData";
+import type { ActivityItem } from "@/api/types/students";
 import { cn } from "@/lib/utils";
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -34,6 +35,13 @@ function fmt(d: string) {
 }
 
 export function StudentActivityTimeline({ activities }: { activities: ActivityItem[] }) {
+  if (activities.length === 0) {
+    return (
+      <DetailCard icon={CheckCircle} title="Recent Activity">
+        <PremiumEmptyState title="No status changes or promotions recorded." className="py-6" />
+      </DetailCard>
+    );
+  }
   return (
     <DetailCard icon={CheckCircle} title="Recent Activity">
       <div className="relative space-y-4">

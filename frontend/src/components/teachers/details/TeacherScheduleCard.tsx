@@ -1,7 +1,7 @@
 import { Clock } from "lucide-react";
 
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { ScheduleEntry } from "@/data/teacherDetailsData";
+import type { ScheduleEntry } from "@/api/types/teachers";
 
 const SUBJECT_COLORS: Record<string, string> = {
   Mathematics:    "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800",

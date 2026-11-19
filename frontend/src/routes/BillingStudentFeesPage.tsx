@@ -1,8 +1,12 @@
 import { useMemo, useState } from "react";
-import { Plus, Settings2 } from "lucide-react";
+import { Pencil, Plus, Settings2, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-import { FeeStructureForm, type FeeStructureFormData } from "@/components/billing/forms/FeeStructureForm";
+import { FeeStatement } from "@/components/billing/FeeStatement";
+import { FeeStructureForm } from "@/components/billing/forms/FeeStructureForm";
+import { InvoiceForm } from "@/components/billing/forms/InvoiceForm";
+import { PaymentForm } from "@/components/billing/forms/PaymentForm";
 import { StudentFeesSummaryCards } from "@/components/billing/StudentFeesSummaryCards";
 import { StudentFeesTable, type StudentFeeAction } from "@/components/billing/StudentFeesTable";
 import { StudentFeesToolbar, type StudentFeesFilters } from "@/components/billing/StudentFeesToolbar";
@@ -10,7 +14,12 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PremiumCard } from "@/components/ui/PremiumCard";
-import { FEE_STRUCTURES, STUDENT_FEES, type FeeStructure, type StudentFee } from "@/data/billingData";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { useDeleteStructure, useFeeStructures, useMoney, useStudentFees } from "@/api/billing";
+import { errorMessage } from "@/api/http";
+import type { FeeStructure, StudentFee } from "@/api/types/billing";
+import { useAuth } from "@/lib/auth";
 
 const PAGE_SIZE = 10;
 type SortField = "studentName" | "className" | "totalFee" | "paid" | "due" | "status" | "nextDueDate";
@@ -19,15 +28,24 @@ type SortDir = "asc" | "desc";
 const EMPTY_FILTERS: StudentFeesFilters = { search: "", className: "all", section: "all", status: "all" };
 
 export function BillingStudentFeesPage() {
-  const [feeStructures, setFeeStructures] = useState<FeeStructure[]>(FEE_STRUCTURES);
-  const [structureFormOpen, setStructureFormOpen] = useState(false);
+  const navigate = useNavigate();
+  const money = useMoney();
+  const { hasPermission } = useAuth();
+  const feesQuery = useStudentFees();
+  const STUDENT_FEES = useMemo(() => feesQuery.data ?? [], [feesQuery.data]);
+  const structuresQuery = useFeeStructures();
+  const feeStructures = structuresQuery.data ?? [];
+  const deleteStructure = useDeleteStructure();
+  const [structureForm, setStructureForm] = useState<{ open: boolean; structure?: FeeStructure }>({ open: false });
+  const [dialog, setDialog] = useState<{ kind: "invoice" | "payment" | "statement"; row: StudentFee } | null>(null);
   const [filters, setFilters] = useState<StudentFeesFilters>(EMPTY_FILTERS);
   const [sortField, setSortField] = useState<SortField>("studentName");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string | number>>(new Set());
 
-  const sections = useMemo(() => Array.from(new Set(STUDENT_FEES.map((s) => s.section))).sort(), []);
+  const sections = useMemo(() => Array.from(new Set(STUDENT_FEES.map((s) => s.section).filter(Boolean))).sort(), [STUDENT_FEES]);
+  const classes = useMemo(() => Array.from(new Set(STUDENT_FEES.map((s) => s.className))), [STUDENT_FEES]);
 
   function updateFilters(next: Partial<StudentFeesFilters>) {
     setFilters((f) => ({ ...f, ...next }));
@@ -55,7 +73,7 @@ export function BillingStudentFeesPage() {
       if (q && !`${s.studentName} ${s.admissionNo} ${s.registrationNo}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [filters]);
+  }, [filters, STUDENT_FEES]);
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -72,25 +90,11 @@ export function BillingStudentFeesPage() {
 
   function handleAction(row: StudentFee, action: StudentFeeAction) {
     switch (action) {
-      case "view": toast.info(`Viewing ${row.studentName}`); break;
-      case "generate-invoice": toast.success(`Invoice generated for ${row.studentName}.`); break;
-      case "record-payment": toast.info(`Record payment for ${row.studentName}`); break;
-      case "print-statement": toast.success(`Printing statement for ${row.studentName}.`); break;
+      case "view": navigate(`/students/${row.studentId}`); break;
+      case "generate-invoice": setDialog({ kind: "invoice", row }); break;
+      case "record-payment": setDialog({ kind: "payment", row }); break;
+      case "print-statement": setDialog({ kind: "statement", row }); break;
     }
-  }
-
-  function handleAddStructure(data: FeeStructureFormData) {
-    const structure: FeeStructure = {
-      id: feeStructures.length + 1,
-      category: data.category as FeeStructure["category"],
-      className: data.className,
-      amount: Number(data.amount),
-      frequency: data.frequency as FeeStructure["frequency"],
-    };
-    setFeeStructures((prev) => [...prev, structure]);
-    console.log("Added fee structure:", structure);
-    toast.success("Fee structure saved.");
-    setStructureFormOpen(false);
   }
 
   return (
@@ -107,6 +111,13 @@ export function BillingStudentFeesPage() {
         description="Track student fee balances, discounts, and due dates."
       />
 
+      {feesQuery.isError && (
+        <PremiumEmptyState title="Couldn't load student fees" description={errorMessage(feesQuery.error)}
+          action={<Button size="sm" variant="outline" onClick={() => feesQuery.refetch()}>Try again</Button>} />
+      )}
+      {feesQuery.isLoading && <PremiumSkeleton className="h-72 w-full rounded-2xl" />}
+
+      {feesQuery.isSuccess && (<>
       <StudentFeesSummaryCards studentFees={STUDENT_FEES} />
 
       <PremiumCard className="p-4">
@@ -114,20 +125,33 @@ export function BillingStudentFeesPage() {
           <p className="flex items-center gap-1.5 text-[13px] font-semibold text-foreground">
             <Settings2 className="h-4 w-4 text-muted-foreground" /> Fee Structures
           </p>
-          <Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11.5px]" onClick={() => setStructureFormOpen(true)}>
+          {hasPermission("fee.create") && (
+          <Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11.5px]" onClick={() => setStructureForm({ open: true })}>
             <Plus className="h-3.5 w-3.5" /> Add Fee Structure
           </Button>
+          )}
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
+          {structuresQuery.isSuccess && feeStructures.length === 0 && (
+            <p className="text-[12px] text-muted-foreground">No fee structures yet. They are used to bill whole classes from the Invoices page.</p>
+          )}
           {feeStructures.map((f) => (
-            <span key={f.id} className="rounded-full bg-muted px-3 py-1 text-[11.5px] text-foreground">
-              {f.category} — {f.className} · ${f.amount.toLocaleString()} / {f.frequency}
+            <span key={f.id} className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-[11.5px] text-foreground">
+              {f.name} — {f.className} · {money(f.amount)} / {f.frequency}
+              {hasPermission("fee.create") && (<>
+                <button type="button" title="Edit" onClick={() => setStructureForm({ open: true, structure: f })}
+                  className="text-muted-foreground hover:text-foreground"><Pencil className="h-3 w-3" /></button>
+                <button type="button" title="Delete" className="text-muted-foreground hover:text-rose-600" onClick={() => {
+                  if (!window.confirm(`Delete the fee structure "${f.name}"? Existing invoices are not affected.`)) return;
+                  deleteStructure.mutate(f.id, { onError: (e) => toast.error(errorMessage(e)), onSuccess: () => toast.success("Fee structure deleted.") });
+                }}><X className="h-3 w-3" /></button>
+              </>)}
             </span>
           ))}
         </div>
       </PremiumCard>
 
-      <StudentFeesToolbar filters={filters} onFiltersChange={updateFilters} hasActiveFilter={hasActiveFilter} onReset={resetFilters} sections={sections} />
+      <StudentFeesToolbar filters={filters} onFiltersChange={updateFilters} hasActiveFilter={hasActiveFilter} onReset={resetFilters} sections={sections} classes={classes} />
 
       <StudentFeesTable
         studentFees={paginated}
@@ -141,14 +165,36 @@ export function BillingStudentFeesPage() {
         hasActiveFilter={hasActiveFilter}
         onResetFilters={resetFilters}
       />
+      </>)}
 
-      <Dialog open={structureFormOpen} onOpenChange={setStructureFormOpen}>
+      <Dialog open={structureForm.open} onOpenChange={(o) => !o && setStructureForm({ open: false })}>
         <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add Fee Structure</DialogTitle>
-            <DialogDescription>Define a new fee category and amount for a class.</DialogDescription>
+            <DialogTitle>{structureForm.structure ? "Edit Fee Structure" : "Add Fee Structure"}</DialogTitle>
+            <DialogDescription>A fee charged per class (or all classes) for an academic year.</DialogDescription>
           </DialogHeader>
-          <FeeStructureForm onCancel={() => setStructureFormOpen(false)} onSubmit={handleAddStructure} />
+          <FeeStructureForm key={structureForm.structure?.id ?? "new"} structure={structureForm.structure}
+            onCancel={() => setStructureForm({ open: false })} onSaved={() => setStructureForm({ open: false })} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!dialog} onOpenChange={(o) => !o && setDialog(null)}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {dialog?.kind === "invoice" ? "Create Invoice" : dialog?.kind === "payment" ? "Record Payment" : "Fee Statement"}
+            </DialogTitle>
+            <DialogDescription>{dialog?.row.studentName} · {dialog?.row.admissionNo}</DialogDescription>
+          </DialogHeader>
+          {dialog?.kind === "invoice" && (
+            <InvoiceForm defaultStudentId={dialog.row.studentId} onCancel={() => setDialog(null)}
+              onSaved={(id) => { setDialog(null); navigate(`/billing/invoices/${id}`); }} />
+          )}
+          {dialog?.kind === "payment" && (
+            <PaymentForm studentId={dialog.row.studentId} onCancel={() => setDialog(null)}
+              onSaved={(id) => { setDialog(null); navigate(`/billing/receipts/${id}`); }} />
+          )}
+          {dialog?.kind === "statement" && <FeeStatement studentId={dialog.row.studentId} />}
         </DialogContent>
       </Dialog>
     </div>

@@ -1,7 +1,7 @@
 """Serializers for Principal-side user account management (principal-dashboard.md §4)."""
 from rest_framework import serializers
 
-from apps.rbac.services import user_permission_codes, user_role_names
+from apps.rbac.services import permission_codes_from_prefetch
 
 from .models import User
 
@@ -22,11 +22,12 @@ class UserAdminSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["organization", "roles", "permissions", "created_at", "must_change_password"]
 
-    def get_roles(self, obj):
-        return user_role_names(obj)
+    # Both read relations prefetched by UserManagementViewSet (no per-row queries).
+    def get_roles(self, obj) -> list[str]:
+        return sorted({ur.role.name for ur in obj.user_roles.all() if ur.role.is_active})
 
-    def get_permissions(self, obj):
-        return sorted(user_permission_codes(obj))
+    def get_permissions(self, obj) -> list[str]:
+        return sorted(permission_codes_from_prefetch(obj, self.context.get("all_permission_codes")))
 
     def create(self, validated_data):
         password = validated_data.pop("password", "") or None

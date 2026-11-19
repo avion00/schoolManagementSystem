@@ -1,149 +1,133 @@
-// Mock real-time transport. Hooks talk ONLY to this abstraction — never to
-// messagesService directly for live updates — so the mock timer/pub-sub
-// implementation below can be swapped for a WebSocket/Socket.IO/SSE client
-// later without touching any component or hook.
-import type { ChatMessage, ChatUser } from "@/data/messagesData";
-import { messagesService } from "@/lib/messagesService";
+// Realtime transport for messaging. Hooks talk to this module for live
+// updates: it holds the WebSocket to /ws/messaging/ (authenticated by the same
+// HttpOnly cookie as the API), applies server events to the messaging store,
+// and fans out typing indicators. Sending goes through REST (messagesService).
+import type { ChatMessage, ChatUser } from "@/api/types/messages";
+import { messagesService, setActiveConversation } from "@/lib/messagesService";
 
 type MessageListener = (messages: ChatMessage[]) => void;
 type TypingListener = (typingUserIds: string[]) => void;
 type ConversationsListener = () => void;
 
-const messageListeners = new Map<string, Set<MessageListener>>();
 const typingListeners = new Map<string, Set<TypingListener>>();
-const typingState = new Map<string, Set<string>>();
-const typingTimers = new Map<string, ReturnType<typeof setTimeout>>();
-const conversationsListeners = new Set<ConversationsListener>();
+const typingState = new Map<string, Map<string, ReturnType<typeof setTimeout>>>();
+let socket: WebSocket | null = null;
+let users = 0;               // components holding the connection open
+let retry = 0;
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+let lastTypingSent = 0;
 
-let connected = false;
-
-function notifyMessages(conversationId: string) {
-  const set = messageListeners.get(conversationId);
-  if (!set) return;
-  const msgs = messagesService.getMessages(conversationId);
-  set.forEach((cb) => cb(msgs));
-}
-
-function notifyConversations() {
-  conversationsListeners.forEach((cb) => cb());
+function socketUrl(): string {
+  const base = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://127.0.0.1:8000/api/v1";
+  const origin = /^https?:\/\//.test(base) ? new URL(base).origin : window.location.origin;
+  return `${origin.replace(/^http/, "ws")}/ws/messaging/`;
 }
 
 function notifyTyping(conversationId: string) {
-  const set = typingListeners.get(conversationId);
-  if (!set) return;
-  const ids = Array.from(typingState.get(conversationId) ?? []);
-  set.forEach((cb) => cb(ids));
+  const ids = [...(typingState.get(conversationId)?.keys() ?? [])];
+  typingListeners.get(conversationId)?.forEach((cb) => cb(ids));
 }
 
-/** Occasionally simulates the other participant replying, purely for demo liveliness. */
-function maybeSimulateReply(conversationId: string, excludeUserId: string) {
-  const conv = messagesService.getConversation(conversationId);
-  if (!conv) return;
-  const others = conv.participantIds.filter((id) => id !== excludeUserId && id !== "system");
-  if (others.length === 0 || Math.random() > 0.45) return;
-  const replier = others[Math.floor(Math.random() * others.length)];
+function onTypingEvent(conversationId: string, userId: string) {
+  if (!typingState.has(conversationId)) typingState.set(conversationId, new Map());
+  const map = typingState.get(conversationId)!;
+  const existing = map.get(userId);
+  if (existing) clearTimeout(existing);
+  map.set(userId, setTimeout(() => { map.delete(userId); notifyTyping(conversationId); }, 3000));
+  notifyTyping(conversationId);
+}
 
-  const typingTimeout = setTimeout(() => {
-    typingState.set(conversationId, new Set([replier]));
-    notifyTyping(conversationId);
-
-    const replyTimeout = setTimeout(() => {
-      typingState.set(conversationId, new Set());
-      notifyTyping(conversationId);
-      const replies = ["Got it, thanks!", "Sounds good.", "I'll check and get back to you.", "👍", "Noted, thank you."];
-      messagesService.sendMessage({
-        conversationId,
-        senderId: replier,
-        body: replies[Math.floor(Math.random() * replies.length)],
-      });
-      notifyMessages(conversationId);
-      notifyConversations();
-    }, 1400 + Math.random() * 900);
-    typingTimers.set(`${conversationId}-reply`, replyTimeout);
-  }, 500);
-  typingTimers.set(`${conversationId}-typing`, typingTimeout);
+function open() {
+  if (socket && socket.readyState <= WebSocket.OPEN) return;
+  socket = new WebSocket(socketUrl());
+  socket.onopen = () => {
+    retry = 0;
+    // Catch up on anything missed while disconnected.
+    void messagesService.loadConversations().catch(() => undefined);
+  };
+  socket.onmessage = (e) => {
+    let data: { event: string; payload: Record<string, unknown> };
+    try { data = JSON.parse(e.data as string); } catch { return; }
+    const p = data.payload;
+    switch (data.event) {
+      case "message.created":
+        messagesService.applyCreated(p as never);
+        if (typeof p.sender === "string") {
+          typingState.get(String(p.conversation))?.delete(p.sender);
+          notifyTyping(String(p.conversation));
+        }
+        break;
+      case "message.updated": messagesService.applyUpdated(p as never); break;
+      case "message.deleted": messagesService.applyDeleted(p as never); break;
+      case "conversation.read": messagesService.applyRead(p as never); break;
+      case "typing": onTypingEvent(String(p.conversation), String(p.user)); break;
+    }
+  };
+  socket.onclose = (e) => {
+    socket = null;
+    if (users === 0 || e.code === 4401) return;            // closed on purpose, or signed out
+    const delay = Math.min(30_000, 1000 * 2 ** retry++);     // back off: 1s, 2s, 4s … 30s
+    retryTimer = setTimeout(open, delay);
+  };
 }
 
 export const realtimeService = {
+  /** Open the socket (reference-counted: pair every connect with a disconnect). */
   connect() {
-    connected = true;
+    users += 1;
+    open();
   },
   disconnect() {
-    connected = false;
-    typingTimers.forEach((t) => clearTimeout(t));
-    typingTimers.clear();
+    users = Math.max(0, users - 1);
+    if (users === 0) {
+      if (retryTimer) clearTimeout(retryTimer);
+      socket?.close();
+      socket = null;
+    }
   },
   isConnected() {
-    return connected;
+    return socket?.readyState === WebSocket.OPEN;
   },
 
   subscribeToConversation(conversationId: string, callback: MessageListener): () => void {
-    if (!messageListeners.has(conversationId)) messageListeners.set(conversationId, new Set());
-    messageListeners.get(conversationId)!.add(callback);
+    setActiveConversation(conversationId);
     callback(messagesService.getMessages(conversationId));
-    return () => messageListeners.get(conversationId)?.delete(callback);
+    const unsub = messagesService.subscribe(() => callback(messagesService.getMessages(conversationId)));
+    void messagesService.loadMessages(conversationId).catch(() => undefined);
+    return () => {
+      unsub();
+      setActiveConversation(null);
+    };
   },
 
   subscribeToConversationsList(callback: ConversationsListener): () => void {
-    conversationsListeners.add(callback);
-    return () => conversationsListeners.delete(callback);
+    return messagesService.subscribe(callback);
   },
 
-  sendMessage(params: {
-    conversationId: string;
-    senderId: string;
-    body: string;
-    type?: ChatMessage["type"];
-    attachments?: ChatMessage["attachments"];
-    replyTo?: string | null;
-  }) {
-    const msg = messagesService.sendMessage(params);
-    notifyMessages(params.conversationId);
-    notifyConversations();
-
-    // Simulate delivery/read acking, like a real transport would push back.
-    setTimeout(() => {
-      messagesService.updateMessageStatus(msg.id, "delivered");
-      notifyMessages(params.conversationId);
-    }, 500);
-    setTimeout(() => {
-      messagesService.updateMessageStatus(msg.id, "seen");
-      notifyMessages(params.conversationId);
-    }, 1600);
-
-    maybeSimulateReply(params.conversationId, params.senderId);
-    return msg;
+  sendMessage(params: { conversationId: string; body: string; attachmentIds?: string[]; replyTo?: string | null }) {
+    return messagesService.sendMessage(params);
   },
 
   onTyping(conversationId: string, callback: TypingListener): () => void {
     if (!typingListeners.has(conversationId)) typingListeners.set(conversationId, new Set());
     typingListeners.get(conversationId)!.add(callback);
-    return () => typingListeners.get(conversationId)?.delete(callback);
+    return () => { typingListeners.get(conversationId)?.delete(callback); };
   },
 
-  emitTyping(conversationId: string, userId: string) {
-    if (!typingState.has(conversationId)) typingState.set(conversationId, new Set());
-    typingState.get(conversationId)!.add(userId);
-    notifyTyping(conversationId);
-    const key = `${conversationId}-self-${userId}`;
-    const existing = typingTimers.get(key);
-    if (existing) clearTimeout(existing);
-    typingTimers.set(
-      key,
-      setTimeout(() => {
-        typingState.get(conversationId)?.delete(userId);
-        notifyTyping(conversationId);
-      }, 2000),
-    );
+  /** Tell the other members we're typing (throttled to one event every 2s). */
+  emitTyping(conversationId: string) {
+    const now = Date.now();
+    if (now - lastTypingSent < 2000 || socket?.readyState !== WebSocket.OPEN) return;
+    lastTypingSent = now;
+    socket.send(JSON.stringify({ action: "typing", conversation: conversationId }));
   },
 
   markAsRead(conversationId: string) {
-    messagesService.markConversationRead(conversationId);
-    notifyConversations();
+    void messagesService.markConversationRead(conversationId);
   },
 
   refreshConversations() {
-    notifyConversations();
+    void messagesService.loadConversations().catch(() => undefined);
   },
 };
 

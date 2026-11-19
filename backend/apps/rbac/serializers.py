@@ -3,6 +3,7 @@ from rest_framework import serializers
 from apps.accounts.models import School, User
 
 from .models import Permission, Role, UserPermissionOverride, UserRole
+from .services import can_manage_user, user_permission_codes
 
 
 class PermissionSerializer(serializers.ModelSerializer):
@@ -52,6 +53,16 @@ class UserRoleSerializer(serializers.ModelSerializer):
         school = attrs.get("school")
         if school is not None and school.organization_id != org_id:
             raise serializers.ValidationError({"school": "School is not in your organization."})
+        if not can_manage_user(actor, attrs["user"]):
+            raise serializers.ValidationError(
+                {"user": "You cannot manage a user with permissions you do not hold."}
+            )
+        # You may only hand out a role whose permissions you yourself hold.
+        role_codes = set(role.permissions.values_list("code", flat=True))
+        if not role_codes <= user_permission_codes(actor):
+            raise serializers.ValidationError(
+                {"role": "You cannot assign a role with permissions you do not hold."}
+            )
         return attrs
 
 
@@ -66,14 +77,16 @@ class UserPermissionOverrideSerializer(serializers.ModelSerializer):
         fields = ["id", "user", "user_email", "permission", "permission_code", "granted"]
 
     def validate(self, attrs):
-        from .services import user_permission_codes
-
         request = self.context["request"]
         actor = request.user
         if actor.is_superuser or actor.is_platform_admin:
             return attrs
         if attrs["user"].organization_id != actor.organization_id:
             raise serializers.ValidationError({"user": "User is not in your organization."})
+        if not can_manage_user(actor, attrs["user"]):
+            raise serializers.ValidationError(
+                {"user": "You cannot manage a user with permissions you do not hold."}
+            )
         # You may only grant permissions you yourself hold.
         if attrs.get("granted", True) and attrs["permission"].code not in user_permission_codes(actor):
             raise serializers.ValidationError(

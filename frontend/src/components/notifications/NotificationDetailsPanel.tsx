@@ -1,12 +1,12 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { Archive, Check, CheckCircle2, ExternalLink, Trash2, X, XCircle } from "lucide-react";
+import { Archive, ArchiveRestore, CheckCircle2, ExternalLink, X, XCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { NotificationPriorityBadge } from "@/components/notifications/NotificationPriorityBadge";
 import { NotificationStatusBadge } from "@/components/notifications/NotificationStatusBadge";
 import { iconFor } from "@/components/notifications/notificationIcons";
 import { Button } from "@/components/ui/button";
-import type { AppNotification } from "@/data/notificationsData";
+import type { AppNotification } from "@/api/types/notifications";
 import { cn } from "@/lib/utils";
 
 function formatDateTime(iso: string) {
@@ -23,22 +23,24 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 export function NotificationDetailsPanel({
-  notification, open, onOpenChange, onToggleRead, onArchive, onDelete, onApprove, onReject,
+  notification, open, onOpenChange, onToggleRead, onArchive, onRestore,
 }: {
   notification: AppNotification | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onToggleRead: (n: AppNotification) => void;
   onArchive: (n: AppNotification) => void;
-  onDelete: (n: AppNotification) => void;
-  onApprove: (n: AppNotification) => void;
-  onReject: (n: AppNotification) => void;
+  onRestore: (n: AppNotification) => void;
 }) {
   const navigate = useNavigate();
   if (!notification) return null;
   const n = notification;
   const Icon = iconFor(n.category, n.type);
-  const showApprovalActions = n.isApproval && !n.approvalDecision && n.status !== "archived";
+  const activity = [
+    { id: "created", action: "Received", at: n.createdAt },
+    ...(n.readAt ? [{ id: "read", action: "Read", at: n.readAt }] : []),
+    ...(n.archivedAt ? [{ id: "archived", action: "Archived", at: n.archivedAt }] : []),
+  ];
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -57,7 +59,6 @@ export function NotificationDetailsPanel({
                   <Icon className="h-[18px] w-[18px] text-primary" />
                 </span>
                 <div className="min-w-0">
-                  <p className="font-mono text-[11px] text-muted-foreground">{n.notificationId}</p>
                   <DialogPrimitive.Title className="mt-0.5 text-[14.5px] font-semibold leading-snug text-foreground">
                     {n.title}
                   </DialogPrimitive.Title>
@@ -83,21 +84,16 @@ export function NotificationDetailsPanel({
             <div className="mt-4 rounded-xl border border-border/60 p-3.5">
               <p className="mb-1 text-[12.5px] font-semibold text-foreground">Details</p>
               <Row label="Type" value={n.type} />
-              <Row label="Channel" value={n.channel} />
-              <Row label="Created By" value={n.createdBy} />
-              <Row label="Created At" value={formatDateTime(n.createdAt)} />
-              <Row label="Read At" value={n.readAt ? formatDateTime(n.readAt) : "Not read yet"} />
-              <Row label="Related Module" value={n.relatedModule} />
-              <Row label="Related ID" value={n.relatedId} />
-              <Row label="Target Role" value={n.targetRole} />
-              {n.approvalDecision && <Row label="Decision" value={n.approvalDecision} />}
+              <Row label="Received" value={formatDateTime(n.createdAt)} />
+              <Row label="Read" value={n.readAt ? formatDateTime(n.readAt) : "Not read yet"} />
+              {n.relatedModule && <Row label="Related To" value={n.relatedModule} />}
             </div>
 
             <div className="mt-4 rounded-xl border border-border/60 p-3.5">
               <p className="mb-2 text-[12.5px] font-semibold text-foreground">Activity History</p>
               <ol className="relative space-y-3 pl-4">
                 <div className="absolute bottom-1 left-[3px] top-1 w-px bg-border" aria-hidden="true" />
-                {n.activity.map((a) => (
+                {activity.map((a) => (
                   <li key={a.id} className="relative pl-4">
                     <span className="absolute -left-[1px] top-1 h-[7px] w-[7px] -translate-x-1/2 rounded-full bg-primary ring-2 ring-card" />
                     <p className="text-[12px] font-medium text-foreground">{a.action}</p>
@@ -107,34 +103,27 @@ export function NotificationDetailsPanel({
               </ol>
             </div>
 
-            {showApprovalActions && (
-              <div className="mt-4 flex gap-2">
-                <Button size="sm" className="h-9 flex-1 gap-1.5 bg-emerald-600 text-[12px] hover:bg-emerald-700" onClick={() => onApprove(n)}>
-                  <Check className="h-3.5 w-3.5" /> Approve
-                </Button>
-                <Button size="sm" variant="outline" className="h-9 flex-1 gap-1.5 border-rose-300 text-[12px] text-rose-700 hover:bg-rose-50 dark:text-rose-400" onClick={() => onReject(n)}>
-                  <X className="h-3.5 w-3.5" /> Reject
-                </Button>
-              </div>
-            )}
           </div>
 
           <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-border/60 p-4">
-            <Button size="sm" className="h-9 gap-1.5 text-[12px]" onClick={() => navigate(n.actionUrl)}>
-              <ExternalLink className="h-3.5 w-3.5" /> Open Related Page
-            </Button>
+            {n.actionUrl && (
+              <Button size="sm" className="h-9 gap-1.5 text-[12px]" onClick={() => { onOpenChange(false); navigate(n.actionUrl); }}>
+                <ExternalLink className="h-3.5 w-3.5" /> Open Related Page
+              </Button>
+            )}
             <Button size="sm" variant="outline" className="h-9 gap-1.5 text-[12px]" onClick={() => onToggleRead(n)}>
               {n.status === "unread" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
               Mark as {n.status === "unread" ? "Read" : "Unread"}
             </Button>
-            {n.status !== "archived" && (
+            {n.status !== "archived" ? (
               <Button size="sm" variant="outline" className="h-9 gap-1.5 text-[12px]" onClick={() => onArchive(n)}>
                 <Archive className="h-3.5 w-3.5" /> Archive
               </Button>
+            ) : (
+              <Button size="sm" variant="outline" className="h-9 gap-1.5 text-[12px]" onClick={() => onRestore(n)}>
+                <ArchiveRestore className="h-3.5 w-3.5" /> Restore
+              </Button>
             )}
-            <Button size="sm" variant="outline" className="h-9 gap-1.5 text-[12px] text-destructive hover:text-destructive" onClick={() => onDelete(n)}>
-              <Trash2 className="h-3.5 w-3.5" /> Delete
-            </Button>
           </div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>

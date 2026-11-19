@@ -1,21 +1,24 @@
-import { useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  BookOpen, ClipboardList, FileText, Layers, Printer, Save, Users, X, Plus,
+  BookOpen, ClipboardList, Info, Layers, Printer, Save, Users, X, Plus,
 } from "lucide-react";
 import { toast }    from "sonner";
 import { Button }   from "@/components/ui/button";
 import { FormSection } from "@/components/ui/form-section";
+import { useClasses, useSchools } from "@/api/classes";
+import { errorMessage, type Schemas } from "@/api/http";
 import {
-  SUBJECTS,
+  CATEGORY_LABEL, CATEGORY_VALUE, TYPE_LABEL, TYPE_VALUE, useSaveSubject, useSubjectRecord,
+} from "@/api/subjects";
+import {
   SUBJECT_TYPE_OPTIONS, SUBJECT_CATEGORY_OPTIONS, SUBJECT_STATUS_OPTIONS,
-  ACADEMIC_YEAR_OPTIONS, GRADE_OPTIONS, SECTION_OPTIONS,
-  DEPARTMENT_OPTIONS, TEACHER_OPTIONS,
   type SubjectType, type SubjectCategory, type SubjectStatus,
-} from "@/data/subjectsData";
+} from "@/api/types/subjects";
 
 // ─── types ───────────────────────────────────────────────────────────────────
 interface ClassMappingDraft {
+  id?: string;
   tempId: string;
   className: string;
   section: string;
@@ -122,22 +125,21 @@ function emptyMapping(): ClassMappingDraft {
 // ─── validation ───────────────────────────────────────────────────────────────
 function validate(f: SubjectFormData): Errors {
   const e: Errors = {};
+  const num = (x: string) => (x.trim() === "" ? null : Number(x));
   if (!f.subjectCode.trim())  e.subjectCode  = "Subject code is required.";
   if (!f.subjectName.trim())  e.subjectName  = "Subject name is required.";
   if (!f.type)                e.type         = "Subject type is required.";
   if (!f.category)            e.category     = "Category is required.";
-  if (!f.status)              e.status       = "Status is required.";
-  if (!f.academicYear)        e.academicYear = "Academic year is required.";
-  if (!f.primaryTeacher)      e.primaryTeacher = "Primary teacher is required.";
-  if (!f.department)          e.department   = "Department is required.";
-  if (!f.fullMarks || isNaN(Number(f.fullMarks)) || Number(f.fullMarks) <= 0)
-                              e.fullMarks    = "Full marks must be a positive number.";
-  if (!f.passMarks || isNaN(Number(f.passMarks)) || Number(f.passMarks) <= 0)
-                              e.passMarks    = "Pass marks must be a positive number.";
-  if (Number(f.passMarks) >= Number(f.fullMarks))
-                              e.passMarks    = "Pass marks must be less than full marks.";
-  if (!f.weeklyPeriods || isNaN(Number(f.weeklyPeriods)) || Number(f.weeklyPeriods) <= 0)
-                              e.weeklyPeriods = "Weekly periods required.";
+  const full = num(f.fullMarks);
+  const pass = num(f.passMarks);
+  if (full === null || isNaN(full) || full <= 0) e.fullMarks = "Full marks must be a positive number.";
+  if (pass === null || isNaN(pass) || pass < 0)  e.passMarks = "Pass marks are required.";
+  else if (full !== null && pass > full)         e.passMarks = "Pass marks can't exceed full marks.";
+  const parts = [f.theoryMarks, f.practicalMarks, f.internalMarks].map(num);
+  if (parts.some((x) => x !== null) && full !== null && parts.reduce<number>((a, b) => a + (b ?? 0), 0) !== full)
+    e.theoryMarks = "Theory + practical + internal must add up to full marks.";
+  const classes = f.classMappings.map((m) => m.className).filter(Boolean);
+  if (new Set(classes).size !== classes.length) e.classMappings = "Each class can be added once.";
   return e;
 }
 
@@ -145,15 +147,35 @@ function validate(f: SubjectFormData): Errors {
 function defaultForm(): SubjectFormData {
   return {
     subjectCode: "", subjectName: "", type: "", category: "", status: "active",
-    description: "", academicYear: "2026/27", department: "",
+    description: "", academicYear: "", department: "",
     primaryTeacher: "", assistantTeacher: "", room: "",
     weeklyPeriods: "", fullMarks: "", passMarks: "",
     theoryMarks: "", practicalMarks: "", internalMarks: "",
     creditHours: "", examDuration: "",
     gpaEnabled: true, practicalRequired: false, projectRequired: false,
     vivaRequired: false, assignmentRequired: false,
-    classMappings: [emptyMapping()],
+    classMappings: [],
     notes: "",
+  };
+}
+
+function recordToForm(r: { subject: Schemas["Subject"]; mappings: Schemas["ClassSubject"][] }): SubjectFormData {
+  const x = r.subject;
+  const str = (v: unknown) => (v === null || v === undefined ? "" : String(Number(v)));
+  return {
+    ...defaultForm(),
+    subjectCode: x.code, subjectName: x.name,
+    type: TYPE_LABEL[x.type ?? "theory"] ?? "", category: CATEGORY_LABEL[x.category ?? "compulsory"] ?? "",
+    status: (x.status ?? "active") as SubjectStatus, description: x.description ?? "",
+    department: x.department ?? "", fullMarks: str(x.full_marks), passMarks: str(x.pass_marks),
+    theoryMarks: str(x.theory_marks), practicalMarks: str(x.practical_marks), internalMarks: str(x.internal_marks),
+    creditHours: str(x.credit_hours), examDuration: str(x.exam_duration_minutes),
+    gpaEnabled: !!x.gpa_enabled, practicalRequired: !!x.practical_required, projectRequired: !!x.project_required,
+    vivaRequired: !!x.viva_required, assignmentRequired: !!x.assignment_required,
+    classMappings: r.mappings.map((m) => ({
+      tempId: m.id, id: m.id, className: m.class_level, section: "", teacherName: "", room: "",
+      weeklyPeriods: String(m.weekly_periods ?? ""),
+    })),
   };
 }
 
@@ -162,44 +184,17 @@ export function SubjectForm({ mode }: { mode: "create" | "edit" }) {
   const navigate = useNavigate();
   const { id }   = useParams<{ id: string }>();
 
-  const existing = mode === "edit" ? SUBJECTS.find((s) => s.id === Number(id)) : undefined;
-
-  const [form, setForm] = useState<SubjectFormData>(() => {
-    if (existing) {
-      return {
-        subjectCode: existing.subjectCode,
-        subjectName: existing.subjectName,
-        type:        existing.type,
-        category:    existing.category,
-        status:      existing.status,
-        description: existing.description,
-        academicYear: existing.academicYear,
-        department:  existing.department,
-        primaryTeacher: existing.primaryTeacher.name,
-        assistantTeacher: existing.assistantTeacher,
-        room:         existing.room,
-        weeklyPeriods: String(existing.weeklyPeriods),
-        fullMarks:    String(existing.fullMarks),
-        passMarks:    String(existing.passMarks),
-        theoryMarks:  String(existing.theoryMarks),
-        practicalMarks: String(existing.practicalMarks),
-        internalMarks: String(existing.internalMarks),
-        creditHours:  String(existing.creditHours),
-        examDuration: existing.examDuration,
-        gpaEnabled:   existing.gpaEnabled,
-        practicalRequired:  existing.practicalRequired,
-        projectRequired:    existing.projectRequired,
-        vivaRequired:       existing.vivaRequired,
-        assignmentRequired: existing.assignmentRequired,
-        classMappings: [emptyMapping()],
-        notes: "",
-      };
-    }
-    return defaultForm();
-  });
-
+  const record = useSubjectRecord(mode === "edit" ? id : undefined);
+  const classes = useClasses();
+  const school = useSchools();
+  const save = useSaveSubject();
+  const saving = save.isPending;
+  const [form, setForm] = useState<SubjectFormData>(defaultForm);
   const [errors,  setErrors]  = useState<Errors>({});
-  const [saving,  setSaving]  = useState(false);
+
+  useEffect(() => {
+    if (record.data) setForm(recordToForm(record.data));
+  }, [record.data]);
 
   const set = useCallback(<K extends keyof SubjectFormData>(k: K, v: SubjectFormData[K]) => {
     setForm((prev) => ({ ...prev, [k]: v }));
@@ -222,11 +217,30 @@ export function SubjectForm({ mode }: { mode: "create" | "edit" }) {
       document.querySelector(`[data-field="${firstKey}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    setSaving(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setSaving(false);
-    toast.success(mode === "create" ? "Subject created successfully." : "Subject updated successfully.");
-    navigate("/subjects");
+    const num = (x: string) => (x.trim() === "" ? null : x.trim());
+    try {
+      const saved = await save.mutateAsync({
+        id: mode === "edit" ? id : undefined,
+        payload: {
+          code: form.subjectCode.trim(), name: form.subjectName.trim(),
+          type: TYPE_VALUE[form.type] ?? "theory", category: CATEGORY_VALUE[form.category] ?? "compulsory",
+          status: form.status || "active", description: form.description, department: form.department,
+          full_marks: form.fullMarks, pass_marks: form.passMarks,
+          theory_marks: num(form.theoryMarks), practical_marks: num(form.practicalMarks),
+          internal_marks: num(form.internalMarks), credit_hours: num(form.creditHours),
+          exam_duration_minutes: form.examDuration.trim() ? Number(form.examDuration) : null,
+          gpa_enabled: form.gpaEnabled, practical_required: form.practicalRequired,
+          project_required: form.projectRequired, viva_required: form.vivaRequired,
+          assignment_required: form.assignmentRequired,
+          ...(mode === "create" ? { school: school.data?.id } : {}),
+        },
+        mappings: form.classMappings.map((m) => ({ id: m.id, classLevel: m.className, weeklyPeriods: m.weeklyPeriods })),
+      });
+      toast.success(mode === "create" ? "Subject created." : "Subject updated.");
+      navigate(`/subjects/${saved.id}`);
+    } catch (err) {
+      toast.error(errorMessage(err, "Couldn't save the subject."));
+    }
   }
 
   return (
@@ -236,7 +250,7 @@ export function SubjectForm({ mode }: { mode: "create" | "edit" }) {
         <div>
           <h1 className="text-[18px] font-bold text-foreground">{mode === "create" ? "Add New Subject" : "Edit Subject"}</h1>
           <p className="text-[12px] text-muted-foreground">
-            {mode === "create" ? "Register a new subject in the curriculum." : `Editing: ${existing?.subjectName ?? ""}`}
+            {mode === "create" ? "Register a new subject in the curriculum." : `Editing: ${form.subjectName}`}
           </p>
         </div>
         <div className="flex gap-2">
@@ -275,20 +289,12 @@ export function SubjectForm({ mode }: { mode: "create" | "edit" }) {
               <Sel id="category" value={form.category} onChange={(v) => set("category", v as SubjectCategory)}
                 opts={SUBJECT_CATEGORY_OPTIONS} placeholder="Select category" error={errors.category} />
             </Field>
-            <Field id="department" label="Department" required error={errors.department}>
-              <Sel id="department" value={form.department} onChange={(v) => set("department", v)}
-                opts={DEPARTMENT_OPTIONS} placeholder="Select department" error={errors.department} />
+            <Field id="department" label="Department">
+              <Inp id="department" value={form.department} onChange={(v) => set("department", v)} placeholder="e.g. Science" />
             </Field>
             <Field id="status" label="Status" required error={errors.status}>
               <Sel id="status" value={form.status} onChange={(v) => set("status", v as SubjectStatus)}
                 opts={SUBJECT_STATUS_OPTIONS} placeholder="Select status" error={errors.status} />
-            </Field>
-            <Field id="academicYear" label="Academic Year" required error={errors.academicYear}>
-              <Sel id="academicYear" value={form.academicYear} onChange={(v) => set("academicYear", v)}
-                opts={ACADEMIC_YEAR_OPTIONS} placeholder="Select year" error={errors.academicYear} />
-            </Field>
-            <Field id="room" label="Default Room / Lab">
-              <Inp id="room" value={form.room} onChange={(v) => set("room", v)} placeholder="e.g. Room 201 / Lab A" />
             </Field>
           </div>
           <Field id="description" label="Description">
@@ -299,48 +305,36 @@ export function SubjectForm({ mode }: { mode: "create" | "edit" }) {
         </FormSection>
 
         {/* 2. Teachers */}
-        <FormSection icon={Users} title="Teacher Assignment" subtitle="Primary and assistant teachers for this subject" defaultOpen>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="primaryTeacher" label="Primary Teacher" required error={errors.primaryTeacher}>
-              <Sel id="primaryTeacher" value={form.primaryTeacher} onChange={(v) => set("primaryTeacher", v)}
-                opts={TEACHER_OPTIONS} placeholder="Select teacher" error={errors.primaryTeacher} />
-            </Field>
-            <Field id="assistantTeacher" label="Assistant Teacher">
-              <Sel id="assistantTeacher" value={form.assistantTeacher} onChange={(v) => set("assistantTeacher", v)}
-                opts={TEACHER_OPTIONS} placeholder="Select teacher (optional)" />
-            </Field>
-          </div>
+        <FormSection icon={Users} title="Teachers" subtitle="Who teaches this subject" defaultOpen={false}>
+          <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <Info className="h-3.5 w-3.5" /> Teachers are linked to subjects through their class assignments (Teachers → Edit).
+          </p>
         </FormSection>
 
         {/* 3. Class Mappings */}
-        <FormSection icon={Layers} title="Class Mappings" subtitle="Assign this subject to classes and sections">
+        <FormSection icon={Layers} title="Class Mappings" subtitle="Classes that take this subject in the current academic year">
           <div className="space-y-3">
+            {errors.classMappings && <p className="text-[12px] text-destructive">{errors.classMappings}</p>}
+            {form.classMappings.length === 0 && <p className="text-[12px] text-muted-foreground">Not mapped to any class yet.</p>}
             {form.classMappings.map((m, i) => (
               <div key={m.tempId} className="rounded-lg border border-border/60 bg-muted/20 p-3">
                 <div className="mb-2 flex items-center justify-between">
                   <p className="text-[12px] font-medium text-foreground">Mapping {i + 1}</p>
-                  {form.classMappings.length > 1 && (
+                  {(
                     <Button type="button" size="icon" variant="ghost" className="h-6 w-6"
                       onClick={() => setForm((p) => ({ ...p, classMappings: p.classMappings.filter((x) => x.tempId !== m.tempId) }))}>
                       <X className="h-3 w-3" />
                     </Button>
                   )}
                 </div>
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <Field id={`cm-class-${m.tempId}`} label="Class">
-                    <Sel id={`cm-class-${m.tempId}`} value={m.className} onChange={(v) => updateMapping(m.tempId, "className", v)}
-                      opts={GRADE_OPTIONS} placeholder="Select class" />
-                  </Field>
-                  <Field id={`cm-sec-${m.tempId}`} label="Section">
-                    <Sel id={`cm-sec-${m.tempId}`} value={m.section} onChange={(v) => updateMapping(m.tempId, "section", v)}
-                      opts={SECTION_OPTIONS} placeholder="Section" />
-                  </Field>
-                  <Field id={`cm-teacher-${m.tempId}`} label="Class Teacher">
-                    <Sel id={`cm-teacher-${m.tempId}`} value={m.teacherName} onChange={(v) => updateMapping(m.tempId, "teacherName", v)}
-                      opts={TEACHER_OPTIONS} placeholder="Assign teacher" />
-                  </Field>
-                  <Field id={`cm-room-${m.tempId}`} label="Room">
-                    <Inp id={`cm-room-${m.tempId}`} value={m.room} onChange={(v) => updateMapping(m.tempId, "room", v)} placeholder="e.g. Room 201" />
+                    <select id={`cm-class-${m.tempId}`} value={m.className}
+                      onChange={(e) => updateMapping(m.tempId, "className", e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm">
+                      <option value="">Select class</option>
+                      {(classes.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.className}</option>)}
+                    </select>
                   </Field>
                   <Field id={`cm-periods-${m.tempId}`} label="Periods/Week">
                     <Inp id={`cm-periods-${m.tempId}`} value={m.weeklyPeriods} onChange={(v) => updateMapping(m.tempId, "weeklyPeriods", v)}
@@ -357,19 +351,15 @@ export function SubjectForm({ mode }: { mode: "create" | "edit" }) {
         </FormSection>
 
         {/* 4. Periods & Schedule */}
-        <FormSection icon={ClipboardList} title="Periods &amp; Schedule" subtitle="Weekly teaching load and credit hours">
+        <FormSection icon={ClipboardList} title="Credits &amp; Exam" subtitle="Credit hours and exam length (weekly periods are set per class above)">
           <div className="grid gap-4 sm:grid-cols-3">
-            <Field id="weeklyPeriods" label="Weekly Periods" required error={errors.weeklyPeriods}>
-              <Inp id="weeklyPeriods" value={form.weeklyPeriods} onChange={(v) => set("weeklyPeriods", v)}
-                placeholder="e.g. 6" type="number" error={errors.weeklyPeriods} />
-            </Field>
             <Field id="creditHours" label="Credit Hours">
               <Inp id="creditHours" value={form.creditHours} onChange={(v) => set("creditHours", v)}
                 placeholder="e.g. 4" type="number" />
             </Field>
-            <Field id="examDuration" label="Exam Duration">
+            <Field id="examDuration" label="Exam Duration (minutes)">
               <Inp id="examDuration" value={form.examDuration} onChange={(v) => set("examDuration", v)}
-                placeholder="e.g. 3 hours" />
+                placeholder="e.g. 180" type="number" />
             </Field>
           </div>
         </FormSection>
@@ -385,7 +375,7 @@ export function SubjectForm({ mode }: { mode: "create" | "edit" }) {
               <Inp id="passMarks" value={form.passMarks} onChange={(v) => set("passMarks", v)}
                 placeholder="e.g. 40" type="number" error={errors.passMarks} />
             </Field>
-            <Field id="theoryMarks" label="Theory Marks">
+            <Field id="theoryMarks" label="Theory Marks" error={errors.theoryMarks}>
               <Inp id="theoryMarks" value={form.theoryMarks} onChange={(v) => set("theoryMarks", v)}
                 placeholder="e.g. 75" type="number" />
             </Field>
@@ -409,27 +399,6 @@ export function SubjectForm({ mode }: { mode: "create" | "edit" }) {
             <Check id="vivaRequired"       checked={form.vivaRequired}       onChange={(v) => set("vivaRequired", v)}       label="Viva / Oral Required" />
             <Check id="assignmentRequired" checked={form.assignmentRequired} onChange={(v) => set("assignmentRequired", v)} label="Assignment Required"  />
           </div>
-        </FormSection>
-
-        {/* 7. Documents */}
-        <FormSection icon={FileText} title="Documents Checklist" subtitle="Track required documents for this subject">
-          <div className="grid gap-2 sm:grid-cols-2">
-            {["Syllabus 2026/27","Lesson Plan","Teacher's Guide","Question Bank","Assignment Sheets","Reference Materials"].map((doc) => (
-              <label key={doc} className="flex items-center gap-2 cursor-pointer select-none text-[12.5px] text-muted-foreground">
-                <input type="checkbox" className="h-4 w-4 rounded border-border" />
-                {doc}
-              </label>
-            ))}
-          </div>
-        </FormSection>
-
-        {/* 8. Notes */}
-        <FormSection icon={FileText} title="Notes &amp; Remarks" subtitle="Additional instructions or curriculum notes">
-          <Field id="notes" label="Notes">
-            <TA id="notes" value={form.notes}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set("notes", e.target.value)}
-              placeholder="Any notes, special instructions, or remarks for this subject…" />
-          </Field>
         </FormSection>
 
         {/* submit row */}

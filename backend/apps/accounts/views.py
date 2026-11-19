@@ -1,14 +1,19 @@
 from django.conf import settings
 from django.contrib.auth import authenticate
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.audit.services import record_audit
+from apps.core.context import get_client_ip
 
+from . import sessions
+from .models import User, UserSession
 from .serializers import LoginSerializer, UserSerializer
 
 
@@ -40,22 +45,32 @@ def _set_auth_cookies(response, access, refresh=None):
 class LoginView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
+    # Brute-force protection: per-IP limit from DEFAULT_THROTTLE_RATES["auth"].
+    throttle_classes = [ScopedRateThrottle]
     throttle_scope = "auth"
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = authenticate(
-            request,
-            username=serializer.validated_data["email"],
-            password=serializer.validated_data["password"],
-        )
+        email = serializer.validated_data["email"]
+        candidate = User.objects.filter(email__iexact=email).first()
+        if candidate is not None and sessions.is_locked(candidate):
+            return Response(
+                {"detail": "Too many failed attempts. Try again later.", "code": "account_locked"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        user = authenticate(request, username=email, password=serializer.validated_data["password"])
         if user is None or not user.is_active:
+            if candidate is not None:
+                sessions.record_failed_login(candidate)
+                record_audit(action="auth.login_failed", actor=None, instance=candidate, request=request,
+                             organization=candidate.organization)
             return Response(
                 {"detail": "Invalid credentials."},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
-        refresh = RefreshToken.for_user(user)
+        sessions.record_successful_login(user)
+        _, refresh = sessions.start_session(user, request)
         response = Response(UserSerializer(user).data)
         _set_auth_cookies(response, refresh.access_token, refresh)
         record_audit(
@@ -77,6 +92,18 @@ class RefreshView(APIView):
             )
         try:
             refresh = RefreshToken(raw)
+            # A deactivated account must not keep minting access tokens.
+            user_id = refresh.get(settings.SIMPLE_JWT.get("USER_ID_CLAIM", "user_id"))
+            if not User.objects.filter(pk=user_id, is_active=True).exists():
+                refresh.blacklist()
+                raise TokenError("User is inactive.")
+            session = sessions.active_session(refresh)
+            if not session:
+                raise TokenError("Session revoked.")
+            if session is not True:
+                session.last_used_at = timezone.now()
+                session.ip_address = get_client_ip(request)
+                session.save(update_fields=["last_used_at", "ip_address", "updated_at"])
             access = refresh.access_token
             new_refresh = None
             if settings.SIMPLE_JWT.get("ROTATE_REFRESH_TOKENS"):
@@ -106,7 +133,10 @@ class LogoutView(APIView):
         raw = request.COOKIES.get(settings.AUTH_COOKIE_REFRESH)
         if raw:
             try:
-                RefreshToken(raw).blacklist()
+                token = RefreshToken(raw)
+                token.blacklist()
+                if token.get("sid"):
+                    UserSession.objects.filter(pk=token["sid"]).update(revoked_at=timezone.now())
             except (TokenError, AttributeError):
                 pass
         response = Response({"detail": "logged out"})
@@ -127,6 +157,15 @@ class LogoutView(APIView):
 
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
 
     def get(self, request):
+        return Response(UserSerializer(request.user).data)
+
+    def patch(self, request):
+        from .account_views import ProfileUpdateSerializer
+
+        data = ProfileUpdateSerializer(request.user, data=request.data, partial=True)
+        data.is_valid(raise_exception=True)
+        data.save()
         return Response(UserSerializer(request.user).data)

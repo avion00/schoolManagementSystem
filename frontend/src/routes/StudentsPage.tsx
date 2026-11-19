@@ -13,7 +13,11 @@ import { StudentsToolbar, type StudentsFilters } from "@/components/students/Stu
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PremiumTabs } from "@/components/ui/PremiumTabs";
-import { STUDENTS, type Student, type StudentStatus } from "@/data/studentsData";
+import { errorMessage } from "@/api/http";
+import { exportStudentsCsv, useAcademicOptions, useStudents } from "@/api/students";
+import type { Student, StudentStatus } from "@/api/types/students";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
 import { useAuth } from "@/lib/auth";
 
 const PAGE_SIZE = 10;
@@ -29,6 +33,10 @@ export function StudentsPage() {
   const { hasPermission } = useAuth();
   const navigate = useNavigate();
   const canCreate = hasPermission("student.create");
+  const canExport = hasPermission("student.export");
+  const studentsQuery = useStudents();
+  const options = useAcademicOptions();
+  const STUDENTS = useMemo(() => studentsQuery.data ?? [], [studentsQuery.data]);
 
   const [view, setView] = useState<ViewMode>("table");
   const [filters, setFilters] = useState<StudentsFilters>(EMPTY_FILTERS);
@@ -36,6 +44,7 @@ export function StudentsPage() {
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string | number>>(new Set());
+
   const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set(["section"]));
 
   function updateFilters(next: Partial<StudentsFilters>) {
@@ -78,7 +87,7 @@ export function StudentsPage() {
       if (filters.filterGender !== "all" && s.gender !== filters.filterGender) return false;
       return true;
     });
-  }, [filters]);
+  }, [filters, STUDENTS]);
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -88,6 +97,27 @@ export function StudentsPage() {
       return sortDir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
     });
   }, [filtered, sortField, sortDir]);
+
+  const classOptions = (options.data?.classes ?? []).map((c) => c.name);
+  const sectionOptions = [...new Set(
+    (options.data?.sections ?? [])
+      .filter((sec) => filters.filterClass === "all" || sec.className === filters.filterClass)
+      .map((sec) => sec.name),
+  )].sort();
+
+  async function handleExport() {
+    const classId = options.data?.classes.find((c) => c.name === filters.filterClass)?.id;
+    try {
+      await exportStudentsCsv({
+        ...(filters.search ? { search: filters.search } : {}),
+        ...(classId ? { class_level: classId } : {}),
+        ...(filters.filterStatus !== "all" ? { status: filters.filterStatus } : {}),
+        ...(filters.filterGender !== "all" ? { gender: filters.filterGender.toLowerCase() } : {}),
+      });
+    } catch (e) {
+      toast.error(errorMessage(e, "Export failed."));
+    }
+  }
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -116,9 +146,11 @@ export function StudentsPage() {
             <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => toast.info("Import students — coming soon")}>
               <Upload className="h-3.5 w-3.5" /> Import
             </Button>
-            <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => toast.info("Export students — coming soon")}>
-              <Download className="h-3.5 w-3.5" /> Export
-            </Button>
+            {canExport && (
+              <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-xl" onClick={handleExport}>
+                <Download className="h-3.5 w-3.5" /> Export
+              </Button>
+            )}
             {canCreate && (
               <Button size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => navigate("/students/new")}>
                 <Plus className="h-4 w-4" /> New student
@@ -128,6 +160,20 @@ export function StudentsPage() {
         }
       />
 
+      {studentsQuery.isError && (
+        <PremiumEmptyState
+          title="Couldn't load students"
+          description={errorMessage(studentsQuery.error)}
+          action={<Button size="sm" variant="outline" onClick={() => studentsQuery.refetch()}>Try again</Button>}
+        />
+      )}
+      {studentsQuery.isLoading && (
+        <div className="space-y-3">
+          <PremiumSkeleton className="h-24 w-full rounded-2xl" />
+          <PremiumSkeleton className="h-64 w-full rounded-2xl" />
+        </div>
+      )}
+      {studentsQuery.isSuccess && (<>
       {/* ── Summary ─────────────────────────────────────────────────────── */}
       <StudentsSummaryCards students={STUDENTS} />
 
@@ -153,6 +199,8 @@ export function StudentsPage() {
         showColumnsMenu={view === "table"}
         hiddenColumns={hiddenColumns}
         onToggleColumn={toggleColumn}
+        classOptions={classOptions}
+        sectionOptions={sectionOptions}
       />
 
       {/* ── Table / Card view ───────────────────────────────────────────── */}
@@ -172,6 +220,7 @@ export function StudentsPage() {
       ) : (
         <StudentCardGrid students={paginated} hasActiveFilter={hasActiveFilter} onResetFilters={resetFilters} />
       )}
+      </>)}
     </div>
   );
 }

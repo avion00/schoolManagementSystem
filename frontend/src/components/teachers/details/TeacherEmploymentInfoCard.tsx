@@ -2,8 +2,8 @@ import { Briefcase } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { Teacher } from "@/data/teachersData";
-import type { TeacherEmploymentExtra } from "@/data/teacherDetailsData";
+import type { Teacher } from "@/api/types/teachers";
+import type { TeacherEmploymentExtra } from "@/api/types/teachers";
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (

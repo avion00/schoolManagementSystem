@@ -7,7 +7,11 @@ import { ClassesTable } from "@/components/classes/ClassesTable";
 import { ClassesToolbar, type ClassesFilters } from "@/components/classes/ClassesToolbar";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { CLASSES } from "@/data/classesData";
+import { useClasses } from "@/api/classes";
+import { errorMessage } from "@/api/http";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { useAuth } from "@/lib/auth";
 
 const PAGE_SIZE = 10;
 type SortField = "classId" | "className" | "totalStudents" | "totalCapacity" | "academicYear" | "status";
@@ -41,6 +45,11 @@ export function ClassesPage() {
     setPage(1);
   }
 
+  const classesQuery = useClasses();
+  const CLASSES = useMemo(() => classesQuery.data ?? [], [classesQuery.data]);
+  const { hasPermission } = useAuth();
+  const yearOptions = [...new Set(CLASSES.map((c) => c.academicYear).filter(Boolean))];
+
   const hasActiveFilter =
     !!filters.search || filters.filterYear !== "all" || filters.filterMedium !== "all" ||
     filters.filterShift !== "all" || filters.filterStatus !== "all";
@@ -48,7 +57,7 @@ export function ClassesPage() {
   const filtered = useMemo(() => {
     const q = filters.search.trim().toLowerCase();
     return CLASSES.filter((c) => {
-      if (q && ![c.className, c.classId, c.mainClassTeacher.name, c.mainRoom,
+      if (q && ![c.className, c.classId, c.mainClassTeacher?.name ?? "", c.mainRoom,
         ...c.sections.map((s) => s.sectionName)].some((v) => v.toLowerCase().includes(q))) return false;
       if (filters.filterYear !== "all" && c.academicYear !== filters.filterYear) return false;
       if (filters.filterMedium !== "all" && c.medium !== filters.filterMedium) return false;
@@ -56,7 +65,7 @@ export function ClassesPage() {
       if (filters.filterStatus !== "all" && c.status !== filters.filterStatus) return false;
       return true;
     });
-  }, [filters]);
+  }, [filters, CLASSES]);
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -92,14 +101,22 @@ export function ClassesPage() {
         }
         description="Manage classes, sections, teachers, subjects, and student allocation."
         actions={
+          hasPermission("academics.manage") ? (
           <Button size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => navigate("/classes/new")}>
             <Plus className="h-4 w-4" /> Add New Class
           </Button>
+          ) : undefined
         }
       />
 
+      {classesQuery.isError && (
+        <PremiumEmptyState title="Couldn't load classes" description={errorMessage(classesQuery.error)}
+          action={<Button size="sm" variant="outline" onClick={() => classesQuery.refetch()}>Try again</Button>} />
+      )}
+      {classesQuery.isLoading && <PremiumSkeleton className="h-72 w-full rounded-2xl" />}
+      {classesQuery.isSuccess && (<>
       {/* ── Summary ─────────────────────────────────────────────────────── */}
-      <ClassesSummaryCards />
+      <ClassesSummaryCards classes={CLASSES} />
 
       {/* ── Filters ─────────────────────────────────────────────────────── */}
       <ClassesToolbar
@@ -107,6 +124,7 @@ export function ClassesPage() {
         onFiltersChange={updateFilters}
         hasActiveFilter={hasActiveFilter}
         onReset={resetFilters}
+        yearOptions={yearOptions}
       />
 
       {/* ── Table ───────────────────────────────────────────────────────── */}
@@ -121,6 +139,7 @@ export function ClassesPage() {
         hasActiveFilter={hasActiveFilter}
         onResetFilters={resetFilters}
       />
+      </>)}
     </div>
   );
 }

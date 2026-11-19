@@ -1,4 +1,4 @@
-import type { TicketActivity } from "@/data/helpDeskData";
+import type { TicketActivity } from "@/api/types/helpdesk";
 
 function formatWhen(iso: string) {
   return new Date(iso).toLocaleString(undefined, {

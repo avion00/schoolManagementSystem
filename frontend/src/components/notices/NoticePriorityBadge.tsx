@@ -1,4 +1,4 @@
-import type { NoticePriority } from "@/data/noticesData";
+import type { NoticePriority } from "@/api/types/notices";
 import { cn } from "@/lib/utils";
 
 const PRIORITY_CFG: Record<NoticePriority, { label: string; cls: string; dot: string }> = {

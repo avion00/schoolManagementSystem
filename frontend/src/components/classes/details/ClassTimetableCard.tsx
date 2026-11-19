@@ -1,11 +1,19 @@
 import { CalendarClock } from "lucide-react";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { TimetableRow } from "@/data/classDetailData";
+import type { TimetableRow } from "@/api/types/classes";
 
 const DAYS = ["monday","tuesday","wednesday","thursday","friday"] as const;
 const DAY_LABELS = { monday:"Mon", tuesday:"Tue", wednesday:"Wed", thursday:"Thu", friday:"Fri" };
 
 export function ClassTimetableCard({ timetable }: { timetable: TimetableRow[] }) {
+  if (timetable.length === 0) {
+    return (
+      <DetailCard icon={CalendarClock} title="Weekly Timetable">
+        <PremiumEmptyState title="No timetable set for this class yet." className="py-6" />
+      </DetailCard>
+    );
+  }
   return (
     <DetailCard icon={CalendarClock} title="Weekly Timetable">
         <div className="overflow-x-auto">

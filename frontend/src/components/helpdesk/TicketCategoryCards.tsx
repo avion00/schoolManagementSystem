@@ -6,7 +6,7 @@ import {
 
 import { Reveal } from "@/components/motion";
 import { PremiumCard } from "@/components/ui/PremiumCard";
-import { OPEN_STATUSES, type SupportTicket, type TicketCategory } from "@/data/helpDeskData";
+import { OPEN_STATUSES, type SupportTicket, type TicketCategory } from "@/api/types/helpdesk";
 
 interface CategoryGroup {
   label: string;

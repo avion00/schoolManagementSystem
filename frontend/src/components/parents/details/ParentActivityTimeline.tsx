@@ -1,7 +1,7 @@
 import { Bell, BookOpen, Calendar, CreditCard, FileText, Mail, UserCheck } from "lucide-react";
 
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { ParentActivity } from "@/data/parentDetailsData";
+import type { ParentActivity } from "@/api/types/parents";
 
 const TYPE_CFG: Record<ParentActivity["type"], { icon: typeof Bell; bg: string; text: string }> = {
   attendance: { icon: UserCheck,  bg: "bg-blue-100 dark:bg-blue-950/50",     text: "text-blue-600 dark:text-blue-400"    },

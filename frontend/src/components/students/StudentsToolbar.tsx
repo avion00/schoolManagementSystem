@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { PremiumDropdownMenu } from "@/components/ui/PremiumDropdownMenu";
 import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { PremiumTableToolbar } from "@/components/ui/PremiumTableToolbar";
-import { CLASS_OPTIONS, SECTION_OPTIONS, STATUS_OPTIONS } from "@/data/studentsData";
+import { STATUS_OPTIONS } from "@/api/types/students";
 
 export interface StudentsFilters {
   search: string;
@@ -22,7 +22,11 @@ export function StudentsToolbar({
   showColumnsMenu = false,
   hiddenColumns,
   onToggleColumn,
+  classOptions,
+  sectionOptions,
 }: {
+  classOptions: string[];
+  sectionOptions: string[];
   filters: StudentsFilters;
   onFiltersChange: (next: Partial<StudentsFilters>) => void;
   hasActiveFilter: boolean;
@@ -43,13 +47,13 @@ export function StudentsToolbar({
             value={filters.filterClass}
             onChange={(v) => onFiltersChange({ filterClass: v, filterSection: "all" })}
             className="w-40"
-            options={[{ value: "all", label: "All classes" }, ...CLASS_OPTIONS.map((c) => ({ value: c, label: c }))]}
+            options={[{ value: "all", label: "All classes" }, ...classOptions.map((c) => ({ value: c, label: c }))]}
           />
           <PremiumSelect
             value={filters.filterSection}
             onChange={(v) => onFiltersChange({ filterSection: v })}
             className="w-40"
-            options={[{ value: "all", label: "All sections" }, ...SECTION_OPTIONS.map((s) => ({ value: s, label: `Section ${s}` }))]}
+            options={[{ value: "all", label: "All sections" }, ...sectionOptions.map((s) => ({ value: s, label: `Section ${s}` }))]}
           />
           <PremiumSelect
             value={filters.filterStatus}

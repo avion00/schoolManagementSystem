@@ -1,34 +1,37 @@
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ToggleRow } from "@/components/settings/SettingsSection";
+import { errorMessage } from "@/api/http";
 import { messagesService } from "@/lib/messagesService";
 import { cn } from "@/lib/utils";
 
-const AUDIENCE_OPTIONS: { label: string; count: number }[] = [
-  { label: "All Users", count: 1200 },
-  { label: "All Students", count: 780 },
-  { label: "All Parents", count: 580 },
-  { label: "All Teachers", count: 42 },
-  { label: "All Staff", count: 25 },
+const AUDIENCE_OPTIONS: { label: string; value: string }[] = [
+  { label: "Everyone", value: "all" },
+  { label: "All Students", value: "students" },
+  { label: "All Parents", value: "parents" },
+  { label: "Students & Parents", value: "students_parents" },
+  { label: "All Teachers", value: "teachers" },
+  { label: "All Staff", value: "staff" },
 ];
 
 export function BroadcastComposer({
   open,
   onOpenChange,
-  sentBy,
   onCreated,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  sentBy: string;
+  sentBy?: string;
   onCreated: () => void;
 }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [audience, setAudience] = useState(AUDIENCE_OPTIONS[0]);
   const [allowReplies, setAllowReplies] = useState(false);
+  const [sending, setSending] = useState(false);
 
   function reset() {
     setTitle("");
@@ -37,14 +40,23 @@ export function BroadcastComposer({
     setAllowReplies(false);
   }
 
-  function handleSend() {
-    if (!title.trim() || !body.trim()) return;
-    messagesService.createBroadcast({
-      title: title.trim(), body: body.trim(), audience: audience.label, audienceCount: audience.count, sentBy, allowReplies,
-    });
-    onOpenChange(false);
-    reset();
-    onCreated();
+  async function handleSend() {
+    if (!title.trim() || !body.trim() || sending) return;
+    if (!window.confirm(`Send "${title.trim()}" to ${audience.label.toLowerCase()}?`)) return;
+    setSending(true);
+    try {
+      const r = await messagesService.createBroadcast({
+        title: title.trim(), body: body.trim(), audience: audience.value, allowReplies,
+      });
+      toast.success(`Broadcast sent to ${r.recipients} ${r.recipients === 1 ? "person" : "people"}.`);
+      onOpenChange(false);
+      reset();
+      onCreated();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -85,7 +97,7 @@ export function BroadcastComposer({
                     audience.label === a.label ? "border-primary bg-primary/10 text-primary" : "border-border/60 text-muted-foreground hover:bg-muted",
                   )}
                 >
-                  {a.label} · {a.count.toLocaleString()}
+                  {a.label}
                 </button>
               ))}
             </div>
@@ -96,8 +108,8 @@ export function BroadcastComposer({
             checked={allowReplies}
             onChange={setAllowReplies}
           />
-          <Button className="w-full" onClick={handleSend} disabled={!title.trim() || !body.trim()}>
-            Send broadcast to {audience.count.toLocaleString()} recipients
+          <Button className="w-full" onClick={handleSend} disabled={sending || !title.trim() || !body.trim()}>
+            {sending ? "Sending…" : `Send to ${audience.label.toLowerCase()}`}
           </Button>
         </div>
       </DialogContent>

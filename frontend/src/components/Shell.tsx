@@ -32,6 +32,9 @@ import {
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { useUnreadCount } from "@/api/notifications";
+import { messagesService } from "@/lib/messagesService";
+import { realtimeService } from "@/lib/realtimeService";
 
 export interface NavItem {
   to: string;
@@ -570,7 +573,16 @@ function UserMenu({ collapsed, compact }: { collapsed?: boolean; compact?: boole
 
 /* ── Shell ────────────────────────────────────────────────────────────── */
 export function Shell({ nav, brand }: { nav: NavGroup[]; brand: string }) {
-  const { hasPermission } = useAuth();
+  const unread = useUnreadCount().data ?? 0;
+  const { hasPermission, user: sessionUser } = useAuth();
+
+  // Messaging: load this user's chats and keep a live connection while signed in.
+  useEffect(() => {
+    if (!sessionUser) return;
+    messagesService.init(sessionUser);
+    realtimeService.connect();
+    return () => realtimeService.disconnect();
+  }, [sessionUser]);
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(
@@ -715,12 +727,14 @@ export function Shell({ nav, brand }: { nav: NavGroup[]; brand: string }) {
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  aria-label="Notifications"
+                  aria-label={unread ? `Notifications (${unread} unread)` : "Notifications"}
                   onClick={() => navigate("/notifications")}
                   className="relative flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground/70 transition-all duration-150 hover:bg-accent/70 hover:text-foreground active:scale-95"
                 >
                   <Bell className="h-[1.05rem] w-[1.05rem]" />
-                  <span className="t-badge-dot absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary ring-1 ring-card" />
+                  {unread > 0 && (
+                    <span className="t-badge-dot absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary ring-1 ring-card" />
+                  )}
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" sideOffset={6}>Notifications</TooltipContent>

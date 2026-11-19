@@ -1,22 +1,19 @@
 import { Users } from "lucide-react";
-import {
-  NOTICE_AUDIENCE_OPTIONS, CLASS_OPTIONS_NOTICES, SECTION_OPTIONS_NOTICES,
-} from "@/data/noticesData";
+import { NOTICE_AUDIENCE_OPTIONS } from "@/api/types/notices";
+import { useAcademicOptions } from "@/api/students";
 
 interface Props {
   audience:       string;
   targetClasses:  string[];
   targetSections: string[];
-  sendToAll:      boolean;
   onAudienceChange:       (v: string) => void;
   onTargetClassesChange:  (v: string[]) => void;
   onTargetSectionsChange: (v: string[]) => void;
-  onSendToAllChange:      (v: boolean) => void;
   audienceError?: string;
 }
 
 function MultiSelect({ label, options, selected, onChange }: {
-  label: string; options: readonly string[]; selected: string[]; onChange: (v: string[]) => void;
+  label: string; options: { value: string; label: string }[]; selected: string[]; onChange: (v: string[]) => void;
 }) {
   function toggle(v: string) {
     onChange(selected.includes(v) ? selected.filter((x) => x !== v) : [...selected, v]);
@@ -25,13 +22,14 @@ function MultiSelect({ label, options, selected, onChange }: {
     <div>
       <p className="text-[11px] font-medium text-foreground mb-1.5">{label}</p>
       <div className="flex flex-wrap gap-1.5">
+        {options.length === 0 && <p className="text-[11px] text-muted-foreground">None available.</p>}
         {options.map((o) => (
-          <button key={o} type="button" onClick={() => toggle(o)}
+          <button key={o.value} type="button" onClick={() => toggle(o.value)}
             className={`h-7 rounded-full border px-3 text-[11px] font-medium transition-colors
-              ${selected.includes(o)
+              ${selected.includes(o.value)
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-border bg-background text-muted-foreground hover:bg-muted"}`}>
-            {o}
+            {o.label}
           </button>
         ))}
       </div>
@@ -40,11 +38,17 @@ function MultiSelect({ label, options, selected, onChange }: {
 }
 
 export function NoticeAudienceSelector({
-  audience, targetClasses, targetSections, sendToAll,
-  onAudienceChange, onTargetClassesChange, onTargetSectionsChange, onSendToAllChange,
+  audience, targetClasses, targetSections,
+  onAudienceChange, onTargetClassesChange, onTargetSectionsChange,
   audienceError,
 }: Props) {
-  const showClassFilter = ["Students","Parents","Students & Parents","All"].includes(audience);
+  // Class/section targeting narrows students, parents (by child) and teachers (by what they teach).
+  const showClassFilter = audience !== "Staff";
+  const academics = useAcademicOptions();
+  const classOptions = (academics.data?.classes ?? []).map((c) => ({ value: c.id, label: c.name }));
+  const sectionOptions = (academics.data?.sections ?? [])
+    .filter((sct) => targetClasses.length === 0 || targetClasses.includes(sct.classId))
+    .map((sct) => ({ value: sct.id, label: `${sct.className} ${sct.name}` }));
 
   return (
     <div className="space-y-5">
@@ -75,29 +79,27 @@ export function NoticeAudienceSelector({
         <>
           <MultiSelect
             label="Target Classes (leave empty = all classes)"
-            options={CLASS_OPTIONS_NOTICES}
+            options={classOptions}
             selected={targetClasses}
-            onChange={onTargetClassesChange}
+            onChange={(v) => {
+              onTargetClassesChange(v);
+              // Drop sections that no longer belong to a chosen class.
+              const allowed = new Set((academics.data?.sections ?? []).filter((x) => v.length === 0 || v.includes(x.classId)).map((x) => x.id));
+              onTargetSectionsChange(targetSections.filter((id) => allowed.has(id)));
+            }}
           />
           <MultiSelect
             label="Target Sections (leave empty = all sections)"
-            options={SECTION_OPTIONS_NOTICES}
+            options={sectionOptions}
             selected={targetSections}
             onChange={onTargetSectionsChange}
           />
+          {audience === "All" && (
+            <p className="text-[11px] text-muted-foreground">With "All", class filters apply to students, parents and teachers; other staff always receive it.</p>
+          )}
         </>
       )}
 
-      {/* Send to all toggle */}
-      <div className="flex items-center gap-3">
-        <button type="button" onClick={() => onSendToAllChange(!sendToAll)}
-          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors
-            ${sendToAll ? "bg-primary" : "bg-muted"}`}>
-          <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow ring-0 transition-transform
-            ${sendToAll ? "translate-x-4" : "translate-x-0"}`} />
-        </button>
-        <span className="text-[12px] text-foreground font-medium">Send to all recipients in the selected audience</span>
-      </div>
     </div>
   );
 }

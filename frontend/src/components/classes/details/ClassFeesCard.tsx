@@ -1,7 +1,7 @@
 import { Wallet } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { FeesSummary } from "@/data/classDetailData";
+import type { FeesSummary } from "@/api/types/classes";
 
 function fmt(n: number) { return `NPR ${n.toLocaleString("en-IN")}`; }
 

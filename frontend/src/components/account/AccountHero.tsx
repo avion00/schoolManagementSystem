@@ -1,9 +1,9 @@
-import { BadgeCheck, Shield, UserCog } from "lucide-react";
+import { Shield, UserCog } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { PROFILE_EXTRAS } from "@/data/accountData";
+import { useMe } from "@/api/settings";
 import { useAuth } from "@/lib/auth";
 
 function initialsOf(name: string) {
@@ -19,8 +19,9 @@ export function AccountHero({
   onSecuritySettings: () => void;
 }) {
   const { user } = useAuth();
-  const name = user?.full_name || user?.email || "Super Admin";
-  const roleLabel = user?.is_platform_admin ? "Platform Admin" : user?.roles?.[0] ?? "Super Admin";
+  const me = useMe().query.data;
+  const name = user?.full_name || user?.email || "";
+  const roleLabel = user?.is_platform_admin ? "Platform Admin" : user?.roles?.[0] ?? "";
 
   return (
     <Card className="overflow-hidden rounded-2xl border-border/60 bg-gradient-to-br from-primary/[0.06] via-card to-card shadow-elevated">
@@ -32,18 +33,15 @@ export function AccountHero({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-lg font-semibold text-foreground">{name}</h2>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-                <BadgeCheck className="h-3 w-3" /> Verified
-              </span>
               <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
                 Active
               </span>
             </div>
             <p className="mt-0.5 text-[12.5px] text-muted-foreground">{user?.email}</p>
             <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11.5px] text-muted-foreground">
-              <span className="rounded-md bg-muted px-1.5 py-0.5 font-medium text-foreground">{roleLabel}</span>
-              <span>{user?.organization?.name ?? "Online Dashboard / School Management"}</span>
-              <span>· Last login {PROFILE_EXTRAS.lastLogin}</span>
+              {roleLabel && <span className="rounded-md bg-muted px-1.5 py-0.5 font-medium text-foreground">{roleLabel}</span>}
+              {user?.organization?.name && <span>{user.organization.name}</span>}
+              {me?.last_login && <span>· Last sign-in {new Date(me.last_login).toLocaleString()}</span>}
             </p>
           </div>
         </div>

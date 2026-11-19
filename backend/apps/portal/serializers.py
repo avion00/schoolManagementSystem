@@ -17,9 +17,26 @@ class StudentSelfSerializer(serializers.ModelSerializer):
         fields = [
             "id", "full_name", "first_name", "middle_name", "last_name",
             "date_of_birth", "gender", "blood_group", "nationality", "religion",
-            "address", "phone", "email", "admission_number", "roll_number",
+            "address", "phone", "email", "admission_number", "registration_number", "roll_number",
             "class_level_name", "section_name", "academic_year_name",
             "guardian_name", "status",
+        ]
+
+
+class ChildSerializer(serializers.ModelSerializer):
+    """A child as seen by their guardian (no health or internal fields)."""
+
+    full_name = serializers.CharField(read_only=True)
+    class_level_name = serializers.CharField(source="class_level.name", read_only=True)
+    section_name = serializers.CharField(source="section.name", read_only=True, default=None)
+    academic_year_name = serializers.CharField(source="academic_year.name", read_only=True)
+
+    class Meta:
+        model = Student
+        fields = [
+            "id", "full_name", "gender", "date_of_birth", "admission_number",
+            "registration_number", "roll_number", "class_level_name", "section_name",
+            "academic_year_name", "status",
         ]
 
 

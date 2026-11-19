@@ -1,43 +1,18 @@
 import { BarChart2, TrendingUp, Users, GraduationCap, Percent, AlertTriangle } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Reveal } from "@/components/motion";
+import { Button } from "@/components/ui/button";
 import { PremiumCard } from "@/components/ui/PremiumCard";
 import { PremiumDataTable, type PremiumDataTableColumn } from "@/components/ui/PremiumDataTable";
 import { KPITrendCard } from "@/components/ui/KPITrendCard";
 import { METRIC_TONES } from "@/components/ui/MetricCard";
-import { CATEGORICAL_COLORS, STATUS_COLORS as PALETTE_STATUS_COLORS } from "@/components/charts/palette";
-import {
-  ATTENDANCE_STATS, MONTHLY_TREND, CLASS_COMPARISON,
-  G6A_JUNE_ATT, G6A_JULY_ATT, G7A_JULY_ATT,
-  STUDENTS_G6A, STUDENTS_G7A,
-  countStatuses, calcRate,
-} from "@/data/attendanceData";
+import { todayIso, useAttendanceStats, useClassComparison, useStudentSummary, type StudentSummaryRow } from "@/api/attendance";
+import { errorMessage } from "@/api/http";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
 import { cn } from "@/lib/utils";
 
-// Aggregate per-student stats across all months
-function buildStudentStats() {
-  const allAtt = [...G6A_JUNE_ATT, ...G6A_JULY_ATT, ...G7A_JULY_ATT];
-  const allStudents = [...STUDENTS_G6A, ...STUDENTS_G7A];
-
-  return allStudents.map((s) => {
-    const records = allAtt.filter((a) => a.studentId === s.id);
-    let present = 0, absent = 0, late = 0, totalWorking = 0;
-    for (const r of records) {
-      const c = countStatuses(r.records);
-      present += c.present; absent += c.absent; late += c.late;
-      totalWorking += Object.keys(r.records).length;
-    }
-    const rate = totalWorking > 0 ? calcRate(
-      Object.fromEntries(
-        records.flatMap((r) => Object.entries(r.records))
-      ) as Record<number, import("@/data/attendanceData").AttendanceStatus>,
-      totalWorking,
-    ) : 0;
-    return { ...s, present, absent, late, totalWorking, rate };
-  }).sort((a, b) => b.rate - a.rate);
-}
-
-const STUDENT_STATS = buildStudentStats();
-type StudentStatRow = (typeof STUDENT_STATS)[number];
+type StudentStatRow = StudentSummaryRow;
 
 const lowAttendanceColumns: PremiumDataTableColumn<StudentStatRow>[] = [
   { key: "name", header: "Student", render: (s) => <span className="font-medium text-foreground">{s.name}</span> },
@@ -50,7 +25,7 @@ const lowAttendanceColumns: PremiumDataTableColumn<StudentStatRow>[] = [
 const allStudentsColumns: PremiumDataTableColumn<StudentStatRow>[] = [
   { key: "name", header: "Name", render: (s) => <span className="font-medium text-foreground">{s.name}</span> },
   { key: "class", header: "Class", render: (s) => <span className="text-muted-foreground">{s.className} {s.section}</span> },
-  { key: "totalWorking", header: "Total Days", align: "center", render: (s) => <span>{s.totalWorking}</span> },
+  { key: "marked", header: "Recorded Days", align: "center", render: (s) => <span>{s.marked}</span> },
   { key: "present", header: "Present", align: "center", render: (s) => <span className="font-semibold text-emerald-600">{s.present}</span> },
   { key: "absent", header: "Absent", align: "center", render: (s) => <span className="font-semibold text-rose-600">{s.absent}</span> },
   { key: "late", header: "Late", align: "center", render: (s) => <span className="font-semibold text-amber-600">{s.late}</span> },
@@ -63,27 +38,7 @@ const allStudentsColumns: PremiumDataTableColumn<StudentStatRow>[] = [
   },
 ];
 
-// Status distribution across all records
-function buildStatusDist() {
-  const allAtt = [...G6A_JUNE_ATT, ...G6A_JULY_ATT, ...G7A_JULY_ATT];
-  const out = { present: 0, absent: 0, late: 0, "half-day": 0, leave: 0 };
-  for (const a of allAtt) {
-    const c = countStatuses(a.records);
-    out.present    += c.present;
-    out.absent     += c.absent;
-    out.late       += c.late;
-    out["half-day"] += c["half-day"];
-    out.leave      += c.leave;
-  }
-  const total = Object.values(out).reduce((s, v) => s + v, 0);
-  return Object.entries(out).map(([status, count]) => ({
-    status,
-    count,
-    pct: total > 0 ? Math.round((count / total) * 100) : 0,
-  }));
-}
-
-const STATUS_DIST = buildStatusDist();
+const DIST_STATUSES = ["present", "absent", "late", "half-day", "leave", "excused"] as const;
 
 const STATUS_COLORS: Record<string, string> = {
   present:    "bg-emerald-500",
@@ -91,6 +46,7 @@ const STATUS_COLORS: Record<string, string> = {
   late:       "bg-amber-500",
   "half-day": "bg-blue-500",
   leave:      "bg-violet-500",
+  excused:    "bg-slate-400",
 };
 
 const STATUS_TEXT: Record<string, string> = {
@@ -99,51 +55,69 @@ const STATUS_TEXT: Record<string, string> = {
   late:       "text-amber-600",
   "half-day": "text-blue-600",
   leave:      "text-violet-600",
+  excused:    "text-slate-600",
 };
 
-const REPORT_SPARK = {
-  rate:     [{ value: 84 }, { value: 85 }, { value: 87 }, { value: 86 }, { value: 88 }, { value: 89 }, { value: 90 }],
-  students: [{ value: 16 }, { value: 17 }, { value: 17 }, { value: 18 }, { value: 18 }, { value: 18 }, { value: 18 }],
-  teachers: [{ value: 7 }, { value: 7 }, { value: 8 }, { value: 8 }, { value: 8 }, { value: 8 }, { value: 8 }],
-  lowUp:    [{ value: 1 }, { value: 2 }, { value: 2 }, { value: 3 }, { value: 3 }, { value: 4 }, { value: 4 }],
-  lowDown:  [{ value: 4 }, { value: 3 }, { value: 3 }, { value: 2 }, { value: 1 }, { value: 1 }, { value: 0 }],
-};
+const inputCls = "h-9 rounded-lg border border-input bg-background px-2.5 text-[12px] focus:outline-none focus:ring-1 focus:ring-ring";
 
 export function AttendanceReportsPage() {
-  const lowAttStudents = STUDENT_STATS.filter((s) => s.rate < 80);
+  const [from, setFrom] = useState(() => todayIso().slice(0, 8) + "01");
+  const [to, setTo] = useState(todayIso);
+  const statsQuery = useAttendanceStats();
+  const summaryQuery = useStudentSummary(from, to);
+  const classQuery = useClassComparison(from, to);
+
+  const MONTHLY_TREND = statsQuery.data?.trend ?? [];
+  const STUDENT_STATS = useMemo(
+    () => [...(summaryQuery.data?.rows ?? [])].sort((a, b) => b.rate - a.rate), [summaryQuery.data]);
+  const CLASS_COMPARISON = (classQuery.data ?? []).filter((c): c is typeof c & { rate: number } => c.rate !== null);
+  const STATUS_DIST = useMemo(() => {
+    const by = summaryQuery.data?.byStatus ?? {};
+    const total = DIST_STATUSES.reduce((n, st) => n + (by[st] ?? 0), 0);
+    return DIST_STATUSES.map((status) => ({
+      status, count: by[status] ?? 0, pct: total ? Math.round(((by[status] ?? 0) / total) * 100) : 0,
+    }));
+  }, [summaryQuery.data]);
+  const totalMarked = STUDENT_STATS.reduce((n, s) => n + s.marked, 0);
+  const totalPresent = STUDENT_STATS.reduce((n, s) => n + s.present, 0);
+  const rangeRate = totalMarked ? Math.round((totalPresent / totalMarked) * 1000) / 10 : null;
+
+  const lowAttStudents = [...STUDENT_STATS.filter((s) => s.rate < 80)].reverse();
   const hasLowAtt = lowAttStudents.length > 0;
 
   const kpis = [
+    { label: "Overall Rate", value: rangeRate === null ? "—" : `${rangeRate}%`, icon: Percent, tone: METRIC_TONES.blue },
+    { label: "Students Recorded", value: STUDENT_STATS.length, icon: GraduationCap, tone: METRIC_TONES.green },
+    { label: "Sections Recorded", value: CLASS_COMPARISON.length, icon: Users, tone: METRIC_TONES.purple },
     {
-      label: "Overall Rate", value: `${ATTENDANCE_STATS.monthlyRate}%`, icon: Percent, tone: METRIC_TONES.blue,
-      sparkColor: CATEGORICAL_COLORS[0], sparkData: REPORT_SPARK.rate,
-      trend: { value: "+1.4%", up: true, compareLabel: "July 2026" },
-    },
-    {
-      label: "Total Students", value: "18", icon: GraduationCap, tone: METRIC_TONES.green,
-      sparkColor: PALETTE_STATUS_COLORS.good, sparkData: REPORT_SPARK.students,
-      trend: { value: "0.0%", up: true, compareLabel: "2 classes" },
-    },
-    {
-      label: "Total Teachers", value: "8", icon: Users, tone: METRIC_TONES.purple,
-      sparkColor: CATEGORICAL_COLORS[4], sparkData: REPORT_SPARK.teachers,
-      trend: { value: "0.0%", up: true, compareLabel: "Teaching staff" },
-    },
-    {
-      label: "Low Attendance", value: lowAttStudents.length, icon: AlertTriangle,
+      label: "Low Attendance (<80%)", value: lowAttStudents.length, icon: AlertTriangle,
       tone: hasLowAtt ? METRIC_TONES.red : METRIC_TONES.green,
-      sparkColor: hasLowAtt ? PALETTE_STATUS_COLORS.critical : PALETTE_STATUS_COLORS.good,
-      sparkData: hasLowAtt ? REPORT_SPARK.lowUp : REPORT_SPARK.lowDown,
-      trend: { value: hasLowAtt ? "+1" : "-1", up: !hasLowAtt, compareLabel: "Below 80%" },
     },
   ];
+
+  if (summaryQuery.isError) {
+    return <PremiumEmptyState title="Couldn't load attendance reports" description={errorMessage(summaryQuery.error)}
+      action={<Button size="sm" variant="outline" onClick={() => summaryQuery.refetch()}>Try again</Button>} />;
+  }
 
   return (
     <div className="space-y-5">
       <Reveal>
         <h1 className="text-2xl font-bold text-foreground">Attendance Reports & Analytics</h1>
         <p className="text-[13px] text-muted-foreground mt-0.5">Comprehensive attendance analysis across all classes</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
+          <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} className={inputCls} />
+          <span>to</span>
+          <input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} className={inputCls} />
+        </div>
       </Reveal>
+
+      {summaryQuery.isLoading && <PremiumSkeleton className="h-72 w-full rounded-2xl" />}
+      {summaryQuery.isSuccess && STUDENT_STATS.length === 0 && (
+        <PremiumEmptyState title="No attendance recorded in this range"
+          description="Reports fill in once registers are taken. Try a wider date range." />
+      )}
+      {summaryQuery.isSuccess && STUDENT_STATS.length > 0 && (<>
 
       {/* Top KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -154,9 +128,6 @@ export function AttendanceReportsPage() {
               value={k.value}
               icon={k.icon}
               iconCls={k.tone}
-              trend={k.trend}
-              sparklineData={k.sparkData}
-              sparklineColor={k.sparkColor}
             />
           </Reveal>
         ))}
@@ -171,15 +142,15 @@ export function AttendanceReportsPage() {
             <h2 className="text-[14px] font-semibold text-foreground">Monthly Attendance Trend</h2>
           </div>
           <div className="flex items-end gap-3 h-36">
-            {MONTHLY_TREND.map((pt) => {
-              const isCurrent = pt.month.startsWith("Jul");
+            {MONTHLY_TREND.map((pt, i) => {
+              const isCurrent = i === MONTHLY_TREND.length - 1;
               return (
                 <div key={pt.month} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-[10px] font-semibold text-foreground">{pt.presentRate}%</span>
+                  <span className="text-[10px] font-semibold text-foreground">{pt.presentRate === null ? "—" : `${pt.presentRate}%`}</span>
                   <div className="w-full flex items-end" style={{ height: "96px" }}>
                     <div
                       className={cn("w-full rounded-t-md", isCurrent ? "bg-indigo-500" : "bg-indigo-200 dark:bg-indigo-800")}
-                      style={{ height: `${pt.presentRate}%` }}
+                      style={{ height: `${pt.presentRate ?? 0}%` }}
                     />
                   </div>
                   <span className="text-[9px] text-muted-foreground text-center leading-tight">{pt.month}</span>
@@ -265,7 +236,7 @@ export function AttendanceReportsPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[12px] font-medium text-foreground truncate">{s.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{s.rollNo} · {s.className} {s.section}</p>
+                  <p className="text-[10px] text-muted-foreground">{s.admissionNo} · {s.className} {s.section}</p>
                 </div>
                 <span className="text-[12px] font-bold text-emerald-600">{s.rate}%</span>
               </div>
@@ -292,6 +263,7 @@ export function AttendanceReportsPage() {
         <PremiumDataTable columns={allStudentsColumns} rows={STUDENT_STATS} rowKey={(s) => s.id} stickyHeader={false} />
       </PremiumCard>
       </Reveal>
+      </>)}
     </div>
   );
 }

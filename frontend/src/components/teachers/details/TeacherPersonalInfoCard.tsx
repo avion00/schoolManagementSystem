@@ -2,8 +2,8 @@ import { User } from "lucide-react";
 
 import { DetailCard } from "@/components/ui/DetailCard";
 import { Separator } from "@/components/ui/separator";
-import type { Teacher } from "@/data/teachersData";
-import type { TeacherPersonalExtra } from "@/data/teacherDetailsData";
+import type { Teacher } from "@/api/types/teachers";
+import type { TeacherPersonalExtra } from "@/api/types/teachers";
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (

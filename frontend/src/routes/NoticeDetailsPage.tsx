@@ -1,6 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 import {
-  ArrowLeft, Pencil, Printer, Download, Copy,
+  ArrowLeft, Pencil, Printer, Download, Copy, Archive, Send,
   Pin, Users, CalendarDays, Clock, Paperclip,
   Eye, CheckCircle2, AlertCircle, FileText, Bell, StickyNote,
 } from "lucide-react";
@@ -11,8 +12,12 @@ import { NoticePriorityBadge }     from "@/components/notices/NoticePriorityBadg
 import { NoticeRecipientsTable }   from "@/components/notices/NoticeRecipientsTable";
 import { NoticeActivityTimeline }  from "@/components/notices/NoticeActivityTimeline";
 import { PrintableNotice }         from "@/components/notices/PrintableNotice";
-import { NOTICES } from "@/data/noticesData";
-import type { NoticeCategory } from "@/data/noticesData";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { useArchiveNotice, useNotice, useNoticeActions, useNotices, usePublishNotice } from "@/api/notices";
+import { downloadFile } from "@/api/files";
+import { errorMessage } from "@/api/http";
+import type { ActivityRecord, NoticeCategory } from "@/api/types/notices";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 const CAT_GRADIENT: Record<NoticeCategory, string> = {
@@ -41,13 +46,23 @@ function StatChip({ label, value, color }: { label: string; value: number; color
 export function NoticeDetailsPage() {
   const navigate = useNavigate();
   const { id }   = useParams<{ id: string }>();
-  const notice   = NOTICES.find((n) => n.id === Number(id));
+  const query    = useNotice(id);
+  const all      = useNotices();
+  const publish  = usePublishNotice();
+  const archive  = useArchiveNotice();
+  const actions  = useNoticeActions();
+  const { hasPermission } = useAuth();
+  const canManage  = hasPermission("notice.manage");
+  const canPublish = hasPermission("notice.publish");
+  const notice   = query.data?.notice;
+  const fail = (e: unknown) => toast.error(errorMessage(e));
 
+  if (query.isLoading) return <PremiumSkeleton className="h-96 w-full rounded-2xl" />;
   if (!notice) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-4">
         <AlertCircle className="h-10 w-10 text-muted-foreground" />
-        <p className="text-[15px] font-medium text-foreground">Notice not found</p>
+        <p className="text-[15px] font-medium text-foreground">{query.isError ? errorMessage(query.error) : "Notice not found"}</p>
         <Button variant="outline" size="sm" onClick={() => navigate("/notices")}>
           <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />Back to Notice Board
         </Button>
@@ -58,9 +73,20 @@ export function NoticeDetailsPage() {
   const grad = CAT_GRADIENT[notice.category] ?? "from-indigo-500 to-indigo-700";
 
   // Determine related notices (same category, different id, published)
-  const related = NOTICES
+  const related = (all.data ?? [])
     .filter((n) => n.category === notice.category && n.id !== notice.id && n.status === "Published")
     .slice(0, 3);
+
+  const recipients = query.data?.recipients ?? [];
+  const stats = notice.stats;
+  const activities: ActivityRecord[] = [
+    { id: "created", action: "Notice created", by: notice.createdBy, at: notice.createdAt, icon: "create" as const },
+    ...(notice.status !== "Draft" && notice.publishAt ? [{
+      id: "published", action: notice.status === "Scheduled" ? "Scheduled for publishing" : "Published",
+      by: notice.publishedBy, at: notice.publishAt, icon: "publish" as const,
+    }] : []),
+    ...(notice.status === "Archived" ? [{ id: "archived", action: "Archived", by: "", at: "", icon: "archive" as const }] : []),
+  ];
 
   return (
     <div className="space-y-5">
@@ -102,7 +128,7 @@ export function NoticeDetailsPage() {
           {/* Meta row */}
           <div className="mt-4 flex flex-wrap items-center gap-4 text-[12px] text-white/80">
             <span className="flex items-center gap-1">
-              <FileText className="h-3.5 w-3.5" />By {notice.publishedBy}
+              <FileText className="h-3.5 w-3.5" />By {notice.publishedBy || notice.createdBy || "—"}
             </span>
             {notice.publishDate && (
               <span className="flex items-center gap-1">
@@ -165,7 +191,8 @@ export function NoticeDetailsPage() {
                       <p className="text-[12px] font-medium text-foreground truncate">{a.name}</p>
                       <p className="text-[10px] text-muted-foreground">{a.type} · {a.size}</p>
                     </div>
-                    <button className="text-[11px] text-primary hover:underline flex items-center gap-1">
+                    <button className="text-[11px] text-primary hover:underline flex items-center gap-1"
+                      onClick={() => downloadFile({ id: a.id, original_name: a.name, download_url: a.downloadUrl } as Parameters<typeof downloadFile>[0]).catch(fail)}>
                       <Download className="h-3 w-3" />Download
                     </button>
                   </div>
@@ -178,11 +205,20 @@ export function NoticeDetailsPage() {
           {notice.targetClasses.length > 0 && (
             <DetailCard icon={Users} title="Target Classes">
               <div className="flex flex-wrap gap-2">
-                {notice.targetClasses.map((c) => (
+                {notice.targetClasses.map((c: string) => (
                   <span key={c} className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-[12px] font-medium text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-300">
                     {c}
-                    {notice.targetSections.length > 0 && ` (${notice.targetSections.join(", ")})`}
                   </span>
+                ))}
+              </div>
+            </DetailCard>
+          )}
+
+          {notice.targetSections.length > 0 && (
+            <DetailCard icon={Users} title="Target Sections">
+              <div className="flex flex-wrap gap-2">
+                {notice.targetSections.map((sct) => (
+                  <span key={sct} className="inline-flex items-center rounded-full border border-border px-3 py-1 text-[12px] font-medium">{sct}</span>
                 ))}
               </div>
             </DetailCard>
@@ -190,12 +226,14 @@ export function NoticeDetailsPage() {
 
           {/* Recipients */}
           <DetailCard icon={Eye} title="Recipients & Read Status">
-            <NoticeRecipientsTable recipients={notice.recipients} />
+            {notice.status === "Draft"
+              ? <p className="text-[12px] text-muted-foreground">Recipients are worked out when the notice is published.</p>
+              : <NoticeRecipientsTable recipients={recipients} />}
           </DetailCard>
 
           {/* Activity timeline */}
           <DetailCard icon={Clock} title="Activity Timeline">
-            <NoticeActivityTimeline activities={notice.activities} />
+            <NoticeActivityTimeline activities={activities} />
           </DetailCard>
         </div>
 
@@ -204,23 +242,39 @@ export function NoticeDetailsPage() {
           {/* Actions */}
           <DetailCard icon={Pencil} title="Actions">
             <div className="space-y-2">
-              <Button className="w-full justify-start gap-2 text-[12px]" size="sm"
-                onClick={() => navigate(`/notices/${notice.id}/edit`)}>
-                <Pencil className="h-3.5 w-3.5" />Edit Notice
-              </Button>
+              {canPublish && notice.status === "Draft" && (
+                <Button className="w-full justify-start gap-2 text-[12px]" size="sm" disabled={publish.isPending}
+                  onClick={() => window.confirm("Publish this notice now (or at its scheduled time)?") && publish.mutate(notice.id, {
+                    onSuccess: (r) => toast.success(r.status === "scheduled" ? "Notice scheduled." : `Published${r.notified ? `; ${r.notified} people notified` : ""}.`),
+                    onError: fail,
+                  })}>
+                  <Send className="h-3.5 w-3.5" />Publish
+                </Button>
+              )}
+              {canManage && notice.status !== "Archived" && (
+                <Button variant={notice.status === "Draft" ? "outline" : "default"} className="w-full justify-start gap-2 text-[12px]" size="sm"
+                  onClick={() => navigate(`/notices/${notice.id}/edit`)}>
+                  <Pencil className="h-3.5 w-3.5" />Edit Notice
+                </Button>
+              )}
               <Button variant="outline" className="w-full justify-start gap-2 text-[12px]" size="sm"
                 onClick={() => window.print()}>
                 <Printer className="h-3.5 w-3.5" />Print Notice
               </Button>
-              <Button variant="outline" className="w-full justify-start gap-2 text-[12px]" size="sm">
-                <Download className="h-3.5 w-3.5" />Download PDF
-              </Button>
-              <Button variant="outline" className="w-full justify-start gap-2 text-[12px]" size="sm">
-                <Copy className="h-3.5 w-3.5" />Duplicate
-              </Button>
-              {notice.sendNotification && (
-                <Button variant="outline" className="w-full justify-start gap-2 text-[12px]" size="sm">
-                  <Bell className="h-3.5 w-3.5" />Resend Notification
+              {canManage && (
+                <Button variant="outline" className="w-full justify-start gap-2 text-[12px]" size="sm" disabled={actions.pending}
+                  onClick={() => actions.duplicate(notice.id)
+                    .then((nid) => { toast.success("Copied as a new draft."); navigate(`/notices/${nid}/edit`); })
+                    .catch(fail)}>
+                  <Copy className="h-3.5 w-3.5" />Duplicate as Draft
+                </Button>
+              )}
+              {canPublish && (notice.status === "Published" || notice.status === "Scheduled") && (
+                <Button variant="outline" className="w-full justify-start gap-2 text-[12px] text-rose-600" size="sm" disabled={archive.isPending}
+                  onClick={() => window.confirm("Archive this notice? Readers will no longer see it.") && archive.mutate(notice.id, {
+                    onSuccess: () => toast.success("Notice archived."), onError: fail,
+                  })}>
+                  <Archive className="h-3.5 w-3.5" />Archive
                 </Button>
               )}
               <Button variant="outline" className="w-full justify-start gap-2 text-[12px]" size="sm"
@@ -231,28 +285,28 @@ export function NoticeDetailsPage() {
           </DetailCard>
 
           {/* Read stats */}
-          {notice.stats.totalRecipients > 0 && (
+          {stats.totalRecipients !== null && stats.totalRecipients > 0 && (
             <DetailCard icon={Eye} title="Read Statistics">
               <div className="grid grid-cols-2 gap-2">
-                <StatChip label="Recipients"   value={notice.stats.totalRecipients} color="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-300" />
+                <StatChip label="Recipients"   value={stats.totalRecipients} color="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-300" />
                 <StatChip label="Read"         value={notice.stats.read}            color="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300" />
-                <StatChip label="Unread"       value={notice.stats.unread}          color="bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300" />
+                <StatChip label="Unread"       value={stats.unread ?? 0}             color="bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300" />
                 <StatChip label="Acknowledged" value={notice.stats.acknowledged}    color="bg-violet-50 text-violet-700 dark:bg-violet-950/30 dark:text-violet-300" />
               </div>
 
               {/* Read progress bar */}
-              {notice.stats.totalRecipients > 0 && (
+              {stats.totalRecipients > 0 && (
                 <div>
                   <div className="flex justify-between text-[11px] text-muted-foreground mb-1">
                     <span>Read rate</span>
                     <span className="font-semibold text-foreground">
-                      {Math.round((notice.stats.read / notice.stats.totalRecipients) * 100)}%
+                      {Math.round((stats.read / stats.totalRecipients) * 100)}%
                     </span>
                   </div>
                   <div className="h-2 rounded-full bg-muted overflow-hidden">
                     <div
                       className="h-full rounded-full bg-emerald-500 transition-all"
-                      style={{ width: `${Math.round((notice.stats.read / notice.stats.totalRecipients) * 100)}%` }}
+                      style={{ width: `${Math.round((stats.read / stats.totalRecipients) * 100)}%` }}
                     />
                   </div>
                 </div>
@@ -270,12 +324,12 @@ export function NoticeDetailsPage() {
           )}
 
           {/* Notification channels */}
-          <DetailCard icon={Bell} title="Notifications Sent">
+          <DetailCard icon={Bell} title="Notification Channels">
             <div className="space-y-2 text-[12px]">
               {([
                 ["In-app notification", notice.sendNotification],
-                ["Email notification",  notice.sendEmail],
-                ["SMS notification",    notice.sendSms],
+                ["Email to readers",    notice.sendEmail],
+                ["Readers must acknowledge", notice.requiresAcknowledgement],
               ] as [string, boolean][]).map(([label, sent]) => (
                 <div key={label} className="flex items-center gap-2">
                   {sent
@@ -293,7 +347,7 @@ export function NoticeDetailsPage() {
           {related.length > 0 && (
             <DetailCard icon={FileText} title={`Related ${notice.category} Notices`}>
               <div className="space-y-2">
-                {related.map((r) => (
+                {related.map((r: { id: string; title: string; publishDate: string }) => (
                   <button key={r.id} onClick={() => navigate(`/notices/${r.id}`)}
                     className="w-full text-left rounded-lg border border-border/40 p-3 hover:bg-muted/30 transition-colors">
                     <p className="text-[12px] font-medium text-foreground line-clamp-1">{r.title}</p>

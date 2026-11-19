@@ -7,7 +7,11 @@ import { SubjectsTable } from "@/components/subjects/SubjectsTable";
 import { SubjectsToolbar, type SubjectsFilters } from "@/components/subjects/SubjectsToolbar";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { SUBJECTS, type SubjectCategory, type SubjectData, type SubjectStatus, type SubjectType } from "@/data/subjectsData";
+import { errorMessage } from "@/api/http";
+import { useSubjectList } from "@/api/subjects";
+import type { SubjectCategory, SubjectData, SubjectStatus, SubjectType } from "@/api/types/subjects";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
 
 const PAGE_SIZE = 10;
 type SortField = "subjectName" | "subjectCode" | "category" | "type" | "weeklyPeriods" | "fullMarks" | "status";
@@ -45,6 +49,10 @@ export function SubjectsPage() {
     !!filters.search || !!filters.filterType || !!filters.filterCategory ||
     !!filters.filterStatus || !!filters.filterYear;
 
+  const subjectsQuery = useSubjectList();
+  const SUBJECTS = useMemo(() => subjectsQuery.data ?? [], [subjectsQuery.data]);
+  const yearOptions = [...new Set(SUBJECTS.map((x) => x.academicYear).filter(Boolean))];
+
   const filtered = useMemo(() => {
     const q = filters.search.toLowerCase();
     return SUBJECTS.filter((s) => {
@@ -55,7 +63,7 @@ export function SubjectsPage() {
       if (filters.filterYear && s.academicYear !== filters.filterYear) return false;
       return true;
     });
-  }, [filters]);
+  }, [filters, SUBJECTS]);
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -96,10 +104,15 @@ export function SubjectsPage() {
       />
 
       {/* ── Summary ─────────────────────────────────────────────────────── */}
-      <SubjectsSummaryCards />
+      {subjectsQuery.isError && (
+        <PremiumEmptyState title="Couldn't load subjects" description={errorMessage(subjectsQuery.error)} />
+      )}
+      {subjectsQuery.isLoading && <PremiumSkeleton className="h-72 w-full rounded-2xl" />}
+      <SubjectsSummaryCards subjects={SUBJECTS} />
 
       {/* ── Filters ─────────────────────────────────────────────────────── */}
       <SubjectsToolbar
+        yearOptions={yearOptions}
         filters={filters}
         onFiltersChange={updateFilters}
         hasActiveFilter={hasActiveFilter}

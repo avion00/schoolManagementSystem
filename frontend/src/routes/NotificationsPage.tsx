@@ -1,28 +1,38 @@
 import { useMemo, useState } from "react";
 import { Archive, Bell, MailWarning, SearchX } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { NotificationDetailsPanel } from "@/components/notifications/NotificationDetailsPanel";
 import { NotificationList } from "@/components/notifications/NotificationList";
-import { NotificationSettingsPanel } from "@/components/notifications/NotificationSettingsPanel";
 import { NotificationSummaryCards } from "@/components/notifications/NotificationSummaryCards";
 import { matchesTab, NotificationTabs, type NotificationTab } from "@/components/notifications/NotificationTabs";
 import {
   DEFAULT_NOTIFICATION_FILTERS, NotificationToolbar, type NotificationFilters,
 } from "@/components/notifications/NotificationToolbar";
 import { Reveal } from "@/components/motion";
-import { NOTIFICATIONS, type AppNotification } from "@/data/notificationsData";
+import { Button } from "@/components/ui/button";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { useNotificationActions, useNotifications } from "@/api/notifications";
+import { errorMessage } from "@/api/http";
+import type { AppNotification } from "@/api/types/notifications";
+import { useAuth } from "@/lib/auth";
 
 export function NotificationsPage() {
-  const [notifications, setNotifications] = useState<AppNotification[]>(NOTIFICATIONS);
+  const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const query = useNotifications();
+  const actions = useNotificationActions();
+  const notifications = useMemo(() => query.data ?? [], [query.data]);
   const [tab, setTab] = useState<NotificationTab>("all");
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<NotificationFilters>(DEFAULT_NOTIFICATION_FILTERS);
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [detailsId, setDetailsId] = useState<number | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [detailsId, setDetailsId] = useState<string | null>(null);
 
   const detailsNotification = notifications.find((n) => n.id === detailsId) ?? null;
+  const fail = (e: unknown) => toast.error(errorMessage(e));
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -32,102 +42,53 @@ export function NotificationsPage() {
       if (filters.priority !== "all" && n.priority !== filters.priority) return false;
       if (filters.status !== "all" && n.status !== filters.status) return false;
       if (filters.type !== "all" && n.type !== filters.type) return false;
-      if (filters.channel !== "all" && n.channel !== filters.channel) return false;
       if (filters.dateRange !== "all") {
         const ageMs = Date.now() - new Date(n.createdAt).getTime();
         const limit = filters.dateRange === "today" ? 24 : filters.dateRange === "7d" ? 24 * 7 : 24 * 30;
         if (ageMs > limit * 3600_000) return false;
       }
-      if (q && !`${n.title} ${n.description} ${n.relatedModule} ${n.createdBy} ${n.notificationId}`.toLowerCase().includes(q)) return false;
+      if (q && !`${n.title} ${n.description} ${n.relatedModule}`.toLowerCase().includes(q)) return false;
       return true;
     });
   }, [notifications, tab, search, filters]);
 
-  function updateOne(id: number, patch: Partial<AppNotification> | ((n: AppNotification) => AppNotification)) {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? (typeof patch === "function" ? patch(n) : { ...n, ...patch }) : n)));
-  }
-
-  function toggleSelect(id: number) {
+  function toggleSelect(id: string) {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
   function openDetails(n: AppNotification) {
     setDetailsId(n.id);
-    if (n.status === "unread") {
-      updateOne(n.id, (row) => ({ ...row, status: "read", readAt: new Date().toISOString(), activity: [...row.activity, { id: Date.now(), action: "Marked as read", at: new Date().toISOString() }] }));
-    }
+    if (n.status === "unread") actions.read.mutate(n.id, { onError: fail });
   }
 
   function toggleRead(n: AppNotification) {
-    const now = new Date().toISOString();
-    const nextStatus = n.status === "unread" ? "read" : "unread";
-    updateOne(n.id, (row) => ({
-      ...row, status: nextStatus, readAt: nextStatus === "read" ? now : null,
-      activity: [...row.activity, { id: Date.now(), action: `Marked as ${nextStatus}`, at: now }],
-    }));
+    (n.status === "unread" ? actions.read : actions.unread).mutate(n.id, { onError: fail });
   }
 
   function archive(n: AppNotification) {
-    updateOne(n.id, (row) => ({ ...row, status: "archived", activity: [...row.activity, { id: Date.now(), action: "Archived", at: new Date().toISOString() }] }));
-    console.log("Archived notification:", n.notificationId);
-    toast.success("Notification archived.");
+    actions.archive.mutate(n.id, { onSuccess: () => toast.success("Notification archived."), onError: fail });
   }
 
-  function del(n: AppNotification) {
-    setNotifications((prev) => prev.filter((row) => row.id !== n.id));
-    setSelectedIds((prev) => prev.filter((id) => id !== n.id));
-    if (detailsId === n.id) setDetailsId(null);
-    console.log("Deleted notification:", n.notificationId);
-    toast.success("Notification deleted.");
-  }
-
-  function approve(n: AppNotification) {
-    updateOne(n.id, (row) => ({
-      ...row, approvalDecision: "approved", status: "read",
-      activity: [...row.activity, { id: Date.now(), action: "Approved by Super Admin", at: new Date().toISOString() }],
-    }));
-    console.log("Approved:", n.notificationId);
-    toast.success(`Approved: ${n.title}`);
-  }
-
-  function reject(n: AppNotification) {
-    updateOne(n.id, (row) => ({
-      ...row, approvalDecision: "rejected", status: "read",
-      activity: [...row.activity, { id: Date.now(), action: "Rejected by Super Admin", at: new Date().toISOString() }],
-    }));
-    console.log("Rejected:", n.notificationId);
-    toast.success(`Rejected: ${n.title}`);
+  function restore(n: AppNotification) {
+    actions.restore.mutate(n.id, { onSuccess: () => toast.success("Notification restored."), onError: fail });
   }
 
   function markAllRead() {
-    const now = new Date().toISOString();
-    setNotifications((prev) => prev.map((n) => (n.status === "unread"
-      ? { ...n, status: "read", readAt: now, activity: [...n.activity, { id: Date.now(), action: "Marked as read", at: now }] }
-      : n)));
-    console.log("Marked all as read");
-    toast.success("All notifications marked as read.");
+    actions.readAll.mutate(undefined, {
+      onSuccess: (r) => toast.success(r.marked ? `${r.marked} marked as read.` : "Everything was already read."),
+      onError: fail,
+    });
   }
 
-  function archiveSelected() {
-    const now = new Date().toISOString();
-    setNotifications((prev) => prev.map((n) => (selectedIds.includes(n.id)
-      ? { ...n, status: "archived", activity: [...n.activity, { id: Date.now(), action: "Archived", at: now }] }
-      : n)));
-    console.log("Archived selected:", selectedIds);
-    toast.success(`${selectedIds.length} notification(s) archived.`);
-    setSelectedIds([]);
-  }
-
-  function deleteSelected() {
-    setNotifications((prev) => prev.filter((n) => !selectedIds.includes(n.id)));
-    console.log("Deleted selected:", selectedIds);
-    toast.success(`${selectedIds.length} notification(s) deleted.`);
-    setSelectedIds([]);
-  }
-
-  function refresh() {
-    setSelectedIds([]);
-    toast.success("Notifications refreshed.");
+  async function archiveSelected() {
+    const ids = selectedIds;
+    try {
+      await Promise.all(ids.map((id) => actions.archive.mutateAsync(id)));
+      toast.success(`${ids.length} notification(s) archived.`);
+      setSelectedIds([]);
+    } catch (e) {
+      fail(e);
+    }
   }
 
   function resetFilters() {
@@ -143,6 +104,12 @@ export function NotificationsPage() {
     ? { icon: Archive, title: "No archived notifications", description: "Notifications you archive will appear here." }
     : { icon: Bell, title: "No notifications", description: "Nothing matches the current filters right now." };
 
+  if (query.isLoading) return <PremiumSkeleton className="h-96 w-full rounded-2xl" />;
+  if (query.isError) {
+    return <PremiumEmptyState title="Couldn't load notifications" description={errorMessage(query.error)}
+      action={<Button size="sm" variant="outline" onClick={() => query.refetch()}>Try again</Button>} />;
+  }
+
   return (
     <div className="space-y-4">
       <NotificationSummaryCards notifications={notifications} />
@@ -157,9 +124,10 @@ export function NotificationsPage() {
         selectedCount={selectedIds.length}
         onMarkAllRead={markAllRead}
         onArchiveSelected={archiveSelected}
-        onDeleteSelected={deleteSelected}
-        onRefresh={refresh}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onRefresh={() => { setSelectedIds([]); query.refetch(); }}
+        onOpenSettings={() => (hasPermission("settings.manage")
+          ? navigate("/settings/notifications")
+          : toast.info("Notification channels and events are set by your school administrator."))}
       />
 
       <NotificationList
@@ -169,9 +137,7 @@ export function NotificationsPage() {
         onOpen={openDetails}
         onToggleRead={toggleRead}
         onArchive={archive}
-        onDelete={del}
-        onApprove={approve}
-        onReject={reject}
+        onRestore={restore}
         emptyIcon={emptyContent.icon}
         emptyTitle={emptyContent.title}
         emptyDescription={emptyContent.description}
@@ -184,12 +150,8 @@ export function NotificationsPage() {
         onOpenChange={(open) => { if (!open) setDetailsId(null); }}
         onToggleRead={toggleRead}
         onArchive={archive}
-        onDelete={del}
-        onApprove={approve}
-        onReject={reject}
+        onRestore={restore}
       />
-
-      <NotificationSettingsPanel open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 }

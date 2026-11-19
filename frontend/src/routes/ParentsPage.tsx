@@ -10,7 +10,12 @@ import { ParentsTable } from "@/components/parents/ParentsTable";
 import { ParentsToolbar, type ParentsFilters } from "@/components/parents/ParentsToolbar";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { PARENTS, type Parent } from "@/data/parentsData";
+import { errorMessage } from "@/api/http";
+import { useParents } from "@/api/parents";
+import type { Parent } from "@/api/types/parents";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
+import { PremiumSkeleton } from "@/components/ui/PremiumSkeleton";
+import { useAuth } from "@/lib/auth";
 
 const PAGE_SIZE = 10;
 type SortField = "parentId" | "name" | "occupation" | "status" | "children";
@@ -24,6 +29,14 @@ export function ParentsPage() {
   const navigate = useNavigate();
 
   const [filters, setFilters] = useState<ParentsFilters>(EMPTY_FILTERS);
+  const parentsQuery = useParents();
+  const PARENTS = useMemo(() => parentsQuery.data ?? [], [parentsQuery.data]);
+  const { hasPermission } = useAuth();
+  const uniq = (xs: string[]) => [...new Set(xs.filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const occupationOptions = uniq(PARENTS.map((p) => p.occupation));
+  const classOptions = uniq(PARENTS.flatMap((p) => p.linkedChildren.map((c) => c.className)));
+  const sectionOptions = uniq(PARENTS.flatMap((p) => p.linkedChildren
+    .filter((c) => filters.filterClass === "all" || c.className === filters.filterClass).map((c) => c.section)));
   const [sortField, setSortField] = useState<SortField>("parentId");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [page, setPage] = useState(1);
@@ -60,7 +73,7 @@ export function ParentsPage() {
       if (filters.filterSection !== "all" && !p.linkedChildren.some((c) => c.section === filters.filterSection)) return false;
       return true;
     });
-  }, [filters]);
+  }, [filters, PARENTS]);
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -94,12 +107,20 @@ export function ParentsPage() {
         }
         description="Manage parent and guardian information."
         actions={
+          hasPermission("guardian.manage") ? (
           <Button size="sm" className="h-9 gap-1.5 rounded-xl" onClick={() => navigate("/parents/new")}>
             <Plus className="h-4 w-4" /> New Parent
           </Button>
+          ) : undefined
         }
       />
 
+      {parentsQuery.isError && (
+        <PremiumEmptyState title="Couldn't load parents" description={errorMessage(parentsQuery.error)}
+          action={<Button size="sm" variant="outline" onClick={() => parentsQuery.refetch()}>Try again</Button>} />
+      )}
+      {parentsQuery.isLoading && <PremiumSkeleton className="h-72 w-full rounded-2xl" />}
+      {parentsQuery.isSuccess && (<>
       {/* ── Summary ─────────────────────────────────────────────────────── */}
       <ParentsSummaryCards parents={PARENTS} />
 
@@ -122,6 +143,9 @@ export function ParentsPage() {
         onFiltersChange={updateFilters}
         hasActiveFilter={hasActiveFilter}
         onReset={resetFilters}
+        occupationOptions={occupationOptions}
+        classOptions={classOptions}
+        sectionOptions={sectionOptions}
       />
 
       {/* ── Table ───────────────────────────────────────────────────────── */}
@@ -136,6 +160,7 @@ export function ParentsPage() {
         hasActiveFilter={hasActiveFilter}
         onResetFilters={resetFilters}
       />
+      </>)}
     </div>
   );
 }

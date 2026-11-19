@@ -19,7 +19,7 @@ import { DetailCard } from "@/components/ui/DetailCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type {
   SupportTicket, TicketPriority, TicketStatus,
-} from "@/data/helpDeskData";
+} from "@/api/types/helpdesk";
 import { cn } from "@/lib/utils";
 
 function formatDateTime(iso: string) {
@@ -40,10 +40,10 @@ export function TicketDetailsDrawer({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultTab?: string;
-  onSendMessage: (ticketId: number, body: string, isInternal: boolean, attachmentName?: string) => void;
-  onAssign: (ticketId: number, assigneeName: string, dueDate: string, priority: TicketPriority, note: string, notify: boolean) => void;
-  onStatusChange: (ticketId: number, status: TicketStatus, resolution?: { summary: string; category: string; notifyRequester: boolean }) => void;
-  onEscalate: (ticketId: number, target: string, reason: string, dueDate: string, markUrgent: boolean) => void;
+  onSendMessage: (ticketId: string, body: string, isInternal: boolean, attachmentIds?: string[]) => void;
+  onAssign: (ticketId: string, assigneeName: string, dueDate: string, priority: TicketPriority, note: string, notify: boolean) => void;
+  onStatusChange: (ticketId: string, status: TicketStatus, resolution?: { summary: string; category: string; notifyRequester: boolean }) => void;
+  onEscalate: (ticketId: string, target: string, reason: string, dueDate: string, markUrgent: boolean) => void;
 }) {
   const navigate = useNavigate();
   if (!ticket) return null;
@@ -161,7 +161,7 @@ export function TicketDetailsDrawer({
 
               <TabsContent value="details" className="space-y-3">
                 <TicketConversation messages={ticket.messages} requesterName={r.name} />
-                <TicketMessageComposer onSend={(body, isInternal, attachmentName) => onSendMessage(ticket.id, body, isInternal, attachmentName)} />
+                <TicketMessageComposer onSend={(body, isInternal, attachmentIds) => onSendMessage(ticket.id, body, isInternal, attachmentIds)} />
               </TabsContent>
 
               <TabsContent value="notes">

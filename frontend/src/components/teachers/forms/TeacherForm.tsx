@@ -4,7 +4,6 @@ import {
   BookOpen,
   Briefcase,
   Contact,
-  FileText,
   GraduationCap,
   MessageSquare,
   User,
@@ -16,12 +15,14 @@ import { FormSection } from "@/components/ui/form-section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { errorMessage, label, type Schemas } from "@/api/http";
+import { fromGender, toGender, useAcademicOptions } from "@/api/students";
 import {
-  TEACHERS,
-  DEPARTMENT_OPTIONS,
-  SUBJECT_OPTIONS,
-  EMPLOYMENT_TYPE_OPTIONS,
-} from "@/data/teachersData";
+  EMPLOYMENT_VALUE, STATUS_VALUE, useAssignmentActions, useSaveTeacher, useSubjects, useTeacherAssignments,
+  useTeacherRecord,
+} from "@/api/teachers";
+import { EMPLOYMENT_TYPE_OPTIONS } from "@/api/types/teachers";
+import { useAuth } from "@/lib/auth";
 
 /* ── Types ──────────────────────────────────────────────────────────── */
 interface TeacherFormData {
@@ -71,9 +72,11 @@ interface TeacherFormData {
   // 7. Documents (checklist stored externally)
   // 8. Remarks
   remarks: string;
+  status: string;
 }
 
 const EMPTY: TeacherFormData = {
+  status: "active",
   firstName: "", lastName: "", gender: "", dateOfBirth: "", bloodGroup: "",
   nationality: "", religion: "", maritalStatus: "",
   employeeId: "", staffCode: "", designation: "", department: "",
@@ -170,6 +173,33 @@ function TextareaInput({ id, value, onChange, placeholder, rows = 3, error }: {
   );
 }
 
+/* ── API record → form ──────────────────────────────────────────────── */
+function recordToForm(t: Schemas["Teacher"], salary?: Schemas["SalaryStructure"]): TeacherFormData {
+  const parts = t.full_name.trim().split(" ");
+  const employment: Record<string, string> = Object.fromEntries(
+    Object.entries(EMPLOYMENT_VALUE).map(([k, v]) => [v, k]),
+  );
+  return {
+    ...EMPTY,
+    firstName: parts[0] ?? "", lastName: parts.slice(1).join(" "),
+    gender: toGender(t.gender), dateOfBirth: t.date_of_birth ?? "", bloodGroup: t.blood_group ?? "",
+    nationality: t.nationality ?? "", religion: t.religion ?? "", maritalStatus: label(t.marital_status),
+    employeeId: t.employee_id, designation: t.designation ?? "", department: t.department ?? "",
+    joiningDate: t.joining_date ?? "", employmentType: employment[t.employment_type ?? ""] ?? "",
+    subject: t.primary_subject ?? "",
+    qualification: t.qualification ?? "", experienceYears: String(t.experience_years ?? 0),
+    previousSchools: t.previous_schools ?? "", certifications: t.certifications ?? "", skills: t.skills ?? "",
+    phone: t.phone ?? "", altPhone: t.alternate_phone ?? "", email: t.email ?? "",
+    presentAddress: t.address ?? "", permanentAddress: t.permanent_address ?? "",
+    sameAddress: !!t.address && t.address === t.permanent_address,
+    basicSalary: salary?.basic ?? "", houseAllowance: salary?.house_allowance ?? "",
+    transportAllowance: salary?.transport_allowance ?? "", otherAllowance: salary?.other_allowance ?? "",
+    bankName: salary?.bank_name ?? "", accountNo: salary?.account_number ?? "",
+    paymentMethod: salary ? label(salary.payment_method) : "",
+    remarks: t.notes ?? "", status: STATUS_VALUE[t.status ?? "active"] ? (t.status ?? "active") : "active",
+  };
+}
+
 /* ── Validation ─────────────────────────────────────────────────────── */
 type FormErrors = Partial<Record<keyof TeacherFormData, string>>;
 
@@ -178,18 +208,9 @@ function validate(f: TeacherFormData): FormErrors {
   if (!f.firstName.trim())    e.firstName    = "First name is required";
   if (!f.lastName.trim())     e.lastName     = "Last name is required";
   if (!f.gender)              e.gender       = "Gender is required";
-  if (!f.dateOfBirth)         e.dateOfBirth  = "Date of birth is required";
   if (!f.employeeId.trim())   e.employeeId   = "Employee ID is required";
-  if (!f.staffCode.trim())    e.staffCode    = "Staff code is required";
-  if (!f.designation.trim())  e.designation  = "Designation is required";
-  if (!f.department)          e.department   = "Department is required";
-  if (!f.joiningDate)         e.joiningDate  = "Joining date is required";
-  if (!f.employmentType)      e.employmentType = "Employment type is required";
-  if (!f.subject)             e.subject      = "Primary subject is required";
-  if (!f.qualification.trim()) e.qualification = "Qualification is required";
   if (!f.phone.trim())        e.phone        = "Phone is required";
-  if (!f.email.trim())        e.email        = "Email is required";
-  if (!f.presentAddress.trim()) e.presentAddress = "Present address is required";
+  if (f.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) e.email = "Enter a valid email";
   return e;
 }
 
@@ -206,40 +227,16 @@ export function TeacherForm({ mode }: { mode: "create" | "edit" }) {
 
   const [form, setForm] = useState<TeacherFormData>(EMPTY);
   const [errors, setErrors] = useState<FormErrors>({});
-  const [submitting, setSubmitting] = useState(false);
+  const { hasPermission } = useAuth();
+  const canPayroll = hasPermission("payroll.manage");
+  const record = useTeacherRecord(mode === "edit" ? id : undefined);
+  const subjects = useSubjects();
+  const save = useSaveTeacher();
+  const submitting = save.isPending;
 
-  /* Pre-fill from static data in edit mode */
   useEffect(() => {
-    if (mode === "edit" && id) {
-      const t = TEACHERS.find((x) => x.id === Number(id));
-      if (t) {
-        const parts = t.name.trim().split(" ");
-        setForm({
-          ...EMPTY,
-          firstName:       parts[0] ?? "",
-          lastName:        parts.slice(1).join(" ") || "",
-          gender:          t.gender,
-          dateOfBirth:     t.dateOfBirth,
-          employeeId:      t.employeeId,
-          staffCode:       t.staffCode,
-          designation:     t.designation,
-          department:      t.department,
-          joiningDate:     t.joiningDate,
-          employmentType:  t.employmentType,
-          subject:         t.subject,
-          secondarySubjects: t.secondarySubjects.join(", "),
-          assignedClasses: t.assignedClasses.join(", "),
-          phone:           t.phone,
-          email:           t.email,
-          presentAddress:  t.address,
-          permanentAddress: t.address,
-          basicSalary:     String(t.salary),
-          qualification:   t.qualification,
-          experienceYears: String(t.experienceYears),
-        });
-      }
-    }
-  }, [mode, id]);
+    if (record.data) setForm(recordToForm(record.data.teacher, record.data.salary));
+  }, [record.data]);
 
   const set = <K extends keyof TeacherFormData>(key: K, value: TeacherFormData[K]) => {
     setForm((prev) => {
@@ -261,12 +258,36 @@ export function TeacherForm({ mode }: { mode: "create" | "edit" }) {
       toast.error("Please fix the errors before submitting.");
       return;
     }
-    setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setSubmitting(false);
-    toast.success(mode === "create" ? "Teacher added successfully!" : "Teacher profile updated!");
-    if (mode === "create") setForm(EMPTY);
-    else navigate(`/teachers/${id}`);
+    const money = (v: string) => (v.trim() === "" ? "0" : v.trim());
+    try {
+      const saved = await save.mutateAsync({
+        id: mode === "edit" ? id : undefined,
+        payload: {
+          full_name: `${form.firstName} ${form.lastName}`.trim(), employee_id: form.employeeId,
+          gender: fromGender(form.gender), date_of_birth: form.dateOfBirth || null,
+          blood_group: form.bloodGroup, nationality: form.nationality, religion: form.religion,
+          marital_status: form.maritalStatus.toLowerCase(), designation: form.designation,
+          department: form.department, joining_date: form.joiningDate || null,
+          employment_type: EMPLOYMENT_VALUE[form.employmentType] ?? "full_time",
+          primary_subject: form.subject || null, qualification: form.qualification,
+          experience_years: Number.parseInt(form.experienceYears, 10) || 0,
+          skills: form.skills, previous_schools: form.previousSchools, certifications: form.certifications,
+          phone: form.phone, alternate_phone: form.altPhone, email: form.email,
+          address: form.presentAddress, permanent_address: form.permanentAddress,
+          notes: form.remarks, ...(mode === "edit" ? { status: form.status } : {}),
+        },
+        salary: canPayroll && form.basicSalary.trim() ? {
+          basic: money(form.basicSalary), house_allowance: money(form.houseAllowance),
+          transport_allowance: money(form.transportAllowance), other_allowance: money(form.otherAllowance),
+          bank_name: form.bankName, account_number: form.accountNo,
+          payment_method: form.paymentMethod === "Cash" ? "cash" : form.paymentMethod === "Cheque" ? "cheque" : "bank",
+        } : null,
+      });
+      toast.success(mode === "create" ? "Teacher added." : "Teacher profile updated.");
+      navigate(mode === "create" ? `/teachers/${saved.id}/edit` : `/teachers/${saved.id}`);
+    } catch (err) {
+      toast.error(errorMessage(err, "Couldn't save the teacher."));
+    }
   };
 
   const title = mode === "create" ? "Add New Teacher" : "Edit Teacher Profile";
@@ -320,9 +341,9 @@ export function TeacherForm({ mode }: { mode: "create" | "edit" }) {
           </Field>
           <Field id={fid("gender")} label="Gender" required error={errors.gender}>
             <SelectInput id={fid("gender")} value={form.gender} onChange={(v) => set("gender", v)}
-              options={["Male", "Female"]} placeholder="Select gender" error={errors.gender} />
+              options={["Male", "Female", "Other"]} placeholder="Select gender" error={errors.gender} />
           </Field>
-          <Field id={fid("dateOfBirth")} label="Date of Birth" required error={errors.dateOfBirth}>
+          <Field id={fid("dateOfBirth")} label="Date of Birth" error={errors.dateOfBirth}>
             <DateInput id={fid("dateOfBirth")} value={form.dateOfBirth} onChange={(v) => set("dateOfBirth", v)} error={errors.dateOfBirth} />
           </Field>
           <Field id={fid("bloodGroup")} label="Blood Group">
@@ -350,29 +371,25 @@ export function TeacherForm({ mode }: { mode: "create" | "edit" }) {
         title="Employment Details"
         subtitle="Staff ID, department, and employment information"
         defaultOpen
-        errorCount={countErrors(errors, ["employeeId", "staffCode", "designation", "department", "joiningDate", "employmentType"])}
+        errorCount={countErrors(errors, ["employeeId", "designation", "department", "joiningDate", "employmentType"])}
       >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field id={fid("employeeId")} label="Employee ID" required error={errors.employeeId}>
             <TextInput id={fid("employeeId")} value={form.employeeId} onChange={(v) => set("employeeId", v)}
               placeholder="e.g. EMP-2026-0001" error={errors.employeeId} />
           </Field>
-          <Field id={fid("staffCode")} label="Staff Code" required error={errors.staffCode}>
-            <TextInput id={fid("staffCode")} value={form.staffCode} onChange={(v) => set("staffCode", v)}
-              placeholder="e.g. TCH-MATH-001" error={errors.staffCode} />
-          </Field>
-          <Field id={fid("designation")} label="Designation" required error={errors.designation}>
+          <Field id={fid("designation")} label="Designation" error={errors.designation}>
             <TextInput id={fid("designation")} value={form.designation} onChange={(v) => set("designation", v)}
               placeholder="e.g. Senior Teacher" error={errors.designation} />
           </Field>
-          <Field id={fid("department")} label="Department" required error={errors.department}>
-            <SelectInput id={fid("department")} value={form.department} onChange={(v) => set("department", v)}
-              options={DEPARTMENT_OPTIONS} placeholder="Select department" error={errors.department} />
+          <Field id={fid("department")} label="Department" error={errors.department}>
+            <TextInput id={fid("department")} value={form.department} onChange={(v) => set("department", v)}
+              placeholder="e.g. Science" error={errors.department} />
           </Field>
-          <Field id={fid("joiningDate")} label="Joining Date" required error={errors.joiningDate}>
+          <Field id={fid("joiningDate")} label="Joining Date" error={errors.joiningDate}>
             <DateInput id={fid("joiningDate")} value={form.joiningDate} onChange={(v) => set("joiningDate", v)} error={errors.joiningDate} />
           </Field>
-          <Field id={fid("employmentType")} label="Employment Type" required error={errors.employmentType}>
+          <Field id={fid("employmentType")} label="Employment Type" error={errors.employmentType}>
             <SelectInput id={fid("employmentType")} value={form.employmentType} onChange={(v) => set("employmentType", v)}
               options={[...EMPLOYMENT_TYPE_OPTIONS]} placeholder="Select type" error={errors.employmentType} />
           </Field>
@@ -387,27 +404,23 @@ export function TeacherForm({ mode }: { mode: "create" | "edit" }) {
         defaultOpen
         errorCount={countErrors(errors, ["subject"])}
       >
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field id={fid("subject")} label="Primary Subject" required error={errors.subject}>
-            <SelectInput id={fid("subject")} value={form.subject} onChange={(v) => set("subject", v)}
-              options={SUBJECT_OPTIONS} placeholder="Select subject" error={errors.subject} />
-          </Field>
-          <Field id={fid("secondarySubjects")} label="Secondary Subjects">
-            <TextInput id={fid("secondarySubjects")} value={form.secondarySubjects} onChange={(v) => set("secondarySubjects", v)}
-              placeholder="e.g. Physics, Statistics (comma separated)" />
-          </Field>
-          <Field id={fid("classTeacherOf")} label="Class Teacher of">
-            <TextInput id={fid("classTeacherOf")} value={form.classTeacherOf} onChange={(v) => set("classTeacherOf", v)}
-              placeholder="e.g. Grade 10A" />
-          </Field>
-          <Field id={fid("assignedClasses")} label="Assigned Classes">
-            <TextInput id={fid("assignedClasses")} value={form.assignedClasses} onChange={(v) => set("assignedClasses", v)}
-              placeholder="e.g. Grade 8, Grade 9, Grade 10" />
-          </Field>
-          <Field id={fid("weeklyPeriods")} label="Weekly Periods">
-            <TextInput id={fid("weeklyPeriods")} value={form.weeklyPeriods} onChange={(v) => set("weeklyPeriods", v)}
-              placeholder="e.g. 24" />
-          </Field>
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Field id={fid("subject")} label="Primary Subject" error={errors.subject}>
+              <select id={fid("subject")} value={form.subject} onChange={(e) => set("subject", e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring">
+                <option value="">Select subject…</option>
+                {(subjects.data ?? []).map((sub) => <option key={sub.id} value={sub.id}>{sub.name}</option>)}
+              </select>
+            </Field>
+            {mode === "edit" && (
+              <Field id={fid("status")} label="Status">
+                <SelectInput id={fid("status")} value={form.status} onChange={(v) => set("status", v)}
+                  options={["active", "on_leave", "inactive", "resigned", "terminated"]} />
+              </Field>
+            )}
+          </div>
+          <AssignmentsEditor teacherId={mode === "edit" ? id : undefined} canEdit={hasPermission("teacher.manage")} />
         </div>
       </FormSection>
 
@@ -420,7 +433,7 @@ export function TeacherForm({ mode }: { mode: "create" | "edit" }) {
         errorCount={countErrors(errors, ["qualification"])}
       >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field id={fid("qualification")} label="Highest Qualification" required error={errors.qualification}>
+          <Field id={fid("qualification")} label="Highest Qualification" error={errors.qualification}>
             <TextInput id={fid("qualification")} value={form.qualification} onChange={(v) => set("qualification", v)}
               placeholder="e.g. M.Sc. Mathematics" error={errors.qualification} />
           </Field>
@@ -464,12 +477,12 @@ export function TeacherForm({ mode }: { mode: "create" | "edit" }) {
             <TextInput id={fid("altPhone")} value={form.altPhone} onChange={(v) => set("altPhone", v)}
               placeholder="+977-98XXXXXXXX" />
           </Field>
-          <Field id={fid("email")} label="Email" required error={errors.email}>
+          <Field id={fid("email")} label="Email" error={errors.email}>
             <TextInput id={fid("email")} value={form.email} onChange={(v) => set("email", v)}
               placeholder="teacher@school.edu" error={errors.email} />
           </Field>
           <div className="sm:col-span-2 lg:col-span-3">
-            <Field id={fid("presentAddress")} label="Present Address" required error={errors.presentAddress}>
+            <Field id={fid("presentAddress")} label="Present Address" error={errors.presentAddress}>
               <TextareaInput id={fid("presentAddress")} value={form.presentAddress} onChange={(v) => set("presentAddress", v)}
                 placeholder="Current residential address…" rows={2} error={errors.presentAddress} />
             </Field>
@@ -497,6 +510,7 @@ export function TeacherForm({ mode }: { mode: "create" | "edit" }) {
       </FormSection>
 
       {/* ── Section 6: Salary & Bank ──────────────────────────────── */}
+      {canPayroll && (
       <FormSection
         icon={Banknote}
         title="Salary & Bank Details"
@@ -536,17 +550,7 @@ export function TeacherForm({ mode }: { mode: "create" | "edit" }) {
           </Field>
         </div>
       </FormSection>
-
-      {/* ── Section 7: Documents ──────────────────────────────────── */}
-      <FormSection
-        icon={FileText}
-        title="Document Checklist"
-        subtitle="Mark which documents have been submitted"
-        defaultOpen={false}
-        errorCount={0}
-      >
-        <DocumentChecklist />
-      </FormSection>
+      )}
 
       {/* ── Section 8: Remarks ────────────────────────────────────── */}
       <FormSection
@@ -573,52 +577,85 @@ export function TeacherForm({ mode }: { mode: "create" | "edit" }) {
   );
 }
 
-/* ── Document checklist sub-component ───────────────────────────────── */
-const DOCS = [
-  "Citizenship Certificate",
-  "Teaching Registration Certificate",
-  "Academic Degree / Marksheet",
-  "Experience Certificate",
-  "Appointment Letter",
-  "Passport-size Photo",
-  "Medical Certificate",
-  "Background Check",
-];
+/* ── Class & subject assignments (drive what the teacher can see and do) ── */
+function AssignmentsEditor({ teacherId, canEdit }: { teacherId?: string; canEdit: boolean }) {
+  const assignments = useTeacherAssignments(teacherId);
+  const actions = useAssignmentActions(teacherId ?? "");
+  const options = useAcademicOptions();
+  const subjects = useSubjects();
+  const current = options.data?.years.find((y) => y.isCurrent) ?? options.data?.years[0];
+  const [draft, setDraft] = useState({ class_level: "", section: "", subject: "", is_class_teacher: false });
 
-function DocumentChecklist() {
-  const [checked, setChecked] = useState<Record<string, boolean>>({});
-  const count = Object.values(checked).filter(Boolean).length;
+  if (!teacherId) {
+    return (
+      <p className="rounded-xl bg-muted/50 px-3.5 py-3 text-xs text-muted-foreground">
+        Save the teacher first, then assign classes and subjects here.
+      </p>
+    );
+  }
+  const sel = "h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm";
+
+  async function add() {
+    if (!draft.class_level || !current) return;
+    try {
+      await actions.add.mutateAsync({
+        academic_year: current.id, class_level: draft.class_level, section: draft.section || null,
+        subject: draft.subject || null, is_class_teacher: draft.is_class_teacher,
+      });
+      setDraft({ class_level: "", section: "", subject: "", is_class_teacher: false });
+      toast.success("Assignment added");
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  }
 
   return (
     <div className="space-y-3">
-      <div className="space-y-1">
-        <div className="flex justify-between text-[12px] text-muted-foreground">
-          <span>{count} of {DOCS.length} documents received</span>
-          <span>{Math.round((count / DOCS.length) * 100)}%</span>
+      <p className="text-[12.5px] font-semibold text-foreground">Class assignments ({current?.name ?? "current year"})</p>
+      {(assignments.data ?? []).length === 0 && (
+        <p className="text-xs text-muted-foreground">No classes assigned yet.</p>
+      )}
+      {(assignments.data ?? []).map((a) => (
+        <div key={a.id} className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 px-3.5 py-2.5 text-sm">
+          <span>
+            {a.class_level_name}{a.section_name ? ` – ${a.section_name}` : " (all sections)"}
+            {a.subject_name ? ` · ${a.subject_name}` : ""}
+            {a.is_class_teacher && <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">Class teacher</span>}
+          </span>
+          {canEdit && (
+            <Button type="button" variant="ghost" size="sm" className="text-rose-600"
+              onClick={() => actions.remove.mutateAsync(a.id).catch((e) => toast.error(errorMessage(e)))}>
+              Remove
+            </Button>
+          )}
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-primary transition-all"
-            style={{ width: `${(count / DOCS.length) * 100}%` }}
-          />
-        </div>
-      </div>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {DOCS.map((doc) => (
-          <label
-            key={doc}
-            className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-border/50 p-2.5 transition-colors hover:bg-accent/40"
-          >
-            <input
-              type="checkbox"
-              checked={!!checked[doc]}
-              onChange={(e) => setChecked((s) => ({ ...s, [doc]: e.target.checked }))}
-              className="h-3.5 w-3.5 rounded accent-primary"
-            />
-            <span className="text-[12.5px] text-foreground">{doc}</span>
+      ))}
+      {canEdit && (
+        <div className="grid gap-2 rounded-xl border border-dashed border-border/70 p-3 sm:grid-cols-5">
+          <select className={sel} value={draft.class_level}
+            onChange={(e) => setDraft({ ...draft, class_level: e.target.value, section: "" })}>
+            <option value="">Class…</option>
+            {(options.data?.classes ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <select className={sel} value={draft.section} onChange={(e) => setDraft({ ...draft, section: e.target.value })}>
+            <option value="">All sections</option>
+            {(options.data?.sections ?? []).filter((sec) => sec.classId === draft.class_level)
+              .map((sec) => <option key={sec.id} value={sec.id}>Section {sec.name}</option>)}
+          </select>
+          <select className={sel} value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value })}>
+            <option value="">No subject</option>
+            {(subjects.data ?? []).map((sub) => <option key={sub.id} value={sub.id}>{sub.name}</option>)}
+          </select>
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <input type="checkbox" checked={draft.is_class_teacher}
+              onChange={(e) => setDraft({ ...draft, is_class_teacher: e.target.checked })} />
+            Class teacher
           </label>
-        ))}
-      </div>
+          <Button type="button" size="sm" disabled={!draft.class_level || actions.add.isPending} onClick={add}>
+            Add
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

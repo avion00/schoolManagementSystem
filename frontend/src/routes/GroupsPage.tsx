@@ -6,8 +6,9 @@ import { NewChatModal } from "@/components/messages/NewChatModal";
 import { Button } from "@/components/ui/button";
 import { PremiumCard } from "@/components/ui/PremiumCard";
 import { useConversations } from "@/hooks/useConversations";
-import { chatUserById, type Conversation } from "@/data/messagesData";
-import { canCreateGroup } from "@/data/messagePermissions";
+import { chatUserById } from "@/lib/messagesService";
+import { type Conversation } from "@/api/types/messages";
+import { canCreateGroup } from "@/lib/messagePermissions";
 import { useAuth } from "@/lib/auth";
 import { resolveCurrentChatUser } from "@/lib/messagesService";
 

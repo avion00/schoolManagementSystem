@@ -5,7 +5,7 @@ import { ParentAvatar } from "@/components/parents/ParentAvatar";
 import { ParentStatusBadge } from "@/components/parents/ParentStatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { Parent } from "@/data/parentsData";
+import type { Parent } from "@/api/types/parents";
 
 export function ParentProfileHero({ parent }: { parent: Parent }) {
   const navigate = useNavigate();

@@ -1,90 +1,48 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  BookOpen, Building2, Check, ClipboardList, FileText,
-  Layers, Plus, StickyNote, Trash2, User, X,
-} from "lucide-react";
+import { BookOpen, Check, Info, Layers, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { useClassRecord, useSaveClass, useSchools, type SectionDraft, type SubjectDraft } from "@/api/classes";
+import { errorMessage, type Schemas } from "@/api/http";
+import { useSubjects } from "@/api/teachers";
 import { FormSection } from "@/components/ui/form-section";
-import { Button }      from "@/components/ui/button";
-import { Input }       from "@/components/ui/input";
-import { Label }       from "@/components/ui/label";
-import {
-  CLASSES, ACADEMIC_YEAR_OPTIONS, MEDIUM_OPTIONS, SHIFT_OPTIONS, STATUS_OPTIONS,
-  GRADE_OPTIONS, SECTION_OPTIONS, SUBJECT_OPTIONS, TEACHER_OPTIONS,
-} from "@/data/classesData";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface SectionDraft {
-  tempId: string;
-  sectionName: string;
-  sectionCode: string;
-  classTeacher: string;
-  room: string;
-  capacity: string;
-  status: string;
-}
-
-interface SubjectDraft {
-  tempId: string;
-  subjectName: string;
-  subjectCode: string;
-  teacher: string;
-  weeklyPeriods: string;
-  fullMarks: string;
-  passMarks: string;
-  type: string;
-}
+interface SectionRow extends SectionDraft { tempId: string }
+interface SubjectRow extends SubjectDraft { tempId: string }
 
 interface ClassFormData {
-  classId: string;
-  className: string;
-  academicYear: string;
+  code: string;
+  name: string;
   gradeLevel: string;
   status: string;
   medium: string;
   shift: string;
-  description: string;
-  sections: SectionDraft[];
-  mainClassTeacher: string;
-  assistantClassTeacher: string;
-  coordinator: string;
-  subjects: SubjectDraft[];
   building: string;
-  floor: string;
-  roomNumber: string;
-  roomCapacity: string;
-  smartBoard: boolean;
-  projector: boolean;
-  labRequired: boolean;
-  weekDays: string;
-  startTime: string;
-  endTime: string;
-  periodDuration: string;
-  breakTime: string;
-  monthlyTuitionFee: string;
-  admissionFee: string;
-  examFee: string;
-  libraryFee: string;
-  gradingSystem: string;
-  passPct: string;
-  examTerms: string;
-  gpaEnabled: boolean;
-  adminNotes: string;
-  specialInstructions: string;
+  mainRoom: string;
+  description: string;
+  sections: SectionRow[];
+  subjects: SubjectRow[];
 }
 
 type Errors = Partial<Record<string, string>>;
 
+const MEDIUM_OPTIONS = ["English", "Nepali", "Bilingual"];
+const SHIFT_OPTIONS = ["Morning", "Day", "Evening"];
+const STATUS_OPTIONS = ["active", "inactive", "suspended"];
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function Field({ label, required, error, children }: {
+function Field({ label: text, required, error, children }: {
   label: string; required?: boolean; error?: string; children: React.ReactNode;
 }) {
   return (
     <div className="space-y-1.5">
       <Label className="text-[12.5px]">
-        {label}{required && <span className="ml-0.5 text-destructive">*</span>}
+        {text}{required && <span className="ml-0.5 text-destructive">*</span>}
       </Label>
       {children}
       {error && <p className="text-[11px] text-destructive">{error}</p>}
@@ -93,76 +51,55 @@ function Field({ label, required, error, children }: {
 }
 
 function Select({ value, onChange, options, placeholder, error }: {
-  value: string; onChange: (v: string) => void; options: string[];
+  value: string; onChange: (v: string) => void; options: { value: string; label: string }[];
   placeholder?: string; error?: boolean;
 }) {
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)}
       className={`flex h-9 w-full rounded-md border px-3 py-1 text-sm bg-background shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-ring ${error ? "border-destructive" : "border-input"}`}>
       <option value="">{placeholder ?? "Select…"}</option>
-      {options.map((o) => <option key={o} value={o}>{o}</option>)}
+      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
   );
 }
 
-function TA({ value, onChange, rows = 3, placeholder }: {
-  value: string; onChange: (v: string) => void; rows?: number; placeholder?: string;
-}) {
-  return (
-    <textarea value={value}
-      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onChange(e.target.value)}
-      rows={rows} placeholder={placeholder}
-      className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring" />
-  );
-}
-
-function sectionErrors(errs: Errors, keys: string[]) {
-  return keys.filter((k) => errs[k]).length;
-}
-
-function emptySection(): SectionDraft {
-  return { tempId: Date.now().toString(), sectionName: "", sectionCode: "", classTeacher: "", room: "", capacity: "", status: "active" };
-}
-
-function emptySubject(): SubjectDraft {
-  return { tempId: Date.now().toString() + Math.random(), subjectName: "", subjectCode: "", teacher: "", weeklyPeriods: "", fullMarks: "100", passMarks: "40", type: "Compulsory" };
-}
+const opts = (xs: string[]) => xs.map((x) => ({ value: x.toLowerCase(), label: x.charAt(0).toUpperCase() + x.slice(1) }));
+const tid = () => `${Date.now()}-${Math.random()}`;
+const emptySection = (): SectionRow => ({ tempId: tid(), name: "", code: "", room: "", capacity: "" });
+const emptySubject = (): SubjectRow => ({ tempId: tid(), subject: "", weeklyPeriods: "", isOptional: false });
 
 const EMPTY: ClassFormData = {
-  classId:"", className:"", academicYear:"2026/27", gradeLevel:"", status:"active",
-  medium:"English", shift:"Morning", description:"",
-  sections: [emptySection()],
-  mainClassTeacher:"", assistantClassTeacher:"", coordinator:"",
-  subjects: [emptySubject()],
-  building:"", floor:"", roomNumber:"", roomCapacity:"",
-  smartBoard: false, projector: false, labRequired: false,
-  weekDays:"Monday - Friday", startTime:"09:00", endTime:"14:00",
-  periodDuration:"45", breakTime:"15",
-  monthlyTuitionFee:"", admissionFee:"", examFee:"", libraryFee:"",
-  gradingSystem:"Percentage", passPct:"40", examTerms:"3", gpaEnabled: false,
-  adminNotes:"", specialInstructions:"",
+  code: "", name: "", gradeLevel: "", status: "active", medium: "", shift: "",
+  building: "", mainRoom: "", description: "", sections: [emptySection()], subjects: [],
 };
+
+function recordToForm(r: { cls: Schemas["ClassLevel"]; sections: Schemas["Section"][]; subjects: Schemas["ClassSubject"][] }): ClassFormData {
+  return {
+    code: r.cls.code ?? "", name: r.cls.name, gradeLevel: String(r.cls.order ?? ""),
+    status: r.cls.status ?? "active", medium: r.cls.medium ?? "", shift: r.cls.shift ?? "",
+    building: r.cls.building ?? "", mainRoom: r.cls.main_room ?? "", description: r.cls.description ?? "",
+    sections: r.sections.map((s) => ({
+      tempId: s.id, id: s.id, name: s.name, code: s.code ?? "", room: s.room ?? "",
+      capacity: s.capacity === null || s.capacity === undefined ? "" : String(s.capacity),
+    })),
+    subjects: r.subjects.map((s) => ({
+      tempId: s.id, id: s.id, subject: s.subject, weeklyPeriods: String(s.weekly_periods ?? ""),
+      isOptional: !!s.is_optional,
+    })),
+  };
+}
 
 function validate(form: ClassFormData): Errors {
   const e: Errors = {};
-  if (!form.classId.trim())     e.classId     = "Class ID is required.";
-  if (!form.className.trim())   e.className   = "Class Name is required.";
-  if (!form.academicYear)       e.academicYear = "Academic Year is required.";
-  if (!form.medium)             e.medium      = "Medium is required.";
-  if (!form.shift)              e.shift       = "Shift is required.";
-  if (!form.mainClassTeacher)   e.mainClassTeacher = "Main Class Teacher is required.";
-  if (form.sections.length === 0) e.sections = "At least one section is required.";
+  if (!form.name.trim()) e.name = "Class name is required.";
   form.sections.forEach((s, i) => {
-    if (!s.sectionName)   e[`sec_name_${i}`]     = "Section name required.";
-    if (!s.classTeacher)  e[`sec_teacher_${i}`]  = "Teacher required.";
-    if (!s.room)          e[`sec_room_${i}`]      = "Room required.";
-    if (!s.capacity)      e[`sec_cap_${i}`]       = "Capacity required.";
+    if (!s.name.trim()) e[`sec_name_${i}`] = "Section name required.";
+    if (s.capacity && (!/^\d+$/.test(s.capacity) || Number(s.capacity) < 1)) e[`sec_cap_${i}`] = "Use a whole number.";
   });
-  if (form.subjects.length === 0) e.subjects = "At least one subject is required.";
-  form.subjects.forEach((s, i) => {
-    if (!s.subjectName) e[`sub_name_${i}`]    = "Subject required.";
-    if (!s.teacher)     e[`sub_teacher_${i}`] = "Teacher required.";
-  });
+  const names = form.sections.map((s) => s.name.trim().toLowerCase()).filter(Boolean);
+  if (new Set(names).size !== names.length) e.sections = "Section names must be unique.";
+  const subs = form.subjects.map((s) => s.subject).filter(Boolean);
+  if (new Set(subs).size !== subs.length) e.subjects = "Each subject can be added once.";
   return e;
 }
 
@@ -170,79 +107,57 @@ function validate(form: ClassFormData): Errors {
 export function ClassForm({ mode }: { mode: "create" | "edit" }) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [saving, setSaving] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const record = useClassRecord(mode === "edit" ? id : undefined);
+  const school = useSchools();
+  const subjects = useSubjects();
+  const save = useSaveClass();
 
-  const prefill = (): ClassFormData => {
-    if (mode === "edit" && id) {
-      const c = CLASSES.find((x) => x.id === Number(id));
-      if (c) return {
-        ...EMPTY,
-        classId:    c.classId,
-        className:  c.className,
-        academicYear: c.academicYear,
-        gradeLevel: String(c.gradeLevel),
-        status:     c.status,
-        medium:     c.medium,
-        shift:      c.shift,
-        description: c.description,
-        mainClassTeacher: c.mainClassTeacher.name,
-        building:   c.building,
-        roomNumber:  c.mainRoom,
-        sections: c.sections.map((s) => ({
-          tempId: String(s.id), sectionName: s.sectionName, sectionCode: s.sectionCode,
-          classTeacher: s.classTeacher, room: s.room, capacity: String(s.capacity), status: s.status,
-        })),
-        subjects: c.subjects.map((s) => ({
-          tempId: s.subjectCode, subjectName: s.subjectName, subjectCode: s.subjectCode,
-          teacher: s.teacher, weeklyPeriods: String(s.weeklyPeriods),
-          fullMarks: String(s.fullMarks), passMarks: String(s.passMarks), type: s.type,
-        })),
-      };
-    }
-    return { ...EMPTY };
-  };
-
-  const [form, setForm] = useState<ClassFormData>(prefill);
+  const [form, setForm] = useState<ClassFormData>(EMPTY);
   const [errors, setErrors] = useState<Errors>({});
+
+  useEffect(() => {
+    if (record.data) setForm(recordToForm(record.data));
+  }, [record.data]);
 
   function set<K extends keyof ClassFormData>(key: K, val: ClassFormData[K]) {
     setForm((f) => ({ ...f, [key]: val }));
     setErrors((e) => { const n = { ...e }; delete n[key as string]; return n; });
   }
-
-  // Section helpers
-  const addSection  = () => setForm((f) => ({ ...f, sections: [...f.sections, emptySection()] }));
-  const removeSection = (id: string) => setForm((f) => ({ ...f, sections: f.sections.filter((s) => s.tempId !== id) }));
-  function updateSection(tempId: string, key: keyof SectionDraft, val: string) {
+  const updateSection = (tempId: string, key: keyof SectionDraft, val: string) =>
     setForm((f) => ({ ...f, sections: f.sections.map((s) => s.tempId === tempId ? { ...s, [key]: val } : s) }));
-  }
-
-  // Subject helpers
-  const addSubject    = () => setForm((f) => ({ ...f, subjects: [...f.subjects, emptySubject()] }));
-  const removeSubject = (id: string) => setForm((f) => ({ ...f, subjects: f.subjects.filter((s) => s.tempId !== id) }));
-  function updateSubject(tempId: string, key: keyof SubjectDraft, val: string) {
-    setForm((f) => ({ ...f, subjects: f.subjects.map((s) => s.tempId === tempId ? { ...s, [key]: val } : s) }));
-  }
+  const updateSubject = (tempId: string, patch: Partial<SubjectDraft>) =>
+    setForm((f) => ({ ...f, subjects: f.subjects.map((s) => s.tempId === tempId ? { ...s, ...patch } : s) }));
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const errs = validate(form);
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
-      const first = Object.keys(errs)[0];
-      formRef.current?.querySelector(`[data-field="${first}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
       toast.error("Please fix the errors before saving.");
       return;
     }
-    setSaving(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setSaving(false);
-    toast.success(mode === "create" ? "Class created successfully!" : "Class updated successfully!");
-    navigate("/classes");
+    try {
+      const saved = await save.mutateAsync({
+        id: mode === "edit" ? id : undefined,
+        payload: {
+          ...(mode === "create" ? { school: school.data?.id } : {}),
+          name: form.name.trim(), code: form.code.trim(), order: Number(form.gradeLevel) || 0,
+          status: form.status, medium: form.medium, shift: form.shift, building: form.building,
+          main_room: form.mainRoom, description: form.description,
+        },
+        sections: form.sections,
+        subjects: form.subjects,
+      });
+      toast.success(mode === "create" ? "Class created." : "Class updated.");
+      navigate(`/classes/${saved.id}`);
+    } catch (err) {
+      toast.error(errorMessage(err, "Couldn't save the class."));
+    }
   }
 
-  const INFO_KEYS = ["classId","className","academicYear","medium","shift"];
+  const subjectOptions = (subjects.data ?? []).map((s) => ({ value: s.id, label: `${s.name} (${s.code})` }));
+  const saving = save.isPending;
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="space-y-4 pb-12">
@@ -251,286 +166,132 @@ export function ClassForm({ mode }: { mode: "create" | "edit" }) {
         <div>
           <h2 className="text-xl font-bold text-foreground">{mode === "create" ? "Add New Class" : "Edit Class"}</h2>
           <p className="text-[13px] text-muted-foreground">
-            {mode === "create" ? "Set up a new class with sections, teachers, and subjects." : "Update class information and assignments."}
+            {mode === "create" ? "Set up a class with its sections and subjects." : "Update class information, sections and subjects."}
           </p>
         </div>
         <div className="flex gap-2">
           <Button type="button" variant="outline" onClick={() => navigate(-1)}><X className="mr-1.5 h-4 w-4" />Cancel</Button>
           <Button type="submit" disabled={saving}>
-            {saving
-              ? <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />Saving…</span>
-              : <><Check className="mr-1.5 h-4 w-4" />{mode === "create" ? "Create Class" : "Save Changes"}</>}
+            {saving ? "Saving…" : <><Check className="mr-1.5 h-4 w-4" />{mode === "create" ? "Create Class" : "Save Changes"}</>}
           </Button>
         </div>
       </div>
 
-      {/* A. Basic Info */}
+      {/* A. Basic */}
       <FormSection icon={Layers} title="Basic Class Information" subtitle="Core identifiers and settings"
-        errorCount={sectionErrors(errors, INFO_KEYS)}>
+        errorCount={errors.name ? 1 : 0}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div data-field="classId">
-            <Field label="Class ID" required error={errors.classId}>
-              <Input value={form.classId} onChange={(e) => set("classId", e.target.value)}
-                placeholder="CLS-2026-001" className={errors.classId ? "border-destructive" : ""} />
-            </Field>
-          </div>
-          <div data-field="className">
-            <Field label="Class Name" required error={errors.className}>
-              <Input value={form.className} onChange={(e) => set("className", e.target.value)}
-                placeholder="Grade 1" className={errors.className ? "border-destructive" : ""} />
-            </Field>
-          </div>
-          <div data-field="academicYear">
-            <Field label="Academic Year" required error={errors.academicYear}>
-              <Select value={form.academicYear} onChange={(v) => set("academicYear", v)}
-                options={ACADEMIC_YEAR_OPTIONS} error={!!errors.academicYear} />
-            </Field>
-          </div>
+          <Field label="Class Name" required error={errors.name}>
+            <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Grade 8"
+              className={errors.name ? "border-destructive" : ""} />
+          </Field>
+          <Field label="Class Code">
+            <Input value={form.code} onChange={(e) => set("code", e.target.value)} placeholder="e.g. G8" />
+          </Field>
           <Field label="Grade Level">
-            <Select value={form.gradeLevel} onChange={(v) => set("gradeLevel", v)} options={GRADE_OPTIONS} />
+            <Input type="number" value={form.gradeLevel} onChange={(e) => set("gradeLevel", e.target.value)}
+              placeholder="Used for ordering, e.g. 8" min="0" />
           </Field>
-          <div data-field="medium">
-            <Field label="Medium" required error={errors.medium}>
-              <Select value={form.medium} onChange={(v) => set("medium", v)} options={MEDIUM_OPTIONS} error={!!errors.medium} />
-            </Field>
-          </div>
-          <div data-field="shift">
-            <Field label="Shift" required error={errors.shift}>
-              <Select value={form.shift} onChange={(v) => set("shift", v)} options={SHIFT_OPTIONS} error={!!errors.shift} />
-            </Field>
-          </div>
+          <Field label="Medium">
+            <Select value={form.medium} onChange={(v) => set("medium", v)} options={opts(MEDIUM_OPTIONS)} />
+          </Field>
+          <Field label="Shift">
+            <Select value={form.shift} onChange={(v) => set("shift", v)} options={opts(SHIFT_OPTIONS)} />
+          </Field>
           <Field label="Status">
-            <Select value={form.status} onChange={(v) => set("status", v)} options={STATUS_OPTIONS} />
+            <Select value={form.status} onChange={(v) => set("status", v)} options={opts(STATUS_OPTIONS)} />
           </Field>
-          <div className="sm:col-span-2">
+          <Field label="Building">
+            <Input value={form.building} onChange={(e) => set("building", e.target.value)} placeholder="e.g. Block A" />
+          </Field>
+          <Field label="Main Room">
+            <Input value={form.mainRoom} onChange={(e) => set("mainRoom", e.target.value)} placeholder="e.g. 101" />
+          </Field>
+          <div className="sm:col-span-2 lg:col-span-3">
             <Field label="Description">
-              <TA value={form.description} onChange={(v) => set("description", v)} rows={2} placeholder="Brief class description…" />
+              <textarea value={form.description} onChange={(e) => set("description", e.target.value)} rows={2}
+                placeholder="Brief class description…"
+                className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring" />
             </Field>
           </div>
         </div>
       </FormSection>
 
       {/* B. Sections */}
-      <FormSection icon={BookOpen} title="Section Setup" subtitle="Add sections for this class"
-        errorCount={errors.sections ? 1 : 0}>
+      <FormSection icon={BookOpen} title="Sections" subtitle="Sections, rooms and capacity (enrolment can't exceed capacity)"
+        errorCount={Object.keys(errors).filter((k) => k.startsWith("sec") || k === "sections").length}>
         <div className="space-y-4">
           {errors.sections && <p className="text-[12px] text-destructive">{errors.sections}</p>}
+          {form.sections.length === 0 && <p className="text-[12.5px] text-muted-foreground">No sections. Students can still be enrolled in the class.</p>}
           {form.sections.map((sec, idx) => (
             <div key={sec.tempId} className="relative rounded-xl border border-border/60 bg-muted/30 p-4">
-              <button type="button" onClick={() => removeSection(sec.tempId)}
-                className="absolute right-3 top-3 rounded-md p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+              <button type="button" onClick={() => set("sections", form.sections.filter((s) => s.tempId !== sec.tempId))}
+                className="absolute right-3 top-3 rounded-md p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                aria-label="Remove section">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
               <p className="mb-3 text-[12px] font-semibold text-muted-foreground">Section {idx + 1}</p>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <Field label="Section Name" required error={errors[`sec_name_${idx}`]}>
-                  <Select value={sec.sectionName} onChange={(v) => updateSection(sec.tempId, "sectionName", v)}
-                    options={SECTION_OPTIONS} error={!!errors[`sec_name_${idx}`]} />
+              <div className="grid gap-3 sm:grid-cols-4">
+                <Field label="Name" required error={errors[`sec_name_${idx}`]}>
+                  <Input value={sec.name} onChange={(e) => updateSection(sec.tempId, "name", e.target.value)} placeholder="A" />
                 </Field>
-                <Field label="Section Code">
-                  <Input value={sec.sectionCode} onChange={(e) => updateSection(sec.tempId, "sectionCode", e.target.value)}
-                    placeholder="SEC-1A" />
+                <Field label="Code">
+                  <Input value={sec.code} onChange={(e) => updateSection(sec.tempId, "code", e.target.value)} placeholder="8A" />
                 </Field>
-                <Field label="Class Teacher" required error={errors[`sec_teacher_${idx}`]}>
-                  <Select value={sec.classTeacher} onChange={(v) => updateSection(sec.tempId, "classTeacher", v)}
-                    options={TEACHER_OPTIONS} error={!!errors[`sec_teacher_${idx}`]} />
+                <Field label="Room">
+                  <Input value={sec.room} onChange={(e) => updateSection(sec.tempId, "room", e.target.value)} placeholder="101" />
                 </Field>
-                <Field label="Room No" required error={errors[`sec_room_${idx}`]}>
-                  <Input value={sec.room} onChange={(e) => updateSection(sec.tempId, "room", e.target.value)}
-                    placeholder="Block A - 101" />
-                </Field>
-                <Field label="Capacity" required error={errors[`sec_cap_${idx}`]}>
-                  <Input type="number" value={sec.capacity}
-                    onChange={(e) => updateSection(sec.tempId, "capacity", e.target.value)}
-                    placeholder="40" min="1" />
-                </Field>
-                <Field label="Status">
-                  <Select value={sec.status} onChange={(v) => updateSection(sec.tempId, "status", v)}
-                    options={["active","inactive"]} />
+                <Field label="Capacity" error={errors[`sec_cap_${idx}`]}>
+                  <Input type="number" min="1" value={sec.capacity}
+                    onChange={(e) => updateSection(sec.tempId, "capacity", e.target.value)} placeholder="No limit" />
                 </Field>
               </div>
             </div>
           ))}
-          <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={addSection}>
+          <Button type="button" variant="outline" size="sm" className="gap-1.5"
+            onClick={() => set("sections", [...form.sections, emptySection()])}>
             <Plus className="h-3.5 w-3.5" />Add Section
           </Button>
+          <p className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+            <Info className="h-3.5 w-3.5" /> Class teachers are set from each teacher's assignments.
+          </p>
         </div>
       </FormSection>
 
-      {/* C. Teacher Assignment */}
-      <FormSection icon={User} title="Class Teacher Assignment" subtitle="Assign primary and support teachers" defaultOpen={false}
-        errorCount={sectionErrors(errors, ["mainClassTeacher"])}>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div data-field="mainClassTeacher">
-            <Field label="Main Class Teacher" required error={errors.mainClassTeacher}>
-              <Select value={form.mainClassTeacher} onChange={(v) => set("mainClassTeacher", v)}
-                options={TEACHER_OPTIONS} error={!!errors.mainClassTeacher} />
-            </Field>
-          </div>
-          <Field label="Assistant Class Teacher">
-            <Select value={form.assistantClassTeacher} onChange={(v) => set("assistantClassTeacher", v)}
-              options={TEACHER_OPTIONS} />
-          </Field>
-          <Field label="Coordinator">
-            <Select value={form.coordinator} onChange={(v) => set("coordinator", v)}
-              options={TEACHER_OPTIONS} />
-          </Field>
-        </div>
-      </FormSection>
-
-      {/* D. Subjects */}
-      <FormSection icon={BookOpen} title="Subject Assignment" subtitle="Assign subjects and teachers" defaultOpen={false}
+      {/* C. Subjects */}
+      <FormSection icon={BookOpen} title="Curriculum" subtitle="Subjects this class takes in the current academic year"
         errorCount={errors.subjects ? 1 : 0}>
-        <div className="space-y-4">
+        <div className="space-y-3">
           {errors.subjects && <p className="text-[12px] text-destructive">{errors.subjects}</p>}
-          {form.subjects.map((sub, idx) => (
-            <div key={sub.tempId} className="relative rounded-xl border border-border/60 bg-muted/30 p-4">
-              <button type="button" onClick={() => removeSubject(sub.tempId)}
-                className="absolute right-3 top-3 rounded-md p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+          {form.subjects.length === 0 && <p className="text-[12.5px] text-muted-foreground">No subjects added yet.</p>}
+          {form.subjects.map((sub) => (
+            <div key={sub.tempId} className="grid items-end gap-3 rounded-xl border border-border/60 bg-muted/30 p-3 sm:grid-cols-[2fr_1fr_auto_auto]">
+              <Field label="Subject">
+                <Select value={sub.subject} onChange={(v) => updateSubject(sub.tempId, { subject: v })}
+                  options={subjectOptions} placeholder={subjects.isLoading ? "Loading…" : "Select subject…"} />
+              </Field>
+              <Field label="Weekly Periods">
+                <Input type="number" min="0" value={sub.weeklyPeriods}
+                  onChange={(e) => updateSubject(sub.tempId, { weeklyPeriods: e.target.value })} placeholder="5" />
+              </Field>
+              <label className="flex h-9 items-center gap-2 text-[12.5px] text-muted-foreground">
+                <input type="checkbox" checked={sub.isOptional}
+                  onChange={(e) => updateSubject(sub.tempId, { isOptional: e.target.checked })} />
+                Optional
+              </label>
+              <Button type="button" variant="ghost" size="sm" className="text-rose-600"
+                onClick={() => set("subjects", form.subjects.filter((s) => s.tempId !== sub.tempId))}>
                 <Trash2 className="h-3.5 w-3.5" />
-              </button>
-              <p className="mb-3 text-[12px] font-semibold text-muted-foreground">Subject {idx + 1}</p>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <Field label="Subject Name" required error={errors[`sub_name_${idx}`]}>
-                  <Select value={sub.subjectName} onChange={(v) => updateSubject(sub.tempId, "subjectName", v)}
-                    options={SUBJECT_OPTIONS} error={!!errors[`sub_name_${idx}`]} />
-                </Field>
-                <Field label="Subject Code">
-                  <Input value={sub.subjectCode} onChange={(e) => updateSubject(sub.tempId, "subjectCode", e.target.value)}
-                    placeholder="SUB-ENG-01" />
-                </Field>
-                <Field label="Teacher" required error={errors[`sub_teacher_${idx}`]}>
-                  <Select value={sub.teacher} onChange={(v) => updateSubject(sub.tempId, "teacher", v)}
-                    options={TEACHER_OPTIONS} error={!!errors[`sub_teacher_${idx}`]} />
-                </Field>
-                <Field label="Weekly Periods">
-                  <Input type="number" value={sub.weeklyPeriods}
-                    onChange={(e) => updateSubject(sub.tempId, "weeklyPeriods", e.target.value)} placeholder="6" min="1" />
-                </Field>
-                <Field label="Full Marks">
-                  <Input type="number" value={sub.fullMarks}
-                    onChange={(e) => updateSubject(sub.tempId, "fullMarks", e.target.value)} placeholder="100" />
-                </Field>
-                <Field label="Pass Marks">
-                  <Input type="number" value={sub.passMarks}
-                    onChange={(e) => updateSubject(sub.tempId, "passMarks", e.target.value)} placeholder="40" />
-                </Field>
-                <Field label="Type">
-                  <Select value={sub.type} onChange={(v) => updateSubject(sub.tempId, "type", v)}
-                    options={["Compulsory","Optional"]} />
-                </Field>
-              </div>
+              </Button>
             </div>
           ))}
-          <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={addSubject}>
+          <Button type="button" variant="outline" size="sm" className="gap-1.5"
+            onClick={() => set("subjects", [...form.subjects, emptySubject()])}>
             <Plus className="h-3.5 w-3.5" />Add Subject
           </Button>
-        </div>
-      </FormSection>
-
-      {/* E. Room & Facility */}
-      <FormSection icon={Building2} title="Room & Facility Information" subtitle="Physical classroom details" defaultOpen={false}>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Building">
-            <Input value={form.building} onChange={(e) => set("building", e.target.value)} placeholder="Block A" />
-          </Field>
-          <Field label="Floor">
-            <Input value={form.floor} onChange={(e) => set("floor", e.target.value)} placeholder="Ground Floor" />
-          </Field>
-          <Field label="Room Number">
-            <Input value={form.roomNumber} onChange={(e) => set("roomNumber", e.target.value)} placeholder="Block A - 101" />
-          </Field>
-          <Field label="Room Capacity">
-            <Input type="number" value={form.roomCapacity} onChange={(e) => set("roomCapacity", e.target.value)} placeholder="40" />
-          </Field>
-          {([
-            { key: "smartBoard" as const, label: "Smart Board Available" },
-            { key: "projector"  as const, label: "Projector Available"   },
-            { key: "labRequired" as const,label: "Lab Required"           },
-          ]).map(({ key, label }) => (
-            <label key={key} className="flex items-center gap-2 cursor-pointer text-[13px]">
-              <input type="checkbox" checked={form[key] as boolean}
-                onChange={(e) => set(key, e.target.checked as ClassFormData[typeof key])}
-                className="h-4 w-4 rounded border-input accent-primary" />
-              {label}
-            </label>
-          ))}
-        </div>
-      </FormSection>
-
-      {/* F. Timetable Settings */}
-      <FormSection icon={ClipboardList} title="Timetable Settings" subtitle="Weekly schedule configuration" defaultOpen={false}>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="School Days">
-            <Input value={form.weekDays} onChange={(e) => set("weekDays", e.target.value)} placeholder="Monday - Friday" />
-          </Field>
-          <Field label="Start Time">
-            <Input type="time" value={form.startTime} onChange={(e) => set("startTime", e.target.value)} />
-          </Field>
-          <Field label="End Time">
-            <Input type="time" value={form.endTime} onChange={(e) => set("endTime", e.target.value)} />
-          </Field>
-          <Field label="Period Duration (min)">
-            <Input type="number" value={form.periodDuration} onChange={(e) => set("periodDuration", e.target.value)} placeholder="45" />
-          </Field>
-          <Field label="Break Duration (min)">
-            <Input type="number" value={form.breakTime} onChange={(e) => set("breakTime", e.target.value)} placeholder="15" />
-          </Field>
-        </div>
-      </FormSection>
-
-      {/* G. Fee Structure */}
-      <FormSection icon={FileText} title="Fee Structure" subtitle="Academic year fee amounts" defaultOpen={false}>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {([
-            { key: "monthlyTuitionFee" as const, label: "Monthly Tuition Fee", placeholder: "8000" },
-            { key: "admissionFee"      as const, label: "Admission Fee",        placeholder: "5000" },
-            { key: "examFee"           as const, label: "Exam Fee",             placeholder: "500"  },
-            { key: "libraryFee"        as const, label: "Library Fee",          placeholder: "300"  },
-          ]).map(({ key, label, placeholder }) => (
-            <Field key={key} label={label}>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-muted-foreground">NPR</span>
-                <Input type="number" value={form[key] as string}
-                  onChange={(e) => set(key, e.target.value as ClassFormData[typeof key])}
-                  placeholder={placeholder} className="pl-12" />
-              </div>
-            </Field>
-          ))}
-        </div>
-      </FormSection>
-
-      {/* H. Exam & Grading */}
-      <FormSection icon={ClipboardList} title="Exam & Grading Setup" subtitle="Assessment configuration" defaultOpen={false}>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Grading System">
-            <Select value={form.gradingSystem} onChange={(v) => set("gradingSystem", v)}
-              options={["Percentage","GPA","Letter Grade","Remarks"]} />
-          </Field>
-          <Field label="Pass Percentage (%)">
-            <Input type="number" value={form.passPct} onChange={(e) => set("passPct", e.target.value)} placeholder="40" />
-          </Field>
-          <Field label="Exam Terms">
-            <Select value={form.examTerms} onChange={(v) => set("examTerms", v)} options={["1","2","3","4"]} />
-          </Field>
-          <label className="flex items-center gap-2 cursor-pointer text-[13px]">
-            <input type="checkbox" checked={form.gpaEnabled}
-              onChange={(e) => set("gpaEnabled", e.target.checked)}
-              className="h-4 w-4 rounded border-input accent-primary" />
-            GPA Enabled
-          </label>
-        </div>
-      </FormSection>
-
-      {/* I. Notes */}
-      <FormSection icon={StickyNote} title="Administrative Notes" subtitle="Internal notes and instructions" defaultOpen={false}>
-        <div className="grid gap-4">
-          <Field label="Admin Notes">
-            <TA value={form.adminNotes} onChange={(v) => set("adminNotes", v)} rows={3} placeholder="Internal notes…" />
-          </Field>
-          <Field label="Special Instructions">
-            <TA value={form.specialInstructions} onChange={(v) => set("specialInstructions", v)} rows={2} placeholder="Special instructions…" />
-          </Field>
+          <p className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+            <Info className="h-3.5 w-3.5" /> Marks schemes come from each subject; fees are set under Billing → Fee structures.
+          </p>
         </div>
       </FormSection>
 
@@ -538,11 +299,10 @@ export function ClassForm({ mode }: { mode: "create" | "edit" }) {
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={() => navigate(-1)}><X className="mr-1.5 h-4 w-4" />Cancel</Button>
         <Button type="submit" disabled={saving}>
-          {saving
-            ? <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />Saving…</span>
-            : <><Check className="mr-1.5 h-4 w-4" />{mode === "create" ? "Create Class" : "Save Changes"}</>}
+          {saving ? "Saving…" : <><Check className="mr-1.5 h-4 w-4" />{mode === "create" ? "Create Class" : "Save Changes"}</>}
         </Button>
       </div>
     </form>
   );
 }
+

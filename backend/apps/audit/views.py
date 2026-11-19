@@ -17,6 +17,8 @@ class AuditLogViewSet(
     search_fields = ["action", "object_type", "object_id"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return self.serializer_class.Meta.model.objects.none()
         qs = AuditLog.objects.select_related("actor").all()
         user = self.request.user
         if user.is_superuser or user.is_platform_admin:

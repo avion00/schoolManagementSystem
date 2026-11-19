@@ -1,7 +1,7 @@
 import { BookOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { ClassSubject } from "@/data/classesData";
+import type { ClassSubject } from "@/api/types/classes";
 
 const TYPE_CFG = {
   Compulsory: "bg-blue-50 text-blue-700 ring-blue-500/30 dark:bg-blue-950/40 dark:text-blue-400",

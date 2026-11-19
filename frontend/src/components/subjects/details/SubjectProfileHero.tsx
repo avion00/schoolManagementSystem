@@ -3,7 +3,7 @@ import { useNavigate }             from "react-router-dom";
 import { Button }                  from "@/components/ui/button";
 import { SubjectStatusBadge }      from "@/components/subjects/SubjectStatusBadge";
 import { SubjectTypeBadge }        from "@/components/subjects/SubjectTypeBadge";
-import type { SubjectData, SubjectCategory } from "@/data/subjectsData";
+import type { SubjectData, SubjectCategory } from "@/api/types/subjects";
 
 const CAT_GRAD: Record<SubjectCategory, string> = {
   "Compulsory":      "from-violet-600 via-violet-500 to-indigo-500",

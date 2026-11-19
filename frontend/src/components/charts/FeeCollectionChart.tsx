@@ -11,7 +11,7 @@ export function FeeCollectionChart({
   data,
   title = "Fee Collection",
   subtitle,
-  valueFormatter = (v) => `$${(v / 1000).toFixed(0)}k`,
+  valueFormatter = (v) => `${(v / 1000).toFixed(0)}k`,
 }: {
   data: FeeCollectionPoint[];
   title?: string;

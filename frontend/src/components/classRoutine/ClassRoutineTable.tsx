@@ -6,7 +6,9 @@ import { ClassRoutineStatusBadge } from "@/components/classRoutine/ClassRoutineS
 import { Button } from "@/components/ui/button";
 import { PremiumDataTable, type PremiumDataTableColumn } from "@/components/ui/PremiumDataTable";
 import { RowActionMenu } from "@/components/ui/RowActionMenu";
-import { CONFLICT_IDS, type RoutineEntry } from "@/data/classRoutineData";
+import { useDeleteEntry, useRoutineData } from "@/api/routine";
+import { errorMessage } from "@/api/http";
+import type { RoutineEntry } from "@/api/types/routine";
 
 type SortKey = "routineId" | "day" | "className" | "section" | "subject" | "teacher" | "room" | "startTime" | "periodNo" | "shift" | "status";
 
@@ -28,12 +30,15 @@ const PER_PAGE = 15;
 
 interface Props {
   routines: RoutineEntry[];
-  onView: (id: number) => void;
-  onEdit: (id: number) => void;
-  onDelete?: (id: number) => void;
+  onView: (id: string) => void;
+  onEdit: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 export function ClassRoutineTable({ routines, onView, onEdit }: Props) {
+  const { routine } = useRoutineData();
+  const CONFLICT_IDS = routine.conflictIds;
+  const remove = useDeleteEntry();
   const [sort, setSort] = useState<{ key: SortKey; asc: boolean }>({ key: "day", asc: true });
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string | number>>(new Set());
@@ -113,7 +118,8 @@ export function ClassRoutineTable({ routines, onView, onEdit }: Props) {
           entityLabel="routine entry"
           onView={() => onView(r.id)}
           onEdit={() => onEdit(r.id)}
-          onDelete={() => toast.error(`Delete ${r.routineId}? (static — no action taken)`, { duration: 2000 })}
+          onDelete={() => remove.mutateAsync(r.id).then(() => toast.success("Routine entry removed"))
+            .catch((e) => toast.error(errorMessage(e)))}
         />
       )}
     />

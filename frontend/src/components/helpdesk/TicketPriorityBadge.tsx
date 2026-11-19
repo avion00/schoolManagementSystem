@@ -1,4 +1,4 @@
-import type { TicketPriority } from "@/data/helpDeskData";
+import type { TicketPriority } from "@/api/types/helpdesk";
 import { cn } from "@/lib/utils";
 
 const STYLES: Record<TicketPriority, string> = {

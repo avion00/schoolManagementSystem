@@ -1,6 +1,6 @@
 import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { PremiumTableToolbar } from "@/components/ui/PremiumTableToolbar";
-import { CLASS_OPTIONS, OCCUPATION_OPTIONS, SECTION_OPTIONS, STATUS_OPTIONS } from "@/data/parentsData";
+import { STATUS_OPTIONS } from "@/api/types/parents";
 
 export interface ParentsFilters {
   search: string;
@@ -12,11 +12,17 @@ export interface ParentsFilters {
 }
 
 export function ParentsToolbar({
+  occupationOptions,
+  classOptions,
+  sectionOptions,
   filters,
   onFiltersChange,
   hasActiveFilter,
   onReset,
 }: {
+  occupationOptions: string[];
+  classOptions: string[];
+  sectionOptions: string[];
   filters: ParentsFilters;
   onFiltersChange: (next: Partial<ParentsFilters>) => void;
   hasActiveFilter: boolean;
@@ -35,19 +41,19 @@ export function ParentsToolbar({
             value={filters.filterOcc}
             onChange={(v) => onFiltersChange({ filterOcc: v })}
             className="w-40"
-            options={[{ value: "all", label: "All occupations" }, ...OCCUPATION_OPTIONS.map((o) => ({ value: o, label: o }))]}
+            options={[{ value: "all", label: "All occupations" }, ...occupationOptions.map((o) => ({ value: o, label: o }))]}
           />
           <PremiumSelect
             value={filters.filterClass}
             onChange={(v) => onFiltersChange({ filterClass: v, filterSection: "all" })}
             className="w-40"
-            options={[{ value: "all", label: "Child: All classes" }, ...CLASS_OPTIONS.map((c) => ({ value: c, label: c }))]}
+            options={[{ value: "all", label: "Child: All classes" }, ...classOptions.map((c) => ({ value: c, label: c }))]}
           />
           <PremiumSelect
             value={filters.filterSection}
             onChange={(v) => onFiltersChange({ filterSection: v })}
             className="w-36"
-            options={[{ value: "all", label: "All sections" }, ...SECTION_OPTIONS.map((s) => ({ value: s, label: `Section ${s}` }))]}
+            options={[{ value: "all", label: "All sections" }, ...sectionOptions.map((s) => ({ value: s, label: `Section ${s}` }))]}
           />
           <PremiumSelect
             value={filters.filterGender}

@@ -1,6 +1,6 @@
 import { AlarmClockCheck, Clock, ClockAlert } from "lucide-react";
 
-import type { SlaStatus, TicketStatus } from "@/data/helpDeskData";
+import type { SlaStatus, TicketStatus } from "@/api/types/helpdesk";
 import { cn } from "@/lib/utils";
 
 function formatDuration(ms: number): string {
@@ -17,11 +17,22 @@ export function SlaBadge({
   ticketStatus,
   className,
 }: {
-  dueAt: string;
+  dueAt: string | null;
   status: SlaStatus;
   ticketStatus: TicketStatus;
   className?: string;
 }) {
+  if (status === "Met" || status === "Breached" || status === "—" || !dueAt) {
+    return (
+      <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+        status === "Breached" ? "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300"
+          : status === "Met" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+          : "bg-muted text-muted-foreground", className)}>
+        <AlarmClockCheck className="h-3 w-3" />
+        {status === "Breached" ? "SLA missed" : status === "Met" ? "SLA met" : "No SLA"}
+      </span>
+    );
+  }
   if (ticketStatus === "Resolved" || ticketStatus === "Closed") {
     return (
       <span className={cn("inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300", className)}>
@@ -41,6 +52,9 @@ export function SlaBadge({
     "On Track": "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
     "Due Soon": "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
     "Overdue":  "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300",
+    "Met":      "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+    "Breached": "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300",
+    "—":        "bg-muted text-muted-foreground",
   };
   const Icon = status === "Overdue" ? ClockAlert : Clock;
 

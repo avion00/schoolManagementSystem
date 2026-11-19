@@ -3,11 +3,8 @@ import { AlertTriangle }     from "lucide-react";
 import { PremiumBadge } from "@/components/ui/PremiumBadge";
 import { PremiumCard } from "@/components/ui/PremiumCard";
 import { PremiumSelect } from "@/components/ui/PremiumSelect";
-import {
-  ROUTINES, CONFLICT_IDS,
-  MORNING_PERIODS, DAY_PERIODS,
-  type RoutineEntry, type Day,
-} from "@/data/classRoutineData";
+import { useRoutineData } from "@/api/routine";
+import type { RoutineEntry, Day } from "@/api/types/routine";
 
 const SCHOOL_DAYS: Day[] = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday"];
 
@@ -44,21 +41,26 @@ interface PeriodRow {
   timeLabel: string;
   isBreak: false;
 }
-interface BreakRow { isBreak: true }
+interface BreakRow { isBreak: true; label: string }
 type GridRow = PeriodRow | BreakRow;
 
 export function ClassRoutineGrid() {
-  const [selClass,   setSelClass]   = useState("Grade 6");
-  const [selSection, setSelSection] = useState("A");
+  const { routine } = useRoutineData();
+  const ROUTINES = routine.entries;
+  const CONFLICT_IDS = routine.conflictIds;
+  const [pickedClass,   setSelClass]   = useState("");
+  const [pickedSection, setSelSection] = useState("");
+  const selClass = pickedClass || ([...new Set(ROUTINES.map((r) => r.className))].sort()[0] ?? "");
+  const selSection = pickedSection || ([...new Set(ROUTINES.filter((r) => r.className === selClass).map((r) => r.section))].sort()[0] ?? "");
 
   const filtered = useMemo(
     () => ROUTINES.filter((r) => r.className === selClass && r.section === selSection && r.status === "active"),
-    [selClass, selSection],
+    [selClass, selSection, ROUTINES],
   );
 
   // determine shift from data
   const shift = filtered[0]?.shift ?? "Morning";
-  const periods = shift === "Morning" ? MORNING_PERIODS : DAY_PERIODS;
+  const periods = routine.periodsFor(shift);
 
   // build day→period→entry map
   const matrix = useMemo(() => {
@@ -73,8 +75,8 @@ export function ClassRoutineGrid() {
   // build row list: periods with break inserted after period 3
   const rows: GridRow[] = [];
   for (const p of periods) {
-    rows.push({ isBreak: false, periodNo: p.period, timeLabel: `${p.start} – ${p.end}` });
-    if (p.period === 3) rows.push({ isBreak: true });
+    if (p.isBreak) rows.push({ isBreak: true, label: `Break · ${p.duration} min` });
+    else rows.push({ isBreak: false, periodNo: p.period, timeLabel: `${p.start} – ${p.end}` });
   }
 
   // available options from data
@@ -88,7 +90,7 @@ export function ClassRoutineGrid() {
         <div className="flex items-center gap-2">
           <PremiumSelect
             value={selClass}
-            onChange={(v) => { setSelClass(v); setSelSection("A"); }}
+            onChange={(v) => { setSelClass(v); setSelSection(""); }}
             className="w-36"
             options={classOptions.map((c) => ({ value: c, label: c }))}
           />
@@ -123,7 +125,7 @@ export function ClassRoutineGrid() {
                       <td colSpan={7} className="py-1">
                         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                           <div className="h-px flex-1 bg-border/40" />
-                          <span className="rounded-full bg-muted px-2 py-0.5 font-medium">Break · 15 min</span>
+                          <span className="rounded-full bg-muted px-2 py-0.5 font-medium">{row.label}</span>
                           <div className="h-px flex-1 bg-border/40" />
                         </div>
                       </td>
@@ -156,7 +158,7 @@ export function ClassRoutineGrid() {
                                 <AlertTriangle className="absolute right-1 top-1 h-3 w-3 text-rose-500" />
                               )}
                               <p className={`text-[11px] font-bold leading-tight ${c.text}`}>{entry.subject}</p>
-                              <p className="mt-0.5 text-[10px] text-muted-foreground leading-tight">{entry.teacher.split(" ")[0]}</p>
+                              <p className="mt-0.5 text-[10px] text-muted-foreground leading-tight">{entry.teacher.split(" ")[0] || "—"}</p>
                               <p className="text-[9px] text-muted-foreground">{entry.room}</p>
                             </div>
                           ) : (

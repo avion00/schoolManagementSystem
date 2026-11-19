@@ -1,7 +1,12 @@
+import { useEffect, useState } from "react";
 import { Download, Eye, File, FileSpreadsheet, FileText, Image as ImageIcon, Music, Video, X } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import type { MessageAttachment } from "@/data/messagesData";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { downloadFile, fileObjectUrl } from "@/api/files";
+import { errorMessage } from "@/api/http";
+import type { MessageAttachment } from "@/api/types/messages";
 import { cn } from "@/lib/utils";
 
 const KIND_ICON: Record<MessageAttachment["kind"], typeof File> = {
@@ -26,10 +31,25 @@ export function AttachmentPreview({
 }: {
   attachment: MessageAttachment;
   onRemove?: () => void;
+  /** Called after a download (for callers that track it); downloading itself is built in. */
   onDownload?: () => void;
   dense?: boolean;
 }) {
   const Icon = KIND_ICON[attachment.kind];
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const fail = (e: unknown) => toast.error(errorMessage(e, "Couldn't open the file."));
+
+  // Files are private: fetch through the authenticated client.
+  function download() {
+    downloadFile({ id: attachment.id, original_name: attachment.name, download_url: attachment.downloadUrl } as Parameters<typeof downloadFile>[0])
+      .then(() => onDownload?.()).catch(fail);
+  }
+  function preview() {
+    setPreviewOpen(true);
+    if (!previewUrl) fileObjectUrl(attachment.downloadUrl).then(setPreviewUrl).catch(fail);
+  }
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
 
   return (
     <div
@@ -50,17 +70,27 @@ export function AttachmentPreview({
           <X className="h-3.5 w-3.5" />
         </Button>
       )}
-      {onDownload && !onRemove && (
+      {!onRemove && attachment.downloadUrl && (
         <div className="flex shrink-0 items-center gap-0.5">
           {attachment.kind === "image" && (
-            <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Preview">
+            <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Preview" onClick={preview}>
               <Eye className="h-3.5 w-3.5" />
             </Button>
           )}
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onDownload} aria-label="Download">
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={download} aria-label="Download">
             <Download className="h-3.5 w-3.5" />
           </Button>
         </div>
+      )}
+      {attachment.kind === "image" && (
+        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogTitle className="truncate text-[13px]">{attachment.name}</DialogTitle>
+            {previewUrl
+              ? <img src={previewUrl} alt={attachment.name} className="max-h-[75vh] w-full rounded-lg object-contain" />
+              : <p className="py-10 text-center text-[12px] text-muted-foreground">Loading…</p>}
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

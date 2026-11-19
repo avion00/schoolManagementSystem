@@ -1,6 +1,7 @@
 import { FilePlus } from "lucide-react";
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { ClassExam } from "@/data/classDetailData";
+import type { ClassExam } from "@/api/types/classes";
 
 const STATUS_CFG = {
   Upcoming:  "bg-blue-50 text-blue-700 ring-blue-500/30 dark:bg-blue-950/40 dark:text-blue-400",
@@ -9,6 +10,13 @@ const STATUS_CFG = {
 };
 
 export function ClassExamsCard({ exams }: { exams: ClassExam[] }) {
+  if (exams.length === 0) {
+    return (
+      <DetailCard icon={FilePlus} title="Exams">
+        <PremiumEmptyState title="No exam papers scheduled for this class." className="py-6" />
+      </DetailCard>
+    );
+  }
   return (
     <DetailCard icon={FilePlus} title="Exams">
         <div className="overflow-x-auto">

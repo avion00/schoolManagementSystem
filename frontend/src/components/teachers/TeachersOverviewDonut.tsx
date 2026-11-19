@@ -4,14 +4,15 @@ import { CATEGORICAL_COLORS } from "@/components/charts/palette";
 import { ChartTooltip } from "@/components/charts/ChartTooltip";
 import { Reveal } from "@/components/motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DEPARTMENT_OPTIONS, type Teacher } from "@/data/teachersData";
+import type { Teacher } from "@/api/types/teachers";
 
 export function TeachersOverviewDonut({ teachers }: { teachers: Teacher[] }) {
   const total = teachers.length;
-  const byDept = DEPARTMENT_OPTIONS
+  const departments = [...new Set(teachers.map((t) => t.department || "Unassigned"))];
+  const byDept = departments
     .map((d, i) => ({
       label: d,
-      value: teachers.filter((t) => t.department === d).length,
+      value: teachers.filter((t) => (t.department || "Unassigned") === d).length,
       color: CATEGORICAL_COLORS[i % CATEGORICAL_COLORS.length],
     }))
     .filter((d) => d.value > 0)

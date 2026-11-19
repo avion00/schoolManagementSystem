@@ -1,8 +1,9 @@
 import { RevenueExpenseChart as GenericRevenueExpenseChart } from "@/components/charts/RevenueExpenseChart";
-import { MONTHLY_FINANCE_TREND } from "@/data/billingData";
+import { monthLabel, useMoney, type FinanceSummary } from "@/api/billing";
 
-/** Billing-specific data wiring around the reusable charts/RevenueExpenseChart. */
-export function RevenueExpenseChart() {
-  const data = MONTHLY_FINANCE_TREND.map((d) => ({ label: d.month, revenue: d.revenue, expenses: d.expenses }));
-  return <GenericRevenueExpenseChart data={data} subtitle="Last 6 months" />;
+/** Fee income vs paid expenses per month (from /finance/summary/). */
+export function RevenueExpenseChart({ trend }: { trend: FinanceSummary["trend"] }) {
+  const money = useMoney();
+  const data = trend.map((d) => ({ label: monthLabel(d.month).slice(0, 3), revenue: d.income, expenses: d.expenses }));
+  return <GenericRevenueExpenseChart data={data} subtitle={`Last ${trend.length} months`} valueFormatter={money.short} />;
 }

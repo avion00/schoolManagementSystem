@@ -2,7 +2,7 @@ import { CalendarCheck } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { TeacherAttendanceSummary, AttendanceMonth } from "@/data/teacherDetailsData";
+import type { TeacherAttendanceSummary, AttendanceMonth } from "@/api/types/teachers";
 
 function Pill({ label, value, color }: { label: string; value: string | number; color: string }) {
   return (

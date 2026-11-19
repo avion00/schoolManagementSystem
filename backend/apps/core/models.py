@@ -83,3 +83,24 @@ class TenantBaseModel(BaseModel):
 
     class Meta:
         abstract = True
+
+
+class DocumentSequence(UUIDModel):
+    """Per-tenant, gap-free counters for human-facing document numbers
+    (invoice / receipt numbers). Allocate via `next_document_number`."""
+
+    organization = models.ForeignKey(
+        "accounts.Organization", on_delete=models.CASCADE, related_name="+",
+    )
+    key = models.CharField(max_length=40)  # e.g. "invoice:2026"
+    last_value = models.PositiveBigIntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "key"], name="uniq_document_sequence"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.key}={self.last_value}"

@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { PremiumSearchInput } from "@/components/ui/PremiumSearchInput";
 import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import {
-  ACADEMIC_YEAR_OPTIONS, CLASS_OPTIONS, SCHOOL_DAYS, SECTION_OPTIONS,
-  SHIFT_OPTIONS, STATUS_OPTIONS, SUBJECT_OPTIONS, TEACHER_OPTIONS,
-} from "@/data/classRoutineData";
+  SCHOOL_DAYS, SHIFT_OPTIONS, STATUS_OPTIONS,
+} from "@/api/types/routine";
+import { useRoutineData } from "@/api/routine";
 
 export interface RoutineFilters {
   search:    string;
@@ -44,6 +44,12 @@ function Sel({ k, value, opts, placeholder, onChange }: {
 }
 
 export function ClassRoutineToolbar({ filters, onChange, onClear, onAdd, onPrint, resultCount }: Props) {
+  const { routine } = useRoutineData();
+  const uniq = (xs: string[]) => [...new Set(xs.filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const CLASS_OPTIONS = uniq(routine.entries.map((r) => r.className));
+  const SECTION_OPTIONS = uniq(routine.entries.filter((r) => !filters.className || r.className === filters.className).map((r) => r.section));
+  const TEACHER_OPTIONS = uniq(routine.entries.map((r) => r.teacher));
+  const SUBJECT_OPTIONS = uniq(routine.entries.map((r) => r.subject));
   const hasFilter = Object.values(filters).some(Boolean);
 
   return (
@@ -69,7 +75,6 @@ export function ClassRoutineToolbar({ filters, onChange, onClear, onAdd, onPrint
 
       {/* filter row */}
       <div className="flex flex-wrap items-center gap-2.5">
-        <Sel k="year"      value={filters.year}      opts={ACADEMIC_YEAR_OPTIONS} placeholder="All Years"     onChange={onChange} />
         <Sel k="className" value={filters.className}  opts={CLASS_OPTIONS}         placeholder="All Classes"   onChange={onChange} />
         <Sel k="section"   value={filters.section}    opts={SECTION_OPTIONS}       placeholder="All Sections"  onChange={onChange} />
         <Sel k="day"       value={filters.day}        opts={SCHOOL_DAYS}           placeholder="All Days"      onChange={onChange} />

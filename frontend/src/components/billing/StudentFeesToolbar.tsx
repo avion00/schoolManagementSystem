@@ -1,6 +1,6 @@
 import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { PremiumTableToolbar } from "@/components/ui/PremiumTableToolbar";
-import { CLASS_OPTIONS, FEE_STATUS_OPTIONS } from "@/data/billingData";
+import { FEE_STATUS_OPTIONS } from "@/api/types/billing";
 
 export interface StudentFeesFilters {
   search: string;
@@ -15,12 +15,14 @@ export function StudentFeesToolbar({
   hasActiveFilter,
   onReset,
   sections,
+  classes,
 }: {
   filters: StudentFeesFilters;
   onFiltersChange: (next: Partial<StudentFeesFilters>) => void;
   hasActiveFilter: boolean;
   onReset: () => void;
   sections: string[];
+  classes: string[];
 }) {
   return (
     <PremiumTableToolbar
@@ -35,7 +37,7 @@ export function StudentFeesToolbar({
             value={filters.className}
             onChange={(v) => onFiltersChange({ className: v })}
             className="w-40"
-            options={[{ value: "all", label: "All classes" }, ...CLASS_OPTIONS.map((c) => ({ value: c, label: c }))]}
+            options={[{ value: "all", label: "All classes" }, ...classes.map((c) => ({ value: c, label: c }))]}
           />
           <PremiumSelect
             value={filters.section}

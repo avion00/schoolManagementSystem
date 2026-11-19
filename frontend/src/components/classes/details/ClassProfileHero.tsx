@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ClassStatusBadge } from "@/components/classes/ClassStatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { ClassData } from "@/data/classesData";
+import type { ClassData } from "@/api/types/classes";
 
 const GRADE_COLORS = [
   "from-violet-600 to-violet-800",
@@ -60,9 +60,7 @@ export function ClassProfileHero({ cls }: { cls: ClassData }) {
             </div>
             <p className="mt-2 flex items-center gap-1.5 text-[12.5px] text-white/80">
               <Users className="h-3.5 w-3.5" />
-              Class Teacher: <span className="font-semibold">{cls.mainClassTeacher.name}</span>
-              <span className="text-white/50">·</span>
-              <span className="text-white/60">{cls.mainClassTeacher.employeeId}</span>
+              Class Teacher: <span className="font-semibold">{cls.mainClassTeacher?.name ?? "Not assigned"}</span>
             </p>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { Award } from "lucide-react";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { SubjectData } from "@/data/subjectsData";
+import type { SubjectData } from "@/api/types/subjects";
 
 function Bar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0;

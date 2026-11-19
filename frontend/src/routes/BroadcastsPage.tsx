@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { PremiumCard } from "@/components/ui/PremiumCard";
 import { messagesService, resolveCurrentChatUser } from "@/lib/messagesService";
 import { useAuth } from "@/lib/auth";
-import { canSendBroadcast } from "@/data/messagePermissions";
+import { canSendBroadcast } from "@/lib/messagePermissions";
 
 function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });

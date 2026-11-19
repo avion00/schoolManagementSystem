@@ -1,7 +1,8 @@
 import { Clock } from "lucide-react";
 
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { TimetableEntry } from "@/data/studentDetailsData";
+import type { TimetableEntry } from "@/api/types/students";
 import { cn } from "@/lib/utils";
 
 const COLOR_MAP: Record<string, string> = {
@@ -19,6 +20,13 @@ const DOT_MAP: Record<string, string> = {
 };
 
 export function StudentTimetableCard({ timetable }: { timetable: TimetableEntry[] }) {
+  if (timetable.length === 0) {
+    return (
+      <DetailCard icon={Clock} title="Today's Timetable">
+        <PremiumEmptyState title="No classes scheduled today." className="py-6" />
+      </DetailCard>
+    );
+  }
   const now = new Date();
 
   return (

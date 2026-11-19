@@ -1,6 +1,8 @@
 import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { PremiumTableToolbar } from "@/components/ui/PremiumTableToolbar";
-import { ACADEMIC_YEAR_OPTIONS, MEDIUM_OPTIONS, SHIFT_OPTIONS, STATUS_OPTIONS } from "@/data/classesData";
+const MEDIUM_OPTIONS = ["English", "Nepali", "Bilingual"];
+const SHIFT_OPTIONS = ["Morning", "Day", "Evening"];
+const STATUS_OPTIONS = ["active", "inactive", "suspended"];
 
 export interface ClassesFilters {
   search: string;
@@ -15,7 +17,9 @@ export function ClassesToolbar({
   onFiltersChange,
   hasActiveFilter,
   onReset,
+  yearOptions,
 }: {
+  yearOptions: string[];
   filters: ClassesFilters;
   onFiltersChange: (next: Partial<ClassesFilters>) => void;
   hasActiveFilter: boolean;
@@ -34,7 +38,7 @@ export function ClassesToolbar({
             value={filters.filterYear}
             onChange={(v) => onFiltersChange({ filterYear: v })}
             className="w-36"
-            options={[{ value: "all", label: "Year: All" }, ...ACADEMIC_YEAR_OPTIONS.map((y) => ({ value: y, label: y }))]}
+            options={[{ value: "all", label: "Year: All" }, ...yearOptions.map((y) => ({ value: y, label: y }))]}
           />
           <PremiumSelect
             value={filters.filterMedium}

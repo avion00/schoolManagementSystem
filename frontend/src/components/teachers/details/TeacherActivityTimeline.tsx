@@ -9,8 +9,9 @@ import {
   RefreshCw,
 } from "lucide-react";
 
+import { PremiumEmptyState } from "@/components/ui/PremiumEmptyState";
 import { DetailCard } from "@/components/ui/DetailCard";
-import type { TeacherActivity } from "@/data/teacherDetailsData";
+import type { TeacherActivity } from "@/api/types/teachers";
 
 const ICON_MAP: Record<TeacherActivity["type"], { Icon: typeof UserPlus; color: string; bg: string }> = {
   join:       { Icon: UserPlus,      color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-100 dark:bg-violet-950/50" },
@@ -30,6 +31,13 @@ function fmtTs(ts: string) {
 }
 
 export function TeacherActivityTimeline({ activities }: { activities: TeacherActivity[] }) {
+  if (activities.length === 0) {
+    return (
+      <DetailCard icon={CheckCircle} title="Activity Timeline">
+        <PremiumEmptyState title="No recent activity." className="py-6" />
+      </DetailCard>
+    );
+  }
   return (
     <DetailCard icon={CheckCircle} title="Activity Timeline">
       <div className="relative space-y-0">

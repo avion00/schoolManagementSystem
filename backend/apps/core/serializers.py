@@ -1,6 +1,14 @@
 from rest_framework import serializers
 
 
+def merged_value(attrs, instance, name):
+    """Value of `name` after this write: the submitted value (even if None) or the
+    instance's current one. Unlike `attrs.get(name) or ...`, an explicit null wins."""
+    if name in attrs:
+        return attrs[name]
+    return getattr(instance, name, None)
+
+
 class TenantPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
     """A related field whose choices are limited to the caller's organization.
 

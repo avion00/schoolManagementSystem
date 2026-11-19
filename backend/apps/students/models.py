@@ -22,6 +22,7 @@ class Student(TenantBaseModel):
         TRANSFERRED = "transferred", "Transferred"
         SUSPENDED = "suspended", "Suspended"
         LEFT = "left", "Left"
+        INACTIVE = "inactive", "Inactive"
 
     # Identity
     first_name = models.CharField(max_length=80)
@@ -34,13 +35,40 @@ class Student(TenantBaseModel):
     religion = models.CharField(max_length=64, blank=True)
 
     # Contact
-    address = models.TextField(blank=True)
+    address = models.TextField(blank=True)  # current address
+    permanent_address = models.TextField(blank=True)
+    city = models.CharField(max_length=80, blank=True)
+    state = models.CharField(max_length=80, blank=True)
+    country = models.CharField(max_length=80, blank=True)
+    postal_code = models.CharField(max_length=20, blank=True)
     phone = models.CharField(max_length=32, blank=True)
     email = models.EmailField(blank=True)
 
     # Enrollment
     admission_number = models.CharField(max_length=40)
+    registration_number = models.CharField(max_length=40, blank=True)
+    admission_date = models.DateField(null=True, blank=True)
     roll_number = models.CharField(max_length=20, blank=True)
+    house = models.CharField(max_length=40, blank=True)
+    previous_school = models.CharField(max_length=255, blank=True)
+
+    # Health / emergency (school.md §7.3 — sensitive; staff-only)
+    medical_conditions = models.TextField(blank=True)
+    allergies = models.TextField(blank=True)
+    emergency_contact_name = models.CharField(max_length=120, blank=True)
+    emergency_contact_phone = models.CharField(max_length=32, blank=True)
+    regular_medication = models.TextField(blank=True)
+    medical_note = models.TextField(blank=True)
+    doctor_name = models.CharField(max_length=120, blank=True)
+    doctor_phone = models.CharField(max_length=32, blank=True)
+    height_cm = models.PositiveSmallIntegerField(null=True, blank=True)
+    weight_kg = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
+
+    student_type = models.CharField(max_length=20, blank=True)  # e.g. day scholar, boarder
+    admin_notes = models.TextField(blank=True)  # staff-only
+    photo = models.ForeignKey(
+        "files.StoredFile", null=True, blank=True, on_delete=models.SET_NULL, related_name="student_photos"
+    )
     academic_year = models.ForeignKey(
         "academics.AcademicYear", on_delete=models.PROTECT, related_name="students"
     )
@@ -49,10 +77,6 @@ class Student(TenantBaseModel):
     )
     section = models.ForeignKey(
         "academics.Section", null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="students",
-    )
-    primary_guardian = models.ForeignKey(
-        "guardians.Guardian", null=True, blank=True,
         on_delete=models.SET_NULL, related_name="students",
     )
     # Optional login account so the student can access their own portal.
@@ -73,6 +97,11 @@ class Student(TenantBaseModel):
                 name="uniq_admission_number_per_org",
             ),
             models.UniqueConstraint(
+                fields=["organization", "registration_number"],
+                condition=~models.Q(registration_number=""),
+                name="uniq_registration_number_per_org",
+            ),
+            models.UniqueConstraint(
                 fields=["organization", "class_level", "section", "academic_year", "roll_number"],
                 condition=~models.Q(roll_number=""),
                 name="uniq_roll_number_per_class_section_year",
@@ -90,3 +119,75 @@ class Student(TenantBaseModel):
     def full_name(self):
         parts = [self.first_name, self.middle_name, self.last_name]
         return " ".join(p for p in parts if p)
+
+    @property
+    def primary_guardian(self):
+        link = next(
+            (g for g in self.guardian_links.all() if g.is_primary and g.is_active), None
+        )
+        return link.guardian if link else None
+
+
+class StudentHistory(TenantBaseModel):
+    """Timeline of status changes and promotions (school.md §7.3: students are
+    never silently moved — every change is recorded with who, when and why)."""
+
+    class Kind(models.TextChoices):
+        STATUS_CHANGE = "status_change", "Status change"
+        PROMOTION = "promotion", "Promotion"
+
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="history")
+    kind = models.CharField(max_length=16, choices=Kind.choices)
+    effective_date = models.DateField()
+    reason = models.CharField(max_length=255, blank=True)
+    from_status = models.CharField(max_length=16, blank=True)
+    to_status = models.CharField(max_length=16, blank=True)
+    from_academic_year = models.ForeignKey(
+        "academics.AcademicYear", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    to_academic_year = models.ForeignKey(
+        "academics.AcademicYear", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    from_class_level = models.ForeignKey(
+        "academics.ClassLevel", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    to_class_level = models.ForeignKey(
+        "academics.ClassLevel", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    from_section = models.ForeignKey(
+        "academics.Section", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    to_section = models.ForeignKey(
+        "academics.Section", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+
+    class Meta:
+        ordering = ["-effective_date", "-created_at"]
+        verbose_name_plural = "student history"
+
+    def __str__(self):
+        return f"{self.student_id} {self.kind} {self.effective_date}"
+
+
+class StudentDocument(TenantBaseModel):
+    """An admission / identity document on file for a student."""
+
+    class Kind(models.TextChoices):
+        BIRTH_CERTIFICATE = "birth_certificate", "Birth Certificate"
+        TRANSFER_CERTIFICATE = "transfer_certificate", "Transfer Certificate"
+        PREVIOUS_MARKSHEET = "previous_marksheet", "Previous Marksheet"
+        PARENT_ID = "parent_id", "Parent / Guardian ID"
+        MEDICAL_FORM = "medical_form", "Medical Form"
+        ADDRESS_PROOF = "address_proof", "Address Proof"
+        OTHER = "other", "Other"
+
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="documents")
+    kind = models.CharField(max_length=24, choices=Kind.choices)
+    file = models.ForeignKey("files.StoredFile", on_delete=models.PROTECT, related_name="student_documents")
+    verified_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    verified_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["kind", "-created_at"]

@@ -3,7 +3,39 @@
 Falls back to the thread-local request (set by RequestContextMiddleware) for
 IP / user-agent when not passed explicitly.
 """
+import datetime
+import uuid
+from decimal import Decimal
+
 from apps.core.context import get_client_ip, get_current_request
+
+
+def _jsonable(value):
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if isinstance(value, (Decimal, uuid.UUID, datetime.date, datetime.time)):
+        return str(value)
+    return str(value)
+
+
+def snapshot(instance, field_names):
+    """Capture the current values of concrete fields (FKs by id) for diffing."""
+    values = {}
+    for name in field_names:
+        try:
+            field = instance._meta.get_field(name)
+        except Exception:
+            continue
+        if not getattr(field, "concrete", False) or field.many_to_many:
+            continue
+        values[name] = _jsonable(getattr(instance, field.attname))
+    return values
+
+
+def diff(before, instance):
+    """{field: [old, new]} for fields in `before` whose value changed."""
+    after = snapshot(instance, before.keys())
+    return {k: [before[k], after[k]] for k in before if before[k] != after[k]}
 
 
 def record_audit(

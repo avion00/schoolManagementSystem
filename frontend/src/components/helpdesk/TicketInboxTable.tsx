@@ -11,7 +11,7 @@ import { TicketPriorityBadge } from "@/components/helpdesk/TicketPriorityBadge";
 import { TicketStatusBadge } from "@/components/helpdesk/TicketStatusBadge";
 import type {
   SupportTicket, TicketPriority, TicketStatus,
-} from "@/data/helpDeskData";
+} from "@/api/types/helpdesk";
 
 const PAGE_SIZE = 10;
 
@@ -46,9 +46,9 @@ export function TicketInboxTable({
   onBulkClose,
 }: {
   tickets: SupportTicket[];
-  selectedIds: number[];
-  onToggleSelect: (id: number) => void;
-  onToggleSelectAll: (ids: number[], checked: boolean) => void;
+  selectedIds: string[];
+  onToggleSelect: (id: string) => void;
+  onToggleSelectAll: (ids: string[], checked: boolean) => void;
   onOpenTicket: (ticket: SupportTicket, action?: TicketAction) => void;
   onQuickAction: (ticket: SupportTicket, action: TicketAction) => void;
   onBulkAssign: (assigneeName: string) => void;

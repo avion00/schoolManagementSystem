@@ -3,7 +3,7 @@ import { CreditCard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DetailCard } from "@/components/ui/DetailCard";
 import { Separator } from "@/components/ui/separator";
-import type { PayrollInfo, MonthlyPay } from "@/data/teacherDetailsData";
+import type { PayrollInfo, MonthlyPay } from "@/api/types/teachers";
 
 function fmt(n: number) {
   return `NPR ${n.toLocaleString("en-IN")}`;
@@ -36,7 +36,7 @@ export function TeacherPayrollCard({
     <DetailCard
       icon={CreditCard}
       title="Payroll"
-      action={<PayStatusBadge status={payroll.paymentStatus} />}
+      action={payroll.paymentStatus ? <PayStatusBadge status={payroll.paymentStatus as "Paid" | "Pending" | "Overdue"} /> : undefined}
     >
       {/* Net Salary hero */}
       <div className="rounded-xl bg-primary/5 p-4 text-center">
